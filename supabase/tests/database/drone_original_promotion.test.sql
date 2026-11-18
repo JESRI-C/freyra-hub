@@ -5,7 +5,7 @@
 -- guarantee. Byte decoding and checksum computation are covered by Node tests.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(80);
+select plan(92);
 set local storage.allow_delete_query = 'true';
 
 create function pg_temp.promotion_history_fixture_supported() returns boolean
@@ -61,6 +61,14 @@ insert into promotion_fixture_inputs values
  ('ea300000-0000-4000-8000-000000000003', 'ea200000-0000-4000-8000-000000000001', 'ea000000-0000-4000-8000-000000000001', 'ea100000-0000-4000-8000-000000000001', 'ea500000-0000-4000-8000-000000000003', 'ea400000-0000-4000-8000-000000000003', repeat('e',64), repeat('f',64), 'rejected', 'rejected.JPG'),
  ('ea300000-0000-4000-8000-000000000004', 'ea200000-0000-4000-8000-000000000001', 'ea000000-0000-4000-8000-000000000001', 'ea100000-0000-4000-8000-000000000001', 'ea500000-0000-4000-8000-000000000004', 'ea400000-0000-4000-8000-000000000004', repeat('1',64), repeat('2',64), 'review_required', 'stale.JPG'),
  ('ea300000-0000-4000-8000-000000000005', 'ea200000-0000-4000-8000-000000000001', 'ea000000-0000-4000-8000-000000000001', 'ea100000-0000-4000-8000-000000000001', 'ea500000-0000-4000-8000-000000000005', 'ea400000-0000-4000-8000-000000000005', repeat('3',64), repeat('4',64), 'review_required', 'unpromoted.JPG');
+insert into promotion_fixture_inputs
+select ('ea300000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid, project_id, organization_id, actor_id,
+  ('ea500000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid, ('ea400000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid,
+  case when n < 10 then repeat(n::text,64) else lpad(n::text,64,'0') end, repeat('f',64),
+  case when n in (6,7) then 'raw_original_validated' else 'review_required' end,
+  'capture-' || n || '.JPG'
+from promotion_fixture_inputs cross join generate_series(6,11) n
+where upload_id = 'ea300000-0000-4000-8000-000000000001';
 insert into public.uploads (id, project_id, organization_id, uploaded_by, file_name, original_file_name, file_size, mime_type, upload_type, storage_path, intent_request_id, intent_expires_at, received_at, status)
 select upload_id, project_id, organization_id, actor_id, file_name, file_name, 10, 'image/jpeg', 'drone_photo',
  actor_id::text || '/intents/' || upload_id::text || '/' || file_name,
@@ -102,6 +110,25 @@ select input.*, to_jsonb(object) ->> 'version' as object_version, object.updated
 from promotion_fixture_inputs input
 join public.uploads upload on upload.id = input.upload_id
 join storage.objects object on object.id = input.object_id;
+update promotion_cases set validation_result = validation_result || jsonb_build_object(
+  'cameraPositionEligible', file_name in ('capture-6.JPG','capture-7.JPG'),
+  'metadata', jsonb_build_object(
+    'file', jsonb_build_object('sha256',original_sha256),
+    'raw',jsonb_build_object('parseErrors','[]'::jsonb),
+    'qa',jsonb_build_object(
+      'status',case when file_name in ('capture-6.JPG','capture-7.JPG') then 'ready'
+        when file_name in ('capture-9.JPG','capture-10.JPG') then 'blocked' else 'review_required' end,
+      'errors',case when file_name in ('capture-9.JPG','capture-10.JPG') then '[{"code":"POSITION_CONFLICT"}]'::jsonb else '[]'::jsonb end,
+      'warnings',case when file_name in ('capture-6.JPG','capture-7.JPG','capture-9.JPG') then '[]'::jsonb
+        when file_name = 'capture-11.JPG' then '[{"code":"CAPTURE_TIMEZONE_UNKNOWN"},{"code":"POSITION_VARIANTS"}]'::jsonb
+        else '[{"code":"CAPTURE_TIMEZONE_UNKNOWN"}]'::jsonb end),
+    'capture', case when file_name in ('capture-8.JPG','capture-10.JPG','capture-11.JPG') then
+      '{"localTimestamp":"2025-09-15T12:00:00","timezoneKnown":false}'::jsonb
+      else jsonb_build_object('timezoneKnown', true, 'source','exif-offset',
+        'capturedAtUtc',case when file_name = 'capture-6.JPG' then '2025-08-27T10:05:03.251Z' else '2025-09-15T10:00:00Z' end) end,
+    'position', jsonb_build_object('latitude', 0, 'longitude', 9.5, 'source','exif')
+  ))
+where file_name like 'capture-%';
 grant select on promotion_cases to service_role;
 set local role service_role;
 do $seed_validations$
@@ -134,6 +161,20 @@ begin
   return affected;
 end
 $affected_rows$;
+
+-- PostgreSQL reports RESTRICT as either foreign_key_violation or
+-- restrict_violation. Require the actual pinning constraint in both cases.
+create function pg_temp.promotion_delete_is_pinned(p_sql text, expected_constraints text[])
+returns boolean language plpgsql security invoker set search_path = '' as $pinned$
+declare violated text;
+begin
+  execute p_sql;
+  return false;
+exception when foreign_key_violation or restrict_violation then
+  get stacked diagnostics violated = constraint_name;
+  return violated = any(expected_constraints);
+end
+$pinned$;
 
 select ok(not has_function_privilege('anon', 'public.persist_drone_original_promotion(uuid,uuid,uuid,uuid,text,text,uuid,text,timestamptz)', 'EXECUTE'), 'anonymous caller cannot promote originals');
 select ok(not has_function_privilege('authenticated', 'public.persist_drone_original_promotion(uuid,uuid,uuid,uuid,text,text,uuid,text,timestamptz)', 'EXECUTE'), 'browser cannot call the trusted promotion writer');
@@ -217,10 +258,10 @@ select throws_ok($q$select public.prepare_project_media_original_read('ea200000-
  '23514',null,'reader refuses a media ID from a different project');
 select throws_ok($q$update public.project_media set title = 'rewrite' where id = (select (result #>> '{media,id}')::uuid from promotion_results where name = 'first')$q$,
  '23514', null, 'canonical media is immutable even under a direct privileged metadata update');
-select throws_ok($q$delete from public.uploads where id = 'ea300000-0000-4000-8000-000000000001'$q$,
- '23503', null, 'referenced primary upload cannot be deleted');
-select throws_ok($q$delete from public.uploads where id = 'ea300000-0000-4000-8000-000000000002'$q$,
- '23503', null, 'referenced duplicate upload cannot be deleted');
+select ok(pg_temp.promotion_delete_is_pinned($q$delete from public.uploads where id = 'ea300000-0000-4000-8000-000000000001'$q$,
+ array['project_media_source_upload_id_fkey','project_media_upload_origins_upload_id_fkey']), 'referenced primary upload cannot be deleted');
+select ok(pg_temp.promotion_delete_is_pinned($q$delete from public.uploads where id = 'ea300000-0000-4000-8000-000000000002'$q$,
+ array['project_media_upload_origins_upload_id_fkey']), 'referenced duplicate upload cannot be deleted');
 select throws_ok($q$update public.project_media_upload_origins set original_sha256 = repeat('0',64) where upload_id = 'ea300000-0000-4000-8000-000000000001'$q$,
  '23514', null, 'even a privileged update cannot rewrite an immutable physical origin');
 select throws_ok($q$update public.project_media_promotion_requests set upload_id = 'ea300000-0000-4000-8000-000000000002' where project_id = 'ea200000-0000-4000-8000-000000000001'$q$,
@@ -228,10 +269,10 @@ select throws_ok($q$update public.project_media_promotion_requests set upload_id
 reset role;
 select throws_ok($q$delete from public.project_media where id = (select (result #>> '{media,id}')::uuid from promotion_results where name = 'first')$q$,
  '23514', null, 'canonical media deletion is denied by its immutable provenance trigger');
-select throws_ok($q$delete from storage.objects where id = 'ea500000-0000-4000-8000-000000000001'$q$,
- '23503', null, 'primary exact-object FK prevents deletion independently of the RLS snapshot');
-select throws_ok($q$delete from storage.objects where id = 'ea500000-0000-4000-8000-000000000002'$q$,
- '23503', null, 'duplicate exact-object FK protects every retained physical origin');
+select ok(pg_temp.promotion_delete_is_pinned($q$delete from storage.objects where id = 'ea500000-0000-4000-8000-000000000001'$q$,
+ array['project_media_storage_object_id_fkey','project_media_upload_origins_object_id_fkey']), 'primary exact-object FK prevents deletion independently of the RLS snapshot');
+select ok(pg_temp.promotion_delete_is_pinned($q$delete from storage.objects where id = 'ea500000-0000-4000-8000-000000000002'$q$,
+ array['project_media_upload_origins_object_id_fkey']), 'duplicate exact-object FK protects every retained physical origin');
 
 -- Existing permissive policies use OR. New restrictive policies must still win
 -- if another application policy later grants broad writes to this bucket.
@@ -287,6 +328,56 @@ set local role authenticated;
 select is((select count(*) from public.project_media where project_id = 'ea200000-0000-4000-8000-000000000001'), 0::bigint, 'foreign tenant cannot read canonical media');
 select is((select count(*) from public.project_media_upload_origins where project_id = 'ea200000-0000-4000-8000-000000000001'), 0::bigint, 'foreign tenant cannot read duplicate origin provenance');
 select is((select count(*) from public.project_media_promotion_requests where project_id = 'ea200000-0000-4000-8000-000000000001'), 0::bigint, 'foreign tenant cannot read promotion request receipts');
+reset role;
+-- Insert one photo exactly as the previous promotion version did. Only the
+-- new capture enrichment is suspended inside this disposable test transaction.
+alter table public.project_media disable trigger project_media_promoted_photo_capture;
+set local role service_role;
+insert into promotion_results values ('legacy-capture', pg_temp.promote_from_case(
+  'ea300000-0000-4000-8000-000000000007','ea100000-0000-4000-8000-000000000001','ea700000-0000-4000-8000-000000000007'));
+reset role;
+alter table public.project_media enable trigger project_media_promoted_photo_capture;
+set local role service_role;
+insert into promotion_results
+select file_name, pg_temp.promote_from_case(upload_id, actor_id, intent_request_id)
+from promotion_cases where file_name like 'capture-%' and file_name <> 'capture-7.JPG';
+reset role;
+select set_config('request.jwt.claims', '{"sub":"ea100000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+select ok((select captured_at = '2025-08-27T10:05:03.251Z'::timestamptz and lat = 0 and lng = 9.5
+  and original_sha256 = repeat('6',64) and sha256 is null and not is_report_ready
+  from public.project_media where title = 'capture-6.JPG'), 'normal promotion stores UTC capture and a verified camera position without report approval');
+select ok((select captured_at is null and lat is null and lng is null from public.project_media
+  where title = 'capture-7.JPG'), 'the historical media row retains its original empty capture fields');
+select ok((select a.captured_at < b.captured_at and b.captured_at = '2025-09-15T10:00:00Z'::timestamptz
+  and a.lat = b.lat and a.lng = b.lng and a.sha256 = repeat('6',64) and b.sha256 = repeat('7',64)
+  from public.comparison_photo_sources a join public.comparison_photo_sources b on b.project_id = a.project_id
+  where a.title = 'capture-6.JPG' and b.title = 'capture-7.JPG'), 'project viewer sees dated, positioned, distinct new and historical originals as a pair');
+select ok((select captured_at is null and capture_date = date '2025-09-15' and lat = 0 and lng = 9.5 and sha256 = repeat('8',64)
+  from public.comparison_photo_sources where title = 'capture-8.JPG'), 'a clean original with unknown timezone supplies its EXIF day and camera GPS for comparisons only');
+select ok((select captured_at is null and lat is null and lng is null from public.project_media
+  where title = 'capture-8.JPG'), 'a comparison-only camera position does not enter automatic map or timestamp fields');
+select ok((select captured_at is null and capture_date = date '2025-09-15' and lat is null and lng is null
+  from public.comparison_photo_sources where title = 'capture-10.JPG'), 'a sensor conflict retains only its independent recorded day');
+select ok((select capture_date = date '2025-09-15' and lat is null and lng is null
+  from public.comparison_photo_sources where title = 'capture-11.JPG'), 'additional metadata warnings withhold the comparison-only GPS');
+select ok((select captured_at is not null and lat is null and lng is null and sha256 = repeat('9',64)
+  from public.comparison_photo_sources where title = 'capture-9.JPG'), 'a verified capture time does not override the validator’s camera-position decision');
+select ok((select s.sha256 is null from public.report_media_sources s where s.title = 'capture-6.JPG'),
+  'the comparison checksum does not make a raw original an approvable report source');
+select ok((select captured_at is null and lat is null and lng is null and sha256 = repeat('a',64)
+  from public.comparison_photo_sources where title = 'original.JPG'), 'a promoted file without EXIF retains its original checksum only');
+reset role;
+create policy comparison_fixture_hidden_upload on public.uploads as restrictive for select to authenticated
+  using (id <> 'ea300000-0000-4000-8000-000000000006');
+set local role authenticated;
+select ok((select captured_at is null and lat is null and lng is null and sha256 is null
+  from public.comparison_photo_sources where title = 'capture-6.JPG'), 'source upload RLS withholds comparison metadata even when the media row is visible');
+reset role;
+select set_config('request.jwt.claims', '{"sub":"eb100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+set local role authenticated;
+select is((select count(*) from public.comparison_photo_sources where project_id = 'ea200000-0000-4000-8000-000000000001'),
+  0::bigint, 'foreign project cannot read comparison sources');
 reset role;
 -- Privileged maintenance is outside ordinary RLS. Promotion must still refuse
 -- to attach/replay a duplicate if its primary canonical object was changed.

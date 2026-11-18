@@ -23,6 +23,18 @@ describe("project navigation compatibility", () => {
     );
     expect([...tabs].sort()).toEqual(PROJECT_TABS.map((tab) => tab.id).sort());
   });
+  it("opens a saved photo link in the gallery and clears it when leaving the gallery", () => {
+    const context = { media: "photo", round: "round" };
+    expect(resolveProjectView(context)).toEqual({ kind: "tab", id: "medier" });
+    expect(projectViewSearch(context, { kind: "tab", id: "medier" })).toEqual({
+      ...context,
+      tab: "medier",
+    });
+    expect(projectViewSearch(context, { kind: "step", id: "baseline" })).toEqual({
+      round: "round",
+      step: "baseline",
+    });
+  });
   it("opens legacy execution and report links in the same canonical workspace", () => {
     expect(resolveProjectView({ step: "udfoerelse", task: "task", work: "execution" })).toEqual(
       resolveProjectView({ tab: "handlinger" }),

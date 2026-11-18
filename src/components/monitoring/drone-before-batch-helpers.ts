@@ -1,47 +1,48 @@
 export const MAX_DRONE_BEFORE_BATCH_FILES = 200;
 export const DRONE_BEFORE_CONCURRENCY = 2;
 
-export interface BatchFileIdentity {
-  name: string;
-  size: number;
-  lastModified: number;
-  type: string;
-}
-
-export function batchFileKey(file: BatchFileIdentity): string {
-  return [file.name, file.size, file.lastModified, file.type].join(":");
-}
-
 export function nextBatchSequence(existingSequences: readonly number[]): number {
   return existingSequences.reduce((maximum, value) => Math.max(maximum, value), 0) + 1;
 }
 
-export function selectUniqueBatchFiles<T extends BatchFileIdentity>(params: {
+export function selectUniqueBatchFiles<T extends object>(params: {
   existing: readonly T[];
   incoming: readonly T[];
-  limit?: number;
-}): { accepted: T[]; duplicateCount: number; capacityRejectedCount: number } {
-  const limit = params.limit ?? MAX_DRONE_BEFORE_BATCH_FILES;
-  const known = new Set(params.existing.map(batchFileKey));
+}): { accepted: T[]; duplicateCount: number } {
+  // Two memory cards can have identical names, sizes and timestamps. Byte-level
+  // deduplication belongs to promotion, where both upload origins are retained.
+  const known = new Set(params.existing);
   const accepted: T[] = [];
   let duplicateCount = 0;
-  let capacityRejectedCount = 0;
 
   for (const file of params.incoming) {
-    const key = batchFileKey(file);
-    if (known.has(key)) {
+    if (known.has(file)) {
       duplicateCount += 1;
       continue;
     }
-    if (params.existing.length + accepted.length >= limit) {
-      capacityRejectedCount += 1;
-      continue;
-    }
-    known.add(key);
+    known.add(file);
     accepted.push(file);
   }
 
-  return { accepted, duplicateCount, capacityRejectedCount };
+  return { accepted, duplicateCount };
+}
+
+export function droneBatchPosition(selectionSequence: number) {
+  return {
+    series: Math.floor((selectionSequence - 1) / MAX_DRONE_BEFORE_BATCH_FILES) + 1,
+    sequence: ((selectionSequence - 1) % MAX_DRONE_BEFORE_BATCH_FILES) + 1,
+  };
+}
+
+export function groupDroneBatchItems<T extends { batchSequence: number }>(items: readonly T[]) {
+  const groups = new Map<number, T[]>();
+  for (const item of items) {
+    const { series } = droneBatchPosition(item.batchSequence);
+    const group = groups.get(series);
+    if (group) group.push(item);
+    else groups.set(series, [item]);
+  }
+  return groups;
 }
 
 export async function runWithConcurrency<T>(

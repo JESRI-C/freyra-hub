@@ -30,6 +30,7 @@ export type ProjectStep =
 export type ProjectView = { kind: "tab"; id: ProjectTab } | { kind: "step"; id: ProjectStep };
 export type ProjectNavigationSearch = {
   tab?: string;
+  media?: string;
   step?: ProjectStep;
   round?: string;
   task?: string;
@@ -102,7 +103,7 @@ export function resolveProjectView(search: ProjectNavigationSearch): ProjectView
   if (search.step === "rapport") return { kind: "tab", id: "rapporter" };
   if (search.step) return { kind: "step", id: search.step };
   const tab = PROJECT_TABS.find((item) => item.id === search.tab);
-  return { kind: "tab", id: tab?.id ?? "overblik" };
+  return { kind: "tab", id: tab?.id ?? (search.media ? "medier" : "overblik") };
 }
 export function sameProjectView(a: ProjectView, b: ProjectView) {
   return a.kind === b.kind && a.id === b.id;
@@ -111,6 +112,7 @@ export function projectViewSearch(
   search: ProjectNavigationSearch,
   view: ProjectView,
 ): ProjectNavigationSearch {
-  const { tab: _tab, step: _step, ...context } = search;
-  return { ...context, ...(view.kind === "tab" ? { tab: view.id } : { step: view.id }) };
+  const { tab: _tab, step: _step, media, ...context } = search;
+  if (view.kind === "step") return { ...context, step: view.id };
+  return { ...context, tab: view.id, ...(view.id === "medier" && media ? { media } : {}) };
 }

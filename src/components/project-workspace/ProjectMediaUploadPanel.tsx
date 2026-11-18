@@ -4,7 +4,10 @@ import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
 import type { MediaCategory, ProjectMediaItem } from "@/lib/platform/media-types";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { uploadProjectMedia } from "@/services/project-media-service";
-import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
+import {
+  DroneBeforeBatchWizard,
+  NeutralDroneImport,
+} from "@/components/monitoring/DroneBeforeBatchWizard";
 import exifr from "exifr";
 import { useAuth } from "@/lib/auth";
 
@@ -473,9 +476,15 @@ export function ProjectMediaUploadPanel({
             Dronefotos og samlet import
           </summary>
           <p className="text-sm text-muted-foreground">
-            Læg originale fotos fra din FØR-flyvning ind samlet. Filerne kontrolleres og gemmes på
-            denne sag, før billederne gennemgås.
+            Importer originale fotos fra én eller flere optagedatoer. Vælg FØR-dronefotos for en
+            planlagt FØR-runde.
           </p>
+          <NeutralDroneImport
+            key={projectId}
+            projectId={projectId}
+            disabled={isUploading}
+            onImported={onDroneBatchImported}
+          />
           <button
             type="button"
             onClick={() => setBeforeBatchOpen(true)}

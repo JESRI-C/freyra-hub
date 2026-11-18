@@ -13,16 +13,15 @@ const file = (name: string, size = 10) => ({
 });
 
 describe("selectUniqueBatchFiles", () => {
-  it("deduplikerer og håndhæver batchgrænsen", () => {
+  it("skips the same handle but keeps separate files with identical browser metadata", () => {
+    const first = file("a.jpg");
     const result = selectUniqueBatchFiles({
-      existing: [file("a.jpg")],
-      incoming: [file("a.jpg"), file("b.jpg"), file("c.jpg")],
-      limit: 2,
+      existing: [first],
+      incoming: [first, file("a.jpg"), file("b.jpg")],
     });
 
-    expect(result.accepted.map((entry) => entry.name)).toEqual(["b.jpg"]);
+    expect(result.accepted.map((entry) => entry.name)).toEqual(["a.jpg", "b.jpg"]);
     expect(result.duplicateCount).toBe(1);
-    expect(result.capacityRejectedCount).toBe(1);
   });
 
   it("bevarer alle 120 forskellige billeder i den bestilte FØR-runde", () => {
@@ -36,7 +35,6 @@ describe("selectUniqueBatchFiles", () => {
     expect(result.accepted[0]?.name).toBe("DJI_0001.JPG");
     expect(result.accepted[119]?.name).toBe("DJI_0120.JPG");
     expect(result.duplicateCount).toBe(0);
-    expect(result.capacityRejectedCount).toBe(0);
   });
 });
 

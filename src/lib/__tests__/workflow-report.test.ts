@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { WorkflowReportSnapshotSchema } from "../workflow-report";
+import { buildDocx } from "../report-export";
 import { emptyExecution } from "../action-execution";
 import { newReportContent, reportIssues, type ReportRevision } from "../report-document";
 import {
@@ -91,6 +92,67 @@ function files(bytes: Uint8Array) {
   return result;
 }
 describe("frozen workflow report", () => {
+  it("pairs Word illustrations by frozen media ID and labels each side, including reused photos", () => {
+    const report = fixture();
+    const snapshot = report.content.workflowSnapshot!;
+    const [entry] = snapshot.inputs;
+    const pairs = [
+      [1, 2],
+      [2, 3],
+      [4, 5],
+    ];
+    snapshot.inputs = pairs.map(([before, after], index) => ({
+      ...entry,
+      payload: {
+        ...entry.payload,
+        source: "photo-comparison:" + uuid(10 + index),
+        decision: JSON.stringify({
+          schema: "freyra.photo-comparison/v1",
+          comparisonId: uuid(10 + index),
+          executionRevisionId: null,
+          beforeId: uuid(before),
+          afterId: uuid(after),
+          parameter: "other",
+          samePlaceEvidence: "",
+          commonCoverage: "unknown",
+          coverageDescription: "",
+          excludedAreas: "",
+          captureDifferences: "",
+          conclusion: "",
+          correctionReason: "",
+          quantitative: false,
+        }),
+      },
+    }));
+    const images = [3, 2, 1, 4].map((number) => ({
+      id: "media:" + uuid(number),
+      caption: "Billede " + number,
+      format: "jpeg" as const,
+      bytes: Uint8Array.of(number),
+      width: 60,
+      height: 40,
+    }));
+    const historic = files(buildDocx(report, images));
+    expect(new TextDecoder().decode(historic["word/document.xml"])).not.toContain("<w:tbl>");
+    report.content.photoLayoutVersion = 2;
+    const archive = files(buildDocx(report, images));
+    const document = new TextDecoder().decode(archive["word/document.xml"]);
+    const tables = document.match(/<w:tbl>.*?<\/w:tbl>/gs) ?? [];
+    expect(tables).toHaveLength(2);
+    expect(tables[0]).toMatch(
+      /Tidligere optagelse.*?r:embed="image2".*?Senere optagelse.*?r:embed="image1"/s,
+    );
+    expect(tables[1]).toMatch(
+      /Tidligere optagelse.*?r:embed="image1".*?Senere optagelse.*?r:embed="image0"/s,
+    );
+    expect(document).toMatch(/Fotoatlas.*?r:embed="image3"/s);
+    expect(document).not.toContain("Fotopar 3");
+    expect(Object.keys(archive).filter((name) => name.startsWith("word/media/"))).toHaveLength(4);
+    const placements = [...document.matchAll(/wp:docPr id="(\d+)"/g)].map((m) => m[1]);
+    expect(placements).toHaveLength(5);
+    expect(new Set(placements).size).toBe(placements.length);
+  });
+
   it("refuses synthetic executions relabelled as customer observations", () => {
     const snapshot = fixture().content.workflowSnapshot!;
     expect(() => WorkflowReportSnapshotSchema.parse({ ...snapshot, dataBasis: "real" })).toThrow();
@@ -106,6 +168,23 @@ describe("frozen workflow report", () => {
     };
     c.sections[0].text = "Changed result";
     expect(reportIssues(c).join(" ")).toContain("anden udgave");
+  });
+  it("identifies a saved request for corrections as an approval blocker", () => {
+    const content = fixture().content;
+    const snapshot = content.workflowSnapshot!;
+    snapshot.review = {
+      scope: "documentation",
+      decision: "changes_requested",
+      inputIds: snapshot.inputs.map(({ id }) => id),
+      reason: "Angiv fælles synlig dækning.",
+      sectionTexts: { s1: content.sections[0].text },
+    };
+    expect(WorkflowReportSnapshotSchema.parse(snapshot).review?.reason).toBe(
+      "Angiv fælles synlig dækning.",
+    );
+    expect(reportIssues(content)).toContain(
+      "Dokumentationsreviewet har åbne rettelser, som kræver et nyt accepteret review.",
+    );
   });
   it("exports real PDF/ZIP bytes, frozen inputs and verifiable file hashes deterministically", async () => {
     const report = fixture();

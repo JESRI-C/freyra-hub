@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const storage = vi.hoisted(() => ({ from: vi.fn(), createSignedUrl: vi.fn() }));
 const atlasMocks = vi.hoisted(() => ({ from: vi.fn(), load: vi.fn(), images: vi.fn() }));
+const canonicalRead = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/canonical-drone-media.functions", () => ({
+  getCanonicalDroneMediaUrl: canonicalRead,
+}));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { storage, from: atlasMocks.from } }));
 vi.mock("../photo-atlas-service", () => ({ loadPhotoAtlas: atlasMocks.load }));
 vi.mock("@/lib/photo-atlas-export", () => ({ atlasReportImages: atlasMocks.images }));
@@ -43,6 +47,7 @@ describe("frozen atlas evidence authorization", () => {
     expect(atlasMocks.load).toHaveBeenCalledWith(
       { organizationId: "own-org", projectId: "own-project" },
       "atlas-file",
+      false,
     );
     expect(atlasMocks.images).not.toHaveBeenCalled();
   });
@@ -61,6 +66,18 @@ describe("frozen atlas evidence authorization", () => {
     revision.content.sources = [];
     await expect(buildReportImages(revision)).rejects.toThrow("kilderegister");
     expect(atlasMocks.load).not.toHaveBeenCalled();
+  });
+  it("refuses coordinates that disagree with the exact atlas file before rendering", async () => {
+    const revision = frozen();
+    revision.content.photoLayoutVersion = 2;
+    revision.content.photoAtlas!.mapPoints = [{ id: "PHOTO-1", position: [9, 55] }];
+    authorize({ data: { organization_id: "own-org", project_id: "own-project" }, error: null });
+    atlasMocks.load.mockResolvedValue({
+      checksum: "c".repeat(64),
+      photos: [{ id: "PHOTO-1", lon: 9.1, lat: 55 }],
+    });
+    await expect(buildReportImages(revision)).rejects.toThrow("kortpunkter matcher ikke kilden");
+    expect(atlasMocks.images).not.toHaveBeenCalled();
   });
 });
 function fixture(): ReportRevision {
@@ -115,6 +132,78 @@ describe("report asset integrity", () => {
     expect(await buildReportImages(r)).toEqual([]);
     expect(storage.createSignedUrl).not.toHaveBeenCalled();
   });
+  it("opens only the reviewed original from the saved report's project and verifies the downloaded bytes", async () => {
+    const revision = fixture();
+    const photo = revision.content.sources[0];
+    const originalBytes = new TextEncoder().encode("historical photo bytes");
+    const digest = await crypto.subtle.digest("SHA-256", originalBytes);
+    photo.storageBucket = "monitoring-uploads";
+    photo.checksum = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    photo.localCaptureDate = "2026-08-24";
+    photo.version = "b".repeat(64);
+    const review = {
+      id: crypto.randomUUID(),
+      bindingId: crypto.randomUUID(),
+      sha256: photo.version,
+      bindingSha256: "c".repeat(64),
+      originalSha256: photo.checksum,
+      originalValidationSha256: "d".repeat(64),
+    };
+    const projectId = crypto.randomUUID(),
+      mediaId = crypto.randomUUID();
+    photo.id = `media:${mediaId}`;
+    const query = {
+      select: () => query,
+      eq: vi.fn(() => query),
+      single: async () => ({
+        data: { project_id: projectId, organization_id: "org" },
+        error: null,
+      }),
+    };
+    atlasMocks.from.mockReturnValue(query);
+    await expect(buildReportImages(revision)).rejects.toThrow("gennemgang");
+    expect(canonicalRead).not.toHaveBeenCalled();
+    photo.photoPointReview = review;
+    const signed = {
+      projectId,
+      mediaId,
+      originalSha256: photo.checksum,
+      signedUrl: "https://example.invalid/verified-photo",
+    };
+    canonicalRead
+      .mockResolvedValueOnce({ ...signed, mediaId: crypto.randomUUID() })
+      .mockResolvedValue(signed);
+    await expect(buildReportImages(revision)).rejects.toThrow("matcher ikke");
+    const fetchOriginal = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("changed"))
+      .mockResolvedValueOnce(new Response(originalBytes));
+    vi.stubGlobal("fetch", fetchOriginal);
+    try {
+      await expect(buildReportImages(revision)).rejects.toThrow("Checksum afviger");
+      vi.stubGlobal(
+        "createImageBitmap",
+        vi.fn(async () => ({ width: 1600, height: 900, close: vi.fn() })),
+      );
+      vi.stubGlobal("document", {
+        createElement: () => ({
+          getContext: () => ({ drawImage: vi.fn() }),
+          toBlob: (cb: (blob: Blob) => void) => cb(new Blob(["preview"])),
+        }),
+      });
+      const [image] = await buildReportImages(revision);
+      expect(image).toMatchObject({ id: photo.id, width: 1600 });
+      expect(image.caption).toContain("lokal kameradato uden dokumenteret tidszone");
+      expect(query.eq).toHaveBeenCalledWith("id", revision.report_id);
+      expect(canonicalRead).toHaveBeenCalledWith({ data: { projectId, mediaId } });
+      expect(fetchOriginal).toHaveBeenCalledWith(signed.signedUrl);
+      expect(storage.createSignedUrl).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("visible basemap composition", () => {
@@ -125,10 +214,14 @@ describe("visible basemap composition", () => {
       save: vi.fn(),
       restore: vi.fn(),
       beginPath: vi.fn(),
+      closePath: vi.fn(),
       rect: vi.fn(),
       clip: vi.fn(),
       strokeRect: vi.fn(),
       arc: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
       fill: vi.fn(),
       drawImage: vi.fn(),
     };
@@ -146,5 +239,53 @@ describe("visible basemap composition", () => {
     expect(result).toHaveLength(1);
     expect(result[0].caption).toContain("Baggrundskort utilgængeligt");
     expect(result[0].caption).toContain("faktisk fotodækning fremgår ikke");
+    expect(ctx.fillText).toHaveBeenCalledWith("↑ N", 1250, 50);
+    expect(ctx.fillText).toHaveBeenCalledWith("50 m ved kortets midte", 1060, 811);
+    expect(ctx.fillText).toHaveBeenCalledWith("Nummereret kameraposition", 88, 79);
+    expect(ctx.arc).toHaveBeenCalledWith(75, 73, 5, 0, 2 * Math.PI);
+
+    r.content.sources = [];
+    r.content.natureSurvey = {
+      observations: [],
+      areas: [
+        {
+          id: "550224ca-2766-4bb9-9f1b-98a7b77ad365",
+          name: "Eng",
+          method: "Visuel gennemgang",
+          hectares: 2,
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [9.4, 55.2],
+                [9.402, 55.2],
+                [9.4, 55.203],
+                [9.4, 55.2],
+              ],
+            ],
+          },
+        },
+      ],
+    };
+    const surveyImages = await buildReportImages(r);
+    expect(surveyImages).toHaveLength(1);
+    expect(surveyImages[0].caption).toContain("Områdegrænser og numre");
+    expect(ctx.fillText).toHaveBeenCalledWith("Nummereret undersøgelsesområde", 88, 79);
+    expect(ctx.closePath).toHaveBeenCalledOnce();
+    expect(ctx.fill).toHaveBeenCalledWith("evenodd");
+    r.content.natureSurvey = undefined;
+    const source = { ...fixture().content.sources[0], checksum: null };
+    r.content.sources = [
+      { ...source, id: "media:outside", position: [12, 57] },
+      { ...source, id: "media:inside", position: [9.4, 55.2] },
+    ];
+    r.content.mapViewport = { center: [9.4, 55.2], zoom: 18 };
+    ctx.fillText.mockClear();
+    const [crop] = await buildReportImages(r);
+    expect(crop.caption).toContain("Valgt kortudsnit. 1 af 2 positioner er inden for rammen.");
+    expect(crop.caption).not.toContain("tætte punkter");
+    expect(ctx.fillText).toHaveBeenCalledWith("2", expect.any(Number), expect.any(Number));
+    expect(ctx.fillText).not.toHaveBeenCalledWith("1", expect.any(Number), expect.any(Number));
+    expect(ctx.fillText).toHaveBeenCalledWith("50 m ved kortets midte", 1060, 811);
   });
 });

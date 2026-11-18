@@ -1,11 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ assert: vi.fn(), save: vi.fn(), list: vi.fn(), media: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  assert: vi.fn(),
+  save: vi.fn(),
+  list: vi.fn(),
+  media: vi.fn(),
+  sources: vi.fn(),
+}));
 vi.mock("@/services/project-workspace-service", () => ({
   assertProjectScope: mocks.assert,
   saveWorkspaceEntry: mocks.save,
 }));
 vi.mock("@/services/action-execution-service", () => ({ listActionExecutions: mocks.list }));
-vi.mock("@/services/project-media-service", () => ({ getProjectMedia: mocks.media }));
+vi.mock("@/services/project-media-service", () => ({
+  getProjectMedia: mocks.media,
+  listComparisonPhotos: mocks.sources,
+}));
 vi.mock("@/lib/supabase/client", () => ({ supabase: {} }));
 import { inspectPhotoComparison, savePhotoComparison } from "../photo-comparison-service";
 import { emptyExecution } from "@/lib/action-execution";
@@ -51,12 +60,43 @@ describe("comparison scope and draft persistence", () => {
       },
     }));
     mocks.save.mockResolvedValue({ id: uuid(11) });
+    mocks.sources.mockResolvedValue(
+      [input.beforeId, input.afterId].map((id) => ({
+        id,
+        projectId: scope.projectId,
+        sha256: id === input.beforeId ? "a".repeat(64) : "b".repeat(64),
+      })),
+    );
   });
   it("preserves insufficient material as a limited draft rather than fabricating success", async () => {
     const result = await savePhotoComparison(scope, input);
     expect(result.assessment.status).toBe("insufficient");
     expect(mocks.save.mock.calls[0][1].payload.uncertainty).toContain("Faktisk udførelse");
     expect(mocks.media).toHaveBeenCalledWith(scope.projectId, input.beforeId);
+  });
+  it("saves a standalone photo pair without looking up an action", async () => {
+    const result = await savePhotoComparison(scope, { ...input, executionRevisionId: null });
+    expect(result.execution).toBeUndefined();
+    expect(mocks.list).not.toHaveBeenCalled();
+    const payload = mocks.save.mock.calls[0][1].payload;
+    expect(JSON.parse(payload.decision).executionRevisionId).toBeNull();
+    expect(payload.uncertainty).toContain("ingen tilknyttet udførelsesregistrering");
+  });
+  it("uses the comparison source's verified metadata when the original has older or incomplete metadata", async () => {
+    mocks.sources.mockResolvedValue([
+      {
+        id: input.beforeId,
+        projectId: scope.projectId,
+        capturedAt: "2026-06-10",
+        sha256: "a".repeat(64),
+      },
+      { id: input.afterId, projectId: scope.projectId, capturedAt: "2026-07-10", sha256: null },
+    ]);
+    const result = await inspectPhotoComparison(scope, { ...input, executionRevisionId: null });
+    expect(mocks.sources).toHaveBeenCalledWith(scope.projectId, [input.beforeId, input.afterId]);
+    expect(result.before.capturedAt).toBe("2026-06-10");
+    expect(result.after.sha256).toBeNull();
+    expect(result.assessment.gaps).toContain("Originalernes kontrolsummer mangler.");
   });
   it("rejects a foreign execution revision before resolving images", async () => {
     await expect(

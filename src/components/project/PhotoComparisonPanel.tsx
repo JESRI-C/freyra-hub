@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { BeforeAfterCompare } from "@/components/project-workspace/BeforeAfterCompare";
 import { latestExecutions, executionRevisions } from "@/lib/action-execution";
 import {
   assessPhotoComparison,
+  comparisonCaptureLabel,
+  suggestPhotoPairs,
   type PhotoComparison,
   type ComparisonAssessment,
 } from "@/lib/photo-comparison";
 import type { WorkspaceEntry } from "@/lib/project-workspace";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { listActionExecutions } from "@/services/action-execution-service";
-import { listProjectMedia } from "@/services/project-media-service";
+import { getProjectMedia, listComparisonPhotos } from "@/services/project-media-service";
 import {
   listPhotoComparisons,
   latestPhotoComparisons,
@@ -38,11 +40,7 @@ export function PhotoComparisonPanel({
   });
   const media = useQuery({
     queryKey: ["comparison-originals", scope.organizationId, scope.projectId],
-    queryFn: async () => {
-      const result = await listProjectMedia(scope.projectId);
-      if (!result.data) throw new Error(result.error ?? "Originalerne kunne ikke hentes.");
-      return result.data.filter((m) => ["field_photo", "drone_image"].includes(m.category));
-    },
+    queryFn: () => listComparisonPhotos(scope.projectId),
     retry: false,
     staleTime: 0,
   });
@@ -50,14 +48,42 @@ export function PhotoComparisonPanel({
   const [base, setBase] = useState<WorkspaceEntry | undefined>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const allExecutions = executionRevisions(executions.data ?? []);
+  const [suggestionMode, setSuggestionMode] = useState<"execution" | "dates">("execution");
+  const [earlierDate, setEarlierDate] = useState("");
+  const [laterDate, setLaterDate] = useState("");
+  const allExecutions = useMemo(() => executionRevisions(executions.data ?? []), [executions.data]);
   const latest = latestExecutions(executions.data ?? []);
+  const selectedExecution = allExecutions.find(
+    ({ entry }) => entry.id === draft?.executionRevisionId,
+  );
+  const hasDraft = draft !== null;
+  const suggestions = useMemo(
+    () =>
+      hasDraft && canEdit
+        ? suggestPhotoPairs(
+            media.data ?? [],
+            scope.projectId,
+            selectedExecution?.execution,
+            suggestionMode === "dates" ? { earlier: earlierDate, later: laterDate } : undefined,
+          )
+        : [],
+    [
+      canEdit,
+      hasDraft,
+      media.data,
+      scope.projectId,
+      selectedExecution,
+      suggestionMode,
+      earlierDate,
+      laterDate,
+    ],
+  );
   function assessment(p: PhotoComparison): ComparisonAssessment {
     const exact = allExecutions.find((r) => r.entry.id === p.executionRevisionId);
     const current = latest.find((r) => r.execution.actionId === exact?.execution.actionId);
     const before = media.data?.find((m) => m.id === p.beforeId),
       after = media.data?.find((m) => m.id === p.afterId);
-    if (!exact || !current || !before || !after)
+    if (!before || !after || (p.executionRevisionId && (!exact || !current)))
       return {
         status: "insufficient",
         gaps: ["Udførelse eller originaler er ikke tilgængelige."],
@@ -68,10 +94,13 @@ export function PhotoComparisonPanel({
   function create() {
     setBase(undefined);
     setError("");
+    setSuggestionMode(latest.length ? "execution" : "dates");
+    setEarlierDate("");
+    setLaterDate("");
     setDraft({
       schema: "freyra.photo-comparison/v1",
       comparisonId: crypto.randomUUID(),
-      executionRevisionId: latest[0]?.entry.id ?? "",
+      executionRevisionId: latest[0]?.entry.id ?? null,
       beforeId: "",
       afterId: "",
       parameter: "visible_vegetation",
@@ -88,14 +117,23 @@ export function PhotoComparisonPanel({
   const field = "mt-1 block w-full rounded border bg-background p-2";
   const before = media.data?.find((m) => m.id === draft?.beforeId),
     after = media.data?.find((m) => m.id === draft?.afterId);
+  const preview = useQuery({
+    queryKey: ["comparison-preview", scope.organizationId, scope.projectId, before?.id, after?.id],
+    enabled: !!before && !!after && before.id !== after.id,
+    retry: false,
+    gcTime: 0,
+    queryFn: async () => {
+      if (!before || !after) throw new Error("Vælg to originaler.");
+      const [earlier, later] = await Promise.all(
+        [before.id, after.id].map((id) => getProjectMedia(scope.projectId, id)),
+      );
+      if (!earlier.data || !later.data) throw new Error("Det valgte billedpar kunne ikke åbnes.");
+      return { before: earlier.data, after: later.data };
+    },
+  });
   const ready = records.isSuccess && executions.isSuccess && media.isSuccess;
   const currentAssessment =
-    draft?.beforeId &&
-    draft.afterId &&
-    draft.executionRevisionId &&
-    draft.beforeId !== draft.afterId
-      ? assessment(draft)
-      : null;
+    draft?.beforeId && draft.afterId && draft.beforeId !== draft.afterId ? assessment(draft) : null;
   return (
     <section aria-label="Før og efter" className="space-y-4">
       <p>
@@ -123,9 +161,11 @@ export function PhotoComparisonPanel({
                 ? "Kræver ny vurdering"
                 : result?.status === "descriptive"
                   ? "Beskrivende – ingen kvantitativ effekt"
-                  : result
-                    ? "Utilstrækkeligt grundlag"
-                    : "Afventer læsning"}
+                  : result?.status === "visual_only"
+                    ? "Synlige forskelle mellem optagedatoer"
+                    : result
+                      ? "Utilstrækkeligt grundlag"
+                      : "Afventer læsning"}
             </p>
             <ul>
               {result?.gaps.map((gap) => (
@@ -138,6 +178,9 @@ export function PhotoComparisonPanel({
               onClick={() => {
                 setBase(entry);
                 setDraft({ ...comparison, correctionReason: "" });
+                setSuggestionMode(comparison.executionRevisionId ? "execution" : "dates");
+                setEarlierDate("");
+                setLaterDate("");
                 setError("");
               }}
             >
@@ -171,10 +214,14 @@ export function PhotoComparisonPanel({
               Udførelsesversion
               <select
                 className={field}
-                value={draft.executionRevisionId}
-                onChange={(e) => setDraft({ ...draft, executionRevisionId: e.target.value })}
+                value={draft.executionRevisionId ?? ""}
+                onChange={(e) => {
+                  const executionRevisionId = e.target.value || null;
+                  setDraft({ ...draft, executionRevisionId });
+                  if (!executionRevisionId) setSuggestionMode("dates");
+                }}
               >
-                <option value="">Vælg dokumenteret udførelse</option>
+                <option value="">Sammenlign optagedatoer uden udførelsesreference</option>
                 {allExecutions.map((r) => (
                   <option key={r.entry.id} value={r.entry.id}>
                     {r.execution.actualDate ?? "Planlagt"} ·{" "}
@@ -184,6 +231,75 @@ export function PhotoComparisonPanel({
                 ))}
               </select>
             </label>
+            <fieldset className="space-y-2">
+              <legend>Grundlag for billedforslag</legend>
+              <select
+                className={field}
+                aria-label="Grundlag for billedforslag"
+                value={suggestionMode}
+                onChange={(e) => setSuggestionMode(e.target.value as typeof suggestionMode)}
+              >
+                <option value="execution">Omkring den registrerede arbejdsdato</option>
+                <option value="dates">To valgte optagedatoer</option>
+              </select>
+              {suggestionMode === "dates" && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label>
+                    Tidligere optagedato
+                    <input
+                      type="date"
+                      className={field}
+                      value={earlierDate}
+                      onChange={(e) => setEarlierDate(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Senere optagedato
+                    <input
+                      type="date"
+                      className={field}
+                      value={laterDate}
+                      onChange={(e) => setLaterDate(e.target.value)}
+                    />
+                  </label>
+                  {earlierDate &&
+                    laterDate &&
+                    (earlierDate >= laterDate || !suggestions.length) && (
+                      <p role="status" className="text-sm">
+                        {earlierDate >= laterDate
+                          ? "Vælg to forskellige optagedatoer i kronologisk rækkefølge."
+                          : "Der er ingen billedforslag for de valgte datoer. Du kan vælge originaler manuelt."}
+                      </p>
+                    )}
+                </div>
+              )}
+            </fieldset>
+            {suggestions.length > 0 && (
+              <div className="space-y-2">
+                <h3>Foreslåede fotopar</h3>
+                <p className="text-sm text-muted-foreground">
+                  Forslagene bygger på optagedato og enten en gemt billedkobling eller højst 30 m
+                  mellem registrerede kamerapositioner. Kontrollér motiv og fælles synlig dækning.
+                </p>
+                <ul className="space-y-2">
+                  {suggestions.map(({ before, after, distanceM, linked }) => (
+                    <li key={after.id}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-auto min-h-9 w-full justify-start whitespace-normal text-left"
+                        onClick={() =>
+                          setDraft({ ...draft, beforeId: before.id, afterId: after.id })
+                        }
+                      >
+                        {before.title} → {after.title} ·{" "}
+                        {linked ? "Gemt billedkobling" : `${Math.round(distanceM!)} m`}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               {(["beforeId", "afterId"] as const).map((name) => (
                 <label key={name}>
@@ -196,7 +312,7 @@ export function PhotoComparisonPanel({
                     <option value="">Vælg original</option>
                     {media.data?.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.title} · {m.capturedAt ?? "Optagedato ukendt"}
+                        {m.title} · {comparisonCaptureLabel(m)}
                       </option>
                     ))}
                   </select>
@@ -261,12 +377,21 @@ export function PhotoComparisonPanel({
               </label>
             ))}
           </fieldset>
-          {before && after && (
+          {preview.isFetching && <p role="status">Henter billedparret…</p>}
+          {preview.isError && (
+            <div role="alert">
+              Billedparret kunne ikke åbnes.{" "}
+              <Button type="button" variant="outline" onClick={() => void preview.refetch()}>
+                Prøv igen
+              </Button>
+            </div>
+          )}
+          {before && after && preview.data && (
             <BeforeAfterCompare
-              beforeUrl={before.url}
-              afterUrl={after.url}
-              beforeLabel={"Før · " + (before.capturedAt ?? "ukendt dato")}
-              afterLabel={"Efter · " + (after.capturedAt ?? "ukendt dato")}
+              beforeUrl={preview.data.before.url}
+              afterUrl={preview.data.after.url}
+              beforeLabel={"Tidligere · " + comparisonCaptureLabel(before)}
+              afterLabel={"Senere · " + comparisonCaptureLabel(after)}
             />
           )}
           {currentAssessment && (
@@ -276,7 +401,9 @@ export function PhotoComparisonPanel({
                   ? "Kræver ny vurdering af udførelsesversionen"
                   : currentAssessment.status === "descriptive"
                     ? "Beskrivende sammenligning med de registrerede begrænsninger"
-                    : "Utilstrækkeligt grundlag; kan gemmes som kladde"}
+                    : currentAssessment.status === "visual_only"
+                      ? "Synlige forskelle mellem optagedatoer. Forholdet til indsatsen er uafklaret."
+                      : "Utilstrækkeligt grundlag; kan gemmes som kladde"}
               </p>
               <ul>
                 {currentAssessment.gaps.map((gap) => (

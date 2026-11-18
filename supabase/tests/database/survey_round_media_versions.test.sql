@@ -152,7 +152,9 @@ create temporary table round_media_source as select upload.id as upload_id,objec
  'validatedAt',now(),'validatedBy',upload.uploaded_by,'status','review_required',
  'original',jsonb_build_object('sha256',repeat('a',64),'sizeBytes',10,'mimeType','image/jpeg','storagePath',upload.storage_path,'receivedAt',upload.received_at,
  'object',jsonb_build_object('id',object.id,'version',to_jsonb(object)->>'version','updated_at',object.updated_at,'owner_id',object.owner_id,'size',10,'mimetype','image/jpeg')),
- 'jpegStructure',jsonb_build_object('widthPx',1,'heightPx',1,'components',1,'encoding','baseline','scans',1),'metadata',null,
+ 'jpegStructure',jsonb_build_object('widthPx',1,'heightPx',1,'components',1,'encoding','baseline','scans',1),
+ 'metadata',jsonb_build_object('file',jsonb_build_object('sha256',repeat('a',64)),
+   'capture',jsonb_build_object('timezoneKnown',false,'localTimestamp','2026-10-12T17:30:00')),
  'cameraPositionEligible',false,'pixelDecoded',false,'georeferenced',false,'reportEligible',false,'errors','[]'::jsonb,'warnings','[]'::jsonb) as validation
  from public.uploads upload join storage.objects object on object.id='ef500000-0000-4000-8000-000000000001' where upload.id='ef300000-0000-4000-8000-000000000001';
 grant select on round_media_source to service_role;
@@ -180,7 +182,7 @@ create function pg_temp.media_manifest(p_round_request uuid default 'e7000000-00
  'originalValidationSha256',media.original_validation_sha256,'originalValidationStatus',media.original_validation_status,'sourceUploadId',media.source_upload_id,
  'storage',jsonb_build_object('bucket','monitoring-uploads','objectId',media.storage_object_id,'objectVersion',media.storage_object_version,'objectUpdatedAt',media.storage_object_updated_at),
  'questionIds',round.manifest->'questionIds','sourceMetadata',jsonb_build_object('source','saved_original_validation',
- 'capture',jsonb_build_object('capturedAtUtc',null,'localTimestamp',null,'offset',null,'timezoneKnown',false,'source',null,'relationToPlannedWindow','not_verified'),
+ 'capture',jsonb_build_object('capturedAtUtc',null,'localTimestamp','2026-10-12T17:30:00','offset',null,'timezoneKnown',false,'source',null,'relationToPlannedWindow','not_verified'),
  'cameraPosition',null,'jpegStructure',jsonb_build_object('widthPx',1,'heightPx',1)),
  'acceptance',jsonb_build_object('municipalScopeApproved',false,'professionalApproved',false,'pixelDecoded',false,'georeferenced',false,'reportEligible',false,'reportAccepted',false))
  from public.survey_round_versions round cross join public.project_media media where round.request_id=p_round_request and media.source_upload_id='ef300000-0000-4000-8000-000000000001'
@@ -332,6 +334,111 @@ reset role;
 select set_config('request.jwt.claim.sub','e1000000-0000-4000-8000-000000000003',true);
 set local role authenticated;
 select is((select count(*) from public.photo_point_review_versions),0::bigint,'foreign tenant reads no professional decisions');
+reset role;
+-- One original, two round assignments, one professional decision on the first.
+select set_config('request.jwt.claim.sub','e1000000-0000-4000-8000-000000000001',true);
+set local role authenticated;
+select ok((select sha256 is null from public.report_media_sources),'legacy readers still see a raw original without a report checksum');
+select ok(has_table_privilege('authenticated','public.reviewed_report_media_sources','SELECT')
+          and not has_table_privilege('anon','public.reviewed_report_media_sources','SELECT')
+          and (select reloptions @> array['security_invoker=true'] from pg_class where oid='public.reviewed_report_media_sources'::regclass),
+ 'curated report view is subject to caller RLS and denies anonymous access');
+select ok((select capture_date = date '2026-10-12' and captured_at is null and lat is null and lng is null
+           from public.reviewed_report_media_sources),'curated local capture day introduces neither a UTC instant nor a camera position');
+select is((select photo_point_review from public.reviewed_report_media_sources),
+ (select jsonb_build_object('id',r.id,'sha256',r.review_sha256,'bindingId',b.id,'bindingSha256',b.manifest_sha256,
+          'originalSha256',b.original_sha256,'originalValidationSha256',b.original_validation_sha256)
+  from public.photo_point_review_versions r join public.survey_round_media_versions b on b.id=r.binding_id
+  where r.request_id='fb100000-0000-4000-8000-000000000002'),'curation pins the exact latest confirmed decision, binding and original');
+create temporary table cited_photo as
+ select jsonb_build_object('id','media:'||id::text,'checksum',sha256,'photoPointReview',photo_point_review) as source
+ from public.reviewed_report_media_sources;
+create function pg_temp.report_from_photo(p_source jsonb, p_reviewed boolean default false)
+returns jsonb language sql as $$
+ select jsonb_build_object('title','Fixture','scope','Fixture scope','audience','Test reader',
+   'sources',jsonb_build_array(p_source),'sections',jsonb_build_array(jsonb_build_object(
+   'id','survey','title','Survey','text','Fixture','basis','observed','reviewed',p_reviewed,'sourceIds',jsonb_build_array(p_source->>'id'))))
+$$;
+create temporary table original_draft as
+ select public.save_report_revision(null,'e0000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000001',0,'draft',
+    pg_temp.report_from_photo((source-'photoPointReview')||'{"checksum":null}'::jsonb)) as revision from cited_photo;
+select ok((select revision #> '{content,sources,0,checksum}'='null'::jsonb
+                  and not (revision #> '{content,sources,0}' ? 'photoPointReview') from original_draft),
+  'an old client can still save the raw draft while a professional confirmation exists');
+create function pg_temp.save_next_photo(p_source jsonb,p_expected int default 1,p_status text default 'draft')
+returns jsonb language sql as $$
+ select public.save_report_revision((revision->>'report_id')::uuid,'e0000000-0000-4000-8000-000000000001',
+   'e2000000-0000-4000-8000-000000000001',p_expected,p_status,pg_temp.report_from_photo(p_source))
+ from original_draft
+$$;
+select throws_ok($q$select pg_temp.save_next_photo(source-'photoPointReview') from cited_photo$q$,'P0001',
+ 'Source checksum mismatch','an original hash without its professional review cannot be submitted as curated evidence');
+select throws_ok($q$select pg_temp.save_next_photo(jsonb_set(source,'{photoPointReview,sha256}',to_jsonb(repeat('e',64)))) from cited_photo$q$,
+ 'P0001','Photo point review changed; reload before saving','a claimed review checksum must match the saved decision');
+create temporary table curated_draft as select pg_temp.save_next_photo(source ||
+ '{"method":"invented","version":"invented","localCaptureDate":"2040-01-01","position":[0,0]}'::jsonb) as revision from cited_photo;
+select is((select revision #> '{content,sources,0,photoPointReview}' from curated_draft),(select source->'photoPointReview' from cited_photo),
+ 'draft freezes professional decision provenance');
+select ok((select revision #>> '{content,sources,0,version}' = revision #>> '{content,sources,0,photoPointReview,sha256}'
+             and revision #>> '{content,sources,0,localCaptureDate}' = '2026-10-12'
+             and revision #> '{content,sources,0,position}'='null'::jsonb
+             and revision #>> '{content,sources,0,method}'='Originalfoto med fagligt bekræftet fotopunkt. Eventuel position angiver kameraets placering.'
+           from curated_draft),'server freezes method, date and version and discards fabricated camera position');
+select throws_ok($q$select pg_temp.save_next_photo(source,2,'approved') from cited_photo$q$,'P0001',
+ 'Evidence and review are incomplete','confirmed photo does not approve the unreviewed report section');
+reset role;
+create temporary table initial_upload_state as select id,status from public.uploads where id='ef300000-0000-4000-8000-000000000001';
+update public.uploads set status='archived' where id='ef300000-0000-4000-8000-000000000001';
+set local role authenticated;
+select ok((select photo_point_review is null and sha256 is null from public.reviewed_report_media_sources),
+ 'a current professional confirmation cannot make an archived primary upload eligible');
+reset role;
+update public.uploads u set status=s.status from initial_upload_state s where u.id=s.id;
+create policy hide_photo_fixture on storage.objects as restrictive for select to authenticated using(false);
+set local role authenticated;
+select ok((select photo_point_review is null and sha256 is null from public.reviewed_report_media_sources),
+ 'the curated report view requires the caller to be able to read the exact Storage object');
+reset role;
+drop policy hide_photo_fixture on storage.objects;
+set local role service_role;
+select lives_ok($q$select pg_temp.photo_review(p_request=>'fb100000-0000-4000-8000-000000000005',
+ p_changes=>'{"decision":"confirmed","note":"New independent confirmation."}')$q$,'another confirmation appends its own immutable decision');
+reset role;
+set local role authenticated;
+select ok((select sha256=source->>'checksum' and photo_point_review is distinct from source->'photoPointReview'
+           from public.reviewed_report_media_sources cross join cited_photo),'same original hash can carry a different review version');
+select throws_ok($q$select pg_temp.save_next_photo(source,2) from cited_photo$q$,'P0001','Photo point review changed; reload before saving',
+ 'a replaced decision cannot be reused even if the photo hash and current decision still agree');
+reset role;
+set local role service_role;
+select lives_ok($q$select pg_temp.photo_review(p_request=>'fb100000-0000-4000-8000-000000000003')$q$,
+ 'professional rejects previously confirmed point as a new version');
+reset role;
+set local role authenticated;
+select ok((select photo_point_review is null and sha256 is null and capture_date is null from public.reviewed_report_media_sources),
+ 'new rejection removes eligibility even though an older confirmation remains');
+select throws_ok($q$select pg_temp.save_next_photo(source,2) from cited_photo$q$,'P0001','Photo point review changed; reload before saving',
+ 'stale selected decision is rejected on subsequent draft save');
+select is((select content->'sources' from public.report_revisions where id=(select (revision->>'id')::uuid from curated_draft)),
+ (select revision #> '{content,sources}' from curated_draft),'previous report version keeps its exact evidence after rejection');
+reset role;
+-- The second round can have a different decision for these same original bytes.
+set local role service_role;
+select public.save_photo_point_review(b.project_id,b.id,'e1000000-0000-4000-8000-000000000001',
+ 'fb100000-0000-4000-8000-000000000004',pg_temp.canonical_fixture(r.review || jsonb_build_object(
+ 'bindingId',b.id,'bindingSha256',b.manifest_sha256,'baselineId',b.baseline_id,'baselineSha256',b.baseline_sha256,'decision','confirmed')))
+from public.survey_round_media_versions b cross join public.photo_point_review_versions r
+where b.request_id='ef700000-0000-4000-8000-000000000006' and r.request_id='fb100000-0000-4000-8000-000000000003';
+reset role;
+set local role authenticated;
+select ok((select photo_point_review is null and sha256 is null from public.reviewed_report_media_sources),
+ 'conflicting decisions on separate bindings cannot silently choose a report citation');
+select ok((select not is_report_ready from public.project_media)
+ and (select original_validation->'reportEligible'='false'::jsonb from public.uploads),'report curation preserves raw intake flags');
+reset role;
+select set_config('request.jwt.claim.sub','e1000000-0000-4000-8000-000000000003',true);
+set local role authenticated;
+select is((select count(*) from public.reviewed_report_media_sources),0::bigint,'foreign tenant sees no reviewed photo sources');
 reset role;
 update public.project_members set role='field' where project_id='e2000000-0000-4000-8000-000000000001' and user_id='e1000000-0000-4000-8000-000000000001';
 set local role service_role;

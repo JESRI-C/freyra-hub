@@ -1,5 +1,27 @@
 import { supabase } from "@/lib/supabase/client";
 export type ObservationKind = "vegetation" | "water" | "tree" | "species" | "recommendation";
+export const OBSERVATION_KIND_LABELS: Record<ObservationKind, string> = {
+  vegetation: "Vegetation",
+  water: "Synligt vand",
+  tree: "Træ / trægruppe",
+  species: "Artsforslag",
+  recommendation: "Stedbunden anbefaling",
+};
+
+const QUALITY_LABELS: Record<string, string> = {
+  missing_gps: "GPS mangler",
+  missing_heading: "Kameraretning mangler",
+  lighting_not_comparable: "Lysforhold er ukendte eller forskellige",
+  position_difference_over_20m: "Fotopositioner er over 20 m fra hinanden",
+  direction_difference_over_30deg: "Kameraretning afviger over 30 grader",
+  same_source: "Samme foto er valgt to gange",
+  comparison_not_selected: "Intet før/efter-par valgt",
+  missing_capture_time: "Optagetid mangler",
+};
+export function observationQualityLabel(flag: string) {
+  return QUALITY_LABELS[flag] ?? flag;
+}
+
 export interface PhotoComparison {
   beforeId: string;
   afterId: string | null;

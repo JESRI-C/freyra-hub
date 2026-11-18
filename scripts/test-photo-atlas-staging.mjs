@@ -98,10 +98,10 @@ try {
   }
   if (!existing) {
     await atlas
-      .getByText("Indlæs eksisterende fotoatlas eller baselinedata", { exact: true })
+      .getByText("Indlæs fotoatlas, fotoregister eller baselinedata", { exact: true })
       .click();
     await atlas
-      .getByLabel("Importér fotoatlas eller baseline")
+      .getByLabel("Importér fotoatlas, fotoregister eller baseline")
       .setInputFiles(path.resolve(atlasPath));
     await atlas.getByText(/274 fotos ·/).waitFor();
     await page.screenshot({
@@ -259,7 +259,10 @@ try {
       await readAtlas.getByRole("button", { name: "Gem rapportkladde fra fotoatlasset" }).count(),
       0,
     );
-    assert.equal(await readAtlas.getByLabel("Importér fotoatlas eller baseline").count(), 0);
+    assert.equal(
+      await readAtlas.getByLabel("Importér fotoatlas, fotoregister eller baseline").count(),
+      0,
+    );
     const rows = await readerClient
       .from("project_workspace_entries")
       .select("*")

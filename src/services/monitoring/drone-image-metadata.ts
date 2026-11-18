@@ -413,6 +413,58 @@ export function isReadyForAutomaticCameraPosition(metadata: DroneImageMetadata):
   );
 }
 
+/** Match a local camera clock and position against the preserved EXIF/XMP without assigning an offset. */
+export function matchesLocalCameraCapture(
+  raw: Record<string, unknown>,
+  localTimestamp: string,
+  latitude: number,
+  longitude: number,
+  positionSource: unknown,
+): boolean {
+  const source = { exif: raw.exif, xmp: raw.xmp };
+  const errors: DroneMetadataIssue[] = [],
+    warnings: DroneMetadataIssue[] = [];
+  const position = normalisePosition(source, errors, warnings);
+  if (
+    !position ||
+    errors.length ||
+    warnings.length ||
+    position.source !== positionSource ||
+    position.latitude !== latitude ||
+    position.longitude !== longitude
+  )
+    return false;
+  if (collectGpsTimePairs(source).length) return false;
+  let found = false,
+    consistent = true;
+  visitRecords(source, (record, path) => {
+    if (ownValue(record, ["OffsetTimeOriginal", "OffsetTime"]) != null) consistent = false;
+    const fraction = ownValue(record, ["SubSecTimeOriginal", "SubSecTime"]);
+    for (const key of ["DateTimeOriginal", "CreateDate"]) {
+      const value = ownValue(record, [key]);
+      if (value == null) continue;
+      // A date-only xmp:CreateDate describes the resource; it supplies no camera clock.
+      if (
+        key === "CreateDate" &&
+        path === "xmp.xmp" &&
+        typeof value === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+        normaliseLocalExifTimestamp(`${value}T00:00:00`)
+      )
+        continue;
+      found = true;
+      if (fraction != null && (typeof fraction !== "string" || !/^\d+$/.test(fraction)))
+        consistent = false;
+      if (
+        normaliseLocalExifTimestamp(value, typeof fraction === "string" ? fraction : undefined) !==
+        localTimestamp
+      )
+        consistent = false;
+    }
+  });
+  return found && consistent;
+}
+
 function normalisePosition(
   source: unknown,
   errors: DroneMetadataIssue[],

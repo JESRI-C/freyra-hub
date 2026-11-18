@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import type { WorkspaceEntry } from "@/lib/project-workspace";
 import { executionRevisions, latestExecutions } from "@/lib/action-execution";
+import { comparisonCaptureLabel } from "@/lib/photo-comparison";
 import { WorkflowReportSnapshotSchema } from "@/lib/workflow-report";
 import { newReportContent, type ReportContent, type ReportRevision } from "@/lib/report-document";
 import { listActionExecutions } from "./action-execution-service";
@@ -98,7 +99,9 @@ export async function buildWorkflowReportContent(
     comparisons.map(({ comparison }) => inspectPhotoComparison(scope, comparison)),
   );
   const selectedIds = new Set(executions.map((e) => e.entry.id));
-  comparisons.forEach((c) => selectedIds.add(c.comparison.executionRevisionId));
+  for (const { comparison } of comparisons) {
+    if (comparison.executionRevisionId) selectedIds.add(comparison.executionRevisionId);
+  }
   const inputs = [
     ...history.filter((e) => selectedIds.has(e.id)),
     ...comparisons.map((c) => c.entry),
@@ -121,23 +124,42 @@ export async function buildWorkflowReportContent(
     limitations,
     review: null,
   });
-  const sourceIds = new Set([
-    ...comparisons.flatMap((c) => [
-      "media:" + c.comparison.beforeId,
-      "media:" + c.comparison.afterId,
-    ]),
-    ...executions.flatMap((e) => e.execution.evidenceIds.map((id) => "evidence:" + id)),
-  ]);
-  const sources = sourceRegister.filter((s) => sourceIds.has(s.id));
-  if (sources.length !== sourceIds.size)
+  const comparisonSourceIds = [
+    ...new Set(
+      comparisons.flatMap(({ comparison }) => [
+        "media:" + comparison.beforeId,
+        "media:" + comparison.afterId,
+      ]),
+    ),
+  ];
+  const executionSourceIds = [
+    ...new Set(
+      executions.flatMap(({ execution }) => execution.evidenceIds.map((id) => "evidence:" + id)),
+    ),
+  ];
+  const sourceIds = new Set([...comparisonSourceIds, ...executionSourceIds]);
+  const sourcesById = new Map(
+    sourceRegister
+      .filter((source) => sourceIds.has(source.id))
+      .map((source) => [source.id, source]),
+  );
+  if (sourcesById.size !== sourceIds.size)
     throw new Error("En rapportkilde er ikke tilgængelig på sagen.");
+
+  function photoReference(id: string, localCaptureDate?: string) {
+    const photo = sourcesById.get("media:" + id)!;
+    return `${photo.title} (${comparisonCaptureLabel({ capturedAt: photo.capturedAt?.slice(0, 10), localCaptureDate })})`;
+  }
   const content = newReportContent(
     project.name,
     "Projektets organisation",
-    "Før/efter og faktisk grødeskæring",
+    executions.length
+      ? "Før/efter og faktisk grødeskæring"
+      : "Visuel sammenligning af optagedatoer",
     "Projektets medarbejdere og faglige reviewer",
+    "before_after",
   );
-  const texts = [
+  const texts: Array<[title: string, text: string, sourceIds?: string[]]> = [
     [
       "Formål og versioner",
       "Beskrivende før/efter-dokumentation. Generator workflow-report/v1. Alle inputversioner er fastholdt i rapportens kildepakke.",
@@ -175,21 +197,27 @@ export async function buildWorkflowReportContent(
             "\nDækning: " +
             e.coverageDescription,
         )
-        .join("\n\n"),
+        .join("\n\n") || "Rapporten har ingen tilknyttede udførelsesregistreringer.",
+      executionSourceIds,
     ],
     [
       "Før og efter",
       comparisons
-        .map(
-          ({ comparison: c }, i) =>
-            "Før: " +
-            c.beforeId +
-            " · efter: " +
-            c.afterId +
+        .map(({ comparison: c }, i) => {
+          const visualOnly =
+            !c.executionRevisionId || inspected[i].assessment.status === "visual_only";
+          return (
+            `Fotopar ${i + 1}\n` +
+            (visualOnly ? "Tidligere foto: " : "Før: ") +
+            photoReference(c.beforeId, inspected[i].before.localCaptureDate) +
+            (visualOnly ? " · senere foto: " : " · efter: ") +
+            photoReference(c.afterId, inspected[i].after.localCaptureDate) +
             "\nUdførelsesrevision: " +
-            c.executionRevisionId +
+            (c.executionRevisionId ?? "Ingen tilknyttet udførelse") +
             "\nStatus: " +
-            inspected[i].assessment.status +
+            (inspected[i].assessment.status === "visual_only"
+              ? "Synlige forskelle mellem optagedatoer. Forholdet til indsatsen er uafklaret."
+              : inspected[i].assessment.status) +
             "\nSamme sted: " +
             c.samePlaceEvidence +
             "\nDækning: " +
@@ -202,14 +230,17 @@ export async function buildWorkflowReportContent(
             c.conclusion +
             "\nMangler: " +
             (inspected[i].assessment.gaps.join(" ") ||
-              "Ingen yderligere registrerede datamangler; fagligt review afventer."),
-        )
+              "Ingen yderligere registrerede datamangler; fagligt review afventer.")
+          );
+        })
         .join("\n\n") || "Før/efter-par mangler.",
+      comparisonSourceIds,
     ],
     [
       "Begrænsninger og review",
       limitations.join("\n") +
         "\nVersionsafgrænset dokumentationsreview afventer. Ingen natureffekt er godkendt.",
+      comparisonSourceIds,
     ],
     [
       "Næste opfølgning",
@@ -240,14 +271,16 @@ export async function buildWorkflowReportContent(
   ];
   return {
     ...content,
-    title: project.name + " · før/efter af grødeskæring",
-    sources,
+    title:
+      project.name +
+      (executions.length ? " · før/efter af grødeskæring" : " · visuel sammenligning"),
+    sources: [...sourcesById.values()],
     workflowSnapshot,
-    sections: texts.map(([title, text], i) => ({
+    sections: texts.map(([title, text, sectionSourceIds = []], i) => ({
       id: "workflow-" + i,
       title,
       text,
-      sourceIds: sources.map((s) => s.id),
+      sourceIds: sectionSourceIds,
       reviewed: false,
       basis: "not_measured" as const,
     })),

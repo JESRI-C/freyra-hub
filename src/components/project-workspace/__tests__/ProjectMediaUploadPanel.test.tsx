@@ -63,10 +63,14 @@ vi.mock("@/services/project-media-service", () => ({ uploadProjectMedia: state.u
 vi.mock("exifr", () => ({ default: { gps: state.gps } }));
 vi.mock("@/components/monitoring/DroneBeforeBatchWizard", () => ({
   DroneBeforeBatchWizard: () => null,
+  NeutralDroneImport: () => <button>Importer droneoriginaler</button>,
 }));
 
 import { ProjectMediaUploadPanel } from "../ProjectMediaUploadPanel";
-import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
+import {
+  DroneBeforeBatchWizard,
+  NeutralDroneImport,
+} from "@/components/monitoring/DroneBeforeBatchWizard";
 
 type Props = React.ComponentProps<typeof ProjectMediaUploadPanel>;
 type Element = React.ReactElement<Record<string, unknown>>;
@@ -217,6 +221,7 @@ describe("ProjectMediaUploadPanel file isolation", () => {
     props = { ...props, fieldPhotosOnly: true };
     const html = renderToStaticMarkup(tree());
     expect(html).not.toContain("Importer FØR-dronefotos");
+    expect(html).not.toContain("Importer droneoriginaler");
     expect(labelled("Vælg andet foto eller bilag").props.accept).toBe("image/*");
     await select(new File(["synthetic PDF"], "test.pdf", { type: "application/pdf" }));
     expect(button("Gem foto eller bilag").props.disabled).toBe(true);
@@ -403,6 +408,9 @@ describe("ProjectMediaUploadPanel task entry", () => {
     );
     expect(html).not.toContain("Rapportklar");
     expect(html).not.toContain("centroid");
+    const neutral = find(result, (element) => element.type === NeutralDroneImport);
+    expect(neutral?.props.projectId).toBe("project-a");
+    expect(neutral?.props.onImported).toBe(props.onDroneBatchImported);
     const detail = find(result, (element) => element.type === "details");
     expect(detail?.props.open).toBe(true);
     const optional = find(

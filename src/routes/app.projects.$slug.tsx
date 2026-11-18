@@ -95,6 +95,7 @@ import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-ma
 import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
 import { ProjectMediaAvailabilityNotice } from "@/components/project-workspace/ProjectMediaAvailabilityNotice";
 import { ProjectPhotoAtlas } from "@/components/project-workspace/ProjectPhotoAtlas";
+import { ProjectSourcePhoto } from "@/components/project-workspace/ProjectSourcePhoto";
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
@@ -139,6 +140,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
     reviewOnly?: true;
     submissionVersion?: number;
     indicator?: string;
+    media?: string;
   } => ({
     ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
       ? { step: search.step as MunicipalStep }
@@ -155,6 +157,10 @@ export const Route = createFileRoute("/app/projects/$slug")({
       ? { task: search.task.toLowerCase() }
       : {}),
     ...(isWorkOrderView(search.work) ? { work: search.work as WorkOrderView } : {}),
+    ...(typeof search.media === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.media)
+      ? { media: search.media.toLowerCase() }
+      : {}),
     ...(isWorkOrderListView(search.taskList) ? { taskList: search.taskList } : {}),
     ...(search.reviewOnly === true ? { reviewOnly: true as const } : {}),
     ...(typeof search.indicator === "string" &&
@@ -199,6 +205,22 @@ function ProjectPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const view = resolveProjectView(search);
+  const project = Route.useLoaderData();
+  if (search.media && view.kind === "tab" && view.id === "medier") {
+    return (
+      <ProjectSourcePhoto
+        projectId={project.id}
+        mediaId={search.media}
+        actorId={user?.id}
+        onClose={() =>
+          void navigate({
+            search: { ...search, tab: "medier", media: undefined },
+            replace: true,
+          })
+        }
+      />
+    );
+  }
   return (
     <ProjectWorkspaceShell
       key={`${user?.id ?? "anonymous"}:${slug}`}

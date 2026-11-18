@@ -6,13 +6,18 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { WorkOrderFollowUps } from "@/components/project/WorkOrderFollowUps";
+import { ReportMethodPicker } from "./ReportMethodPicker";
+import { ReportMapViewportEditor } from "./ReportMapViewportEditor";
 import { useAuth } from "@/lib/auth";
 import { getMyProjectRole, permissionsFor } from "@/services/project-members-service";
 import {
   BASIS_LABELS,
+  SourceSchema,
   moveSection,
+  numberedAtlasMapPoints,
   newReportContent,
-  reportIssues,
+  reportPhotoMapNumbers,
+  reportIssueDetails,
   reportWorkOrderDataBasis,
   type ReportContent,
   type ReportRevision,
@@ -21,6 +26,8 @@ import {
 import {
   getReportRevisions,
   listReportDocuments,
+  loadBridgeReport,
+  loadNatureSurveyReport,
   loadReportSources,
   loadReviewedReportObservations,
   saveReportDocument,
@@ -99,11 +106,18 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
   );
   const [content, setContent] = useState<ReportContent | null>(null);
   const canEditContent = canEdit && !content?.workOrderApproval;
+  const sectionHash = useRouterState({ select: (s) => s.location.hash });
+  const editorReady = mode === "builder" && canEditContent && !!content;
+  useEffect(() => {
+    if (editorReady && typeof sectionHash === "string" && sectionHash.startsWith("rapport-")) {
+      document.getElementById(sectionHash)?.scrollIntoView?.();
+    }
+  }, [editorReady, sectionHash]);
   const [busy, setBusy] = useState(false);
-  const [workflowReviewReason, setWorkflowReviewReason] = useState("");
+  const [reviewReason, setReviewReason] = useState("");
+  const [correctionSectionId, setCorrectionSectionId] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
   const [images, setImages] = useState<ReportImage[]>([]);
-  const [imagesReady, setImagesReady] = useState(false);
   const [assetRevisionId, setAssetRevisionId] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   useEffect(() => {
@@ -129,20 +143,32 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     draftSeed.current = seed;
     setContent(
       mode === "new" && currentOrg && currentProject
-        ? newReportContent(
-            currentProject.name,
-            currentOrg.name,
-            getReportTemplate(search.template).scope,
-            "Kunde",
-            search.template,
-          )
+        ? {
+            ...newReportContent(
+              currentProject.name,
+              currentOrg.name,
+              getReportTemplate(search.template).scope,
+              "Kunde",
+              search.template,
+            ),
+            photoLayoutVersion: 2,
+          }
         : (revision?.content ?? null),
     );
     setMessage("");
     setError("");
     setImages([]);
-    setImagesReady(false);
+    setAssetRevisionId(null);
   }, [mode, orgId, projectId, reportId, revision, currentOrg, currentProject, search.template]);
+  async function reportImagesFor(saved: ReportRevision) {
+    if (saved.content.workOrderApproval) return [];
+    if (assetRevisionId === saved.id) return images;
+    const next = await buildReportImages(saved);
+    setImages(next);
+    setAssetRevisionId(saved.id);
+    return next;
+  }
+
   async function downloadPackage(saved: ReportRevision, includeOriginals = false) {
     const approval = saved.content.workOrderApproval;
     const { buildWorkflowReportPackage, buildWorkOrderReportPackage } =
@@ -163,10 +189,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     if (includeOriginals && !signOriginal) throw new Error("Originalfilerne kræver projektadgang.");
     const bytes = approval
       ? await buildWorkOrderReportPackage(saved, signOriginal)
-      : await buildWorkflowReportPackage(
-          saved,
-          imagesReady && assetRevisionId === saved.id ? images : [],
-        );
+      : await buildWorkflowReportPackage(saved, await reportImagesFor(saved));
     const url = URL.createObjectURL(new Blob([bytes.slice().buffer], { type: "application/zip" }));
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -188,12 +211,28 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
       setBusy(false);
     }
   }
-  async function save(status: ReportStatus) {
+  async function save(status: ReportStatus, nextContent = content) {
     if (!canEdit) {
       setError("Din adgang er læseadgang. Rapportversioner kan ikke oprettes eller ændres.");
       return;
     }
-    if (!content || !orgId || !projectId) return;
+    if (!nextContent || !orgId || !projectId) return;
+    let contentToSave =
+      status === "draft" && nextContent.workflowSnapshot?.review
+        ? { ...nextContent, workflowSnapshot: { ...nextContent.workflowSnapshot, review: null } }
+        : nextContent;
+    if (status === "review" && contentToSave.requestedCorrection) {
+      const { requestedCorrection, ...resubmission } = contentToSave;
+      if (
+        !resubmission.sections.some(
+          (section) => section.id === requestedCorrection.sectionId && section.reviewed,
+        )
+      ) {
+        setError("Gennemgå det returnerede afsnit, før rettelsen indsendes.");
+        return;
+      }
+      contentToSave = resubmission;
+    }
     await run(async () => {
       const saved = await saveReportDocument({
         organizationId: orgId,
@@ -201,7 +240,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
         reportId: mode === "new" ? null : (reportId ?? null),
         expectedVersion: mode === "new" ? 0 : (revision?.version ?? 0),
         status,
-        content,
+        content: contentToSave,
       });
       await qc.invalidateQueries({ queryKey: key });
       await navigate({
@@ -209,6 +248,48 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
         search: { report: saved.report_id, version: saved.version } as never,
       });
       setMessage(`Version ${saved.version} er gemt.`);
+    });
+  }
+
+  function recordWorkflowReview(decision: "accepted" | "changes_requested") {
+    const reason = reviewReason.trim();
+    const snapshot = content?.workflowSnapshot;
+    if (!canEdit || !content || !snapshot || !reason) return;
+    void save("review", {
+      ...content,
+      workflowSnapshot: {
+        ...snapshot,
+        review: {
+          scope: "documentation",
+          decision,
+          inputIds: snapshot.inputs.map((entry) => entry.id),
+          sectionTexts: Object.fromEntries(content.sections.map(({ id, text }) => [id, text])),
+          reason,
+        },
+      },
+    });
+  }
+  function returnSectionForCorrection() {
+    const reason = reviewReason.trim();
+    if (
+      !canEditContent ||
+      revision?.status !== "review" ||
+      !content ||
+      content.workflowSnapshot ||
+      !reason ||
+      !content.sections.some((section) => section.id === correctionSectionId)
+    )
+      return;
+    void save("draft", {
+      ...content,
+      requestedCorrection: {
+        reviewedVersion: revision.version,
+        sectionId: correctionSectionId,
+        reason,
+      },
+      sections: content.sections.map((section) =>
+        section.id === correctionSectionId ? { ...section, reviewed: false } : section,
+      ),
     });
   }
   if (!currentOrg || !currentProject)
@@ -234,7 +315,16 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               : mode === "templates"
                 ? "Rapportskabelon"
                 : "Rapportbygger";
-  const issues = content ? reportIssues(content) : [];
+  const issues = content ? reportIssueDetails(content) : [];
+  if (content?.workflowSnapshot?.review?.decision === "accepted" && revision?.status === "draft") {
+    issues.push({
+      message: "Gem et accepteret dokumentationsreview af denne version før godkendelse.",
+    });
+  }
+  const reportSourceIds = new Set(content?.sources.map(({ id }) => id));
+  const correction = content?.requestedCorrection;
+  const returnedSection =
+    correction && content?.sections.find((section) => section.id === correction.sectionId);
   const changed = !!revision && JSON.stringify(content) !== JSON.stringify(revision.content);
   return (
     <main className="p-6 max-w-[1400px] mx-auto space-y-4">
@@ -342,6 +432,27 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
             Gemte versioner ændres ikke. En ændring gemmes som en ny version. Registreret af{" "}
             {revision.created_by}.
           </p>
+          {revision.content.workflowSnapshot?.review && (
+            <div className="space-y-1 text-sm">
+              <p className="font-medium">
+                {revision.content.workflowSnapshot.review.decision === "accepted"
+                  ? "Dokumentationsreview accepteret"
+                  : "Rettelser anmodet"}
+              </p>
+              <p className="whitespace-pre-wrap">
+                {revision.content.workflowSnapshot.review.reason}
+              </p>
+            </div>
+          )}
+          {correction && (
+            <div className="space-y-1 text-sm">
+              <p className="font-medium">
+                Version {correction.reviewedVersion} returneret til rettelse ·{" "}
+                {returnedSection?.title}
+              </p>
+              <p className="whitespace-pre-wrap">{correction.reason}</p>
+            </div>
+          )}
         </Card>
       )}
       {content?.workOrderApproval && mode === "builder" && revision && (
@@ -379,7 +490,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 onChange={(e) => setContent({ ...content, audience: e.target.value })}
               />
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div id="rapport-kilder" className="flex flex-wrap gap-2">
               <button disabled={busy} className={button} onClick={() => void save("draft")}>
                 Gem kladde som ny version
               </button>
@@ -393,7 +504,13 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                       current
                         ? {
                             ...current,
-                            sources,
+                            sources: [
+                              ...sources,
+                              ...current.sources.filter(
+                                ({ id }) =>
+                                  id.startsWith("field:") || id.startsWith("survey-area:"),
+                              ),
+                            ],
                             sections: current.sections.map((s) => ({ ...s, reviewed: false })),
                           }
                         : current,
@@ -422,27 +539,98 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
+              {(content.templateId === "nature_baseline" ||
+                content.templateId === "biodiversity") && (
+                <button
+                  className={button}
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      const draft = await loadNatureSurveyReport(projectId!, content);
+                      setContent(draft);
+                      setMessage(
+                        `${draft.natureSurvey?.areas.length ?? 0} områder og ${draft.natureSurvey?.observations.length ?? 0} observationer indlæst. Gennemgå afsnittene og gem som ny version.`,
+                      );
+                    })
+                  }
+                >
+                  Indlæs naturområder og feltobservationer
+                </button>
+              )}
+              {content.templateId === "bridge_registration" && (
+                <button
+                  className={button}
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      const draft = await loadBridgeReport(projectId!, content);
+                      setContent(draft);
+                      setMessage(
+                        `${draft.bridgeObservations?.length ?? 0} broregistreringer indlæst. Gennemgå de udfyldte afsnit og gem som ny version.`,
+                      );
+                    })
+                  }
+                >
+                  Indlæs broregistreringer og udfyld objektafsnit
+                </button>
+              )}
               <button
                 className={button}
+                hidden={content.templateId === "bridge_registration"}
                 disabled={busy || !content.sections.some((section) => section.id === "section-4")}
                 onClick={() =>
                   void run(async () => {
-                    const observations = await loadReviewedReportObservations(projectId!, orgId!);
-                    const sources = await loadReportSources(projectId!);
-                    setContent({
-                      ...content,
-                      sources,
-                      sections: content.sections.map((section) =>
-                        section.id === "section-4"
-                          ? {
-                              ...section,
-                              text: observations.map((o) => o.text).join("\n\n"),
-                              sourceIds: [...new Set(observations.flatMap((o) => o.sourceIds))],
-                              basis: "observed",
-                              reviewed: false,
-                            }
-                          : section,
-                      ),
+                    const seed = draftSeed.current;
+                    const [observations, sources] = await Promise.all([
+                      loadReviewedReportObservations(projectId!, orgId!),
+                      loadReportSources(projectId!),
+                    ]);
+                    if (seed !== draftSeed.current) return;
+                    if (!observations.length) {
+                      setMessage(
+                        "Der er ingen fagligt godkendte vandløbsobservationer at indlæse.",
+                      );
+                      return;
+                    }
+                    const ids = new Set(observations.flatMap((o) => o.sourceIds));
+                    const used = sources.filter(({ id }) => ids.has(id));
+                    if (used.length !== ids.size)
+                      throw new Error(
+                        "Et eller flere kildefotos til observationerne kunne ikke hentes fra projektet.",
+                      );
+                    setContent((current) => {
+                      if (!current) return current;
+                      const byId = new Map(current.sources.map((source) => [source.id, source]));
+                      const changedIds = new Set<string>();
+                      for (const source of used) {
+                        const previous = byId.get(source.id);
+                        if (
+                          !previous ||
+                          JSON.stringify(SourceSchema.parse(previous)) !==
+                            JSON.stringify(SourceSchema.parse(source))
+                        )
+                          changedIds.add(source.id);
+                        byId.set(source.id, source);
+                      }
+                      return {
+                        ...current,
+                        sources: [...byId.values()],
+                        sections: current.sections.map((section) =>
+                          section.id === "section-4"
+                            ? {
+                                ...section,
+                                text: observations.map((o) => o.text).join("\n\n"),
+                                sourceIds: [...ids],
+                                basis: observations.some((observation) => observation.screening)
+                                  ? "screening"
+                                  : "observed",
+                                reviewed: false,
+                              }
+                            : section.sourceIds.some((id) => changedIds.has(id))
+                              ? { ...section, reviewed: false }
+                              : section,
+                        ),
+                      };
                     });
                     setMessage(
                       `${observations.length} godkendte observationer indlæst. Gennemgå afsnittet og gem versionen.`,
@@ -519,10 +707,20 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               ugodkendte.
             </p>
           </Card>
+          <ReportMapViewportEditor
+            key={revision?.id ?? `${orgId}:${projectId}:${content.templateId}`}
+            content={content}
+            disabled={busy}
+            onChange={(viewport) =>
+              setContent((current) => current && { ...current, mapViewport: viewport })
+            }
+          />
           {content.sections.map((s, i) => (
             <Card key={s.id} className="p-5 space-y-2">
               <div className="flex justify-between gap-2">
-                <h2 className="font-semibold">{s.title}</h2>
+                <h2 id={`rapport-afsnit-${s.id}`} className="font-semibold">
+                  {s.title}
+                </h2>
                 <div>
                   <button
                     aria-label={`Flyt ${s.title} op`}
@@ -546,6 +744,36 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                   </button>
                 </div>
               </div>
+              {s.id === "section-3" &&
+                (content.templateId === "watercourse" ||
+                  content.templateId === "nature_baseline" ||
+                  (!content.templateId &&
+                    s.title === getReportTemplate("watercourse").headings[2])) && (
+                  <ReportMethodPicker
+                    natureBaseline={content.templateId === "nature_baseline"}
+                    text={s.text}
+                    disabled={busy}
+                    onInsert={(reference) =>
+                      setContent(
+                        (current) =>
+                          current && {
+                            ...current,
+                            sections: current.sections.map((section) =>
+                              section.id === s.id && !section.text.includes(reference)
+                                ? {
+                                    ...section,
+                                    text: section.text
+                                      ? section.text + "\n\n" + reference
+                                      : reference,
+                                    reviewed: false,
+                                  }
+                                : section,
+                            ),
+                          },
+                      )
+                    }
+                  />
+                )}
               <textarea
                 aria-label={s.title}
                 rows={5}
@@ -585,6 +813,30 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 <legend className="text-sm">
                   Kilder til afsnittet ({s.sourceIds.length} valgt)
                 </legend>
+                {s.sourceIds.some((id) => !reportSourceIds.has(id)) && (
+                  <button
+                    type="button"
+                    className={button}
+                    onClick={() =>
+                      setContent({
+                        ...content,
+                        sections: content.sections.map((section) =>
+                          section.id === s.id
+                            ? {
+                                ...section,
+                                reviewed: false,
+                                sourceIds: section.sourceIds.filter((id) =>
+                                  reportSourceIds.has(id),
+                                ),
+                              }
+                            : section,
+                        ),
+                      })
+                    }
+                  >
+                    Fjern ukendte kildehenvisninger fra afsnittet
+                  </button>
+                )}
                 <input
                   className={field}
                   aria-label="Søg kilder"
@@ -656,9 +908,29 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               : "Datakontrol gennemført - faglig godkendelse kræves"}
           </h2>
           <ul className="list-disc pl-5 text-sm space-y-1">
-            {issues.map((issue, i) => (
-              <li key={i}>{issue}</li>
-            ))}
+            {issues.map(({ message, sectionId, sourceRegister }, i) => {
+              const hash = sectionId
+                ? `rapport-afsnit-${sectionId}`
+                : sourceRegister
+                  ? "rapport-kilder"
+                  : undefined;
+              return (
+                <li key={i}>
+                  {hash && canEditContent && revision ? (
+                    <Link
+                      className="underline underline-offset-2"
+                      to="/app/reports/builder"
+                      search={{ report: revision.report_id, version: revision.version }}
+                      hash={hash}
+                    >
+                      {message}
+                    </Link>
+                  ) : (
+                    message
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {canEdit && mode === "approval" && content.workflowSnapshot && (
             <div className="space-y-2">
@@ -666,53 +938,96 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 Dokumentationsreviewets omfang og begrundelse
                 <textarea
                   className={field}
-                  value={workflowReviewReason}
+                  value={reviewReason}
                   maxLength={3000}
-                  onChange={(event) => setWorkflowReviewReason(event.target.value)}
+                  onChange={(event) => setReviewReason(event.target.value)}
                 />
               </label>
-              <button
-                className={button}
-                disabled={busy || !workflowReviewReason.trim()}
-                onClick={() =>
-                  setContent({
-                    ...content,
-                    workflowSnapshot: {
-                      ...content.workflowSnapshot!,
-                      review: {
-                        scope: "documentation",
-                        decision: "accepted",
-                        inputIds: content.workflowSnapshot!.inputs.map((entry) => entry.id),
-                        sectionTexts: Object.fromEntries(
-                          content.sections.map((section) => [section.id, section.text]),
-                        ),
-                        reason: workflowReviewReason.trim(),
-                      },
-                    },
-                  })
-                }
-              >
-                Registrér mit review af disse input og rapporttekster
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={button}
+                  disabled={busy || changed || !reviewReason.trim()}
+                  onClick={() => recordWorkflowReview("accepted")}
+                >
+                  Gem accepteret dokumentationsreview
+                </button>
+                <button
+                  className={button}
+                  disabled={busy || changed || !reviewReason.trim()}
+                  onClick={() => recordWorkflowReview("changes_requested")}
+                >
+                  Gem anmodning om rettelser
+                </button>
+              </div>
               <p className="text-xs">
-                Reviewet verificerer dokumentationen i det angivne omfang. Det godkender ikke en
-                kvantitativ natureffekt eller en myndighedsafgørelse. Gem reviewet som ny version
-                før godkendelse.
+                Reviewet gemmes som en ny version og gælder dokumentationen i det angivne omfang.
               </p>
             </div>
           )}
+          {canEditContent &&
+            mode === "approval" &&
+            !content.workflowSnapshot &&
+            revision?.status === "review" && (
+              <fieldset disabled={busy || changed} className="space-y-2">
+                <legend className="font-medium">Send et afsnit tilbage til rettelse</legend>
+                <label className="block text-sm">
+                  Afsnit til rettelse
+                  <select
+                    className={field}
+                    value={correctionSectionId}
+                    onChange={(event) => setCorrectionSectionId(event.target.value)}
+                  >
+                    <option value="">Vælg afsnit</option>
+                    {content.sections.map((section) => (
+                      <option key={section.id} value={section.id}>
+                        {section.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  Hvad skal rettes?
+                  <textarea
+                    className={field}
+                    value={reviewReason}
+                    maxLength={3000}
+                    onChange={(event) => setReviewReason(event.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={!correctionSectionId || !reviewReason.trim()}
+                  onClick={returnSectionForCorrection}
+                >
+                  Send tilbage til rettelse
+                </button>
+              </fieldset>
+            )}
           {canEditContent && mode === "approval" && (
             <div className="flex gap-2">
+              {(!content.workflowSnapshot || revision?.status === "draft") && (
+                <button
+                  className={button}
+                  disabled={busy || changed || (!!correction && !returnedSection?.reviewed)}
+                  onClick={() =>
+                    void save(
+                      "review",
+                      content.workflowSnapshot
+                        ? {
+                            ...content,
+                            workflowSnapshot: { ...content.workflowSnapshot, review: null },
+                          }
+                        : content,
+                    )
+                  }
+                >
+                  Registrér til gennemgang
+                </button>
+              )}
               <button
                 className={button}
-                disabled={busy || changed}
-                onClick={() => void save("review")}
-              >
-                Registrér til gennemgang
-              </button>
-              <button
-                className={button}
-                disabled={busy || changed || issues.length > 0}
+                disabled={busy || changed || issues.length > 0 || revision?.status === "approved"}
                 onClick={() => void save("approved")}
               >
                 Godkend som ny version
@@ -796,18 +1111,14 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 disabled={busy}
                 onClick={() =>
                   void run(async () => {
-                    setImagesReady(false);
-                    const next = await buildReportImages(revision);
-                    setImages(next);
-                    setAssetRevisionId(revision.id);
-                    setImagesReady(true);
+                    await reportImagesFor(revision);
                     setMessage(
                       "Kort- og fotovisning er klar. PDF/DOCX genbruger denne visning uden at hente nye kortfelter.",
                     );
                   })
                 }
               >
-                Vis kort og fotoatlas før PDF/DOCX-eksport
+                Forhåndsvis kort og fotoatlas
               </button>
             </>
           )}
@@ -823,15 +1134,12 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               <button
                 key={format}
                 className={button}
-                disabled={
-                  busy ||
-                  (!revision.content.workOrderApproval &&
-                    (format === "pdf" || format === "docx") &&
-                    (!imagesReady || assetRevisionId !== revision.id))
-                }
+                disabled={busy || changed}
                 onClick={() =>
                   void run(async () => {
-                    const file = await downloadReportFile(revision, format, images);
+                    const assets =
+                      format === "pdf" || format === "docx" ? await reportImagesFor(revision) : [];
+                    const file = await downloadReportFile(revision, format, assets);
                     setMessage(
                       `Fil genereret og download startet: ${file.filename}. SHA-256: ${file.checksum}`,
                     );
@@ -854,6 +1162,7 @@ export function ReportPreview({
   content: ReportContent;
   revision?: ReportRevision;
 }) {
+  const mapNumbers = reportPhotoMapNumbers(content);
   const sources = new Map(
     content.sources.map((source, index) => [
       source.id,
@@ -951,8 +1260,25 @@ export function ReportPreview({
             tabIndex={-1}
             className="mt-2 scroll-mt-20 text-sm [overflow-wrap:anywhere]"
           >
+            {mapNumbers.has(s.id) && <strong>Kortpunkt {mapNumbers.get(s.id)} · </strong>}
             {s.id}: {s.title} · {s.method} · version {s.version} · GPS{" "}
             {s.position?.join(", ") ?? "mangler"} · SHA-256 {s.checksum ?? "ikke dokumenteret"}
+            {s.photoPointReview && (
+              <>
+                {" "}
+                · Fotopunkt {s.photoPointReview.bindingId} · Faglig gennemgang{" "}
+                {s.photoPointReview.id}
+              </>
+            )}
+            {s.localCaptureDate && (
+              <> · Lokal kameradato {s.localCaptureDate} uden dokumenteret tidszone</>
+            )}
+          </p>
+        ))}
+        {numberedAtlasMapPoints(content, mapNumbers).map((point) => (
+          <p key={point.sourceId} className="mt-2 text-sm">
+            <strong>Kortpunkt {point.number}</strong> · Atlasfoto {point.id} · GPS{" "}
+            {point.position.join(", ")}
           </p>
         ))}
       </section>

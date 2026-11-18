@@ -34,6 +34,7 @@ import {
   deleteUpload,
   getUploadDownloadUrl,
   isUploadDownloadAvailable,
+  listNeutralDroneBatchFiles,
   SIGNED_UPLOAD_URL_TTL_SECONDS,
   uploadFile,
   UploadTransferError,
@@ -43,6 +44,44 @@ import {
 const UPLOAD_ID = "a5000000-0000-4000-8000-000000000001";
 const USER_ID = "a1000000-0000-4000-8000-000000000001";
 const STORAGE_PATH = `${USER_ID}/intents/${UPLOAD_ID}/drone.tif`;
+
+it("reopens only received neutrally classified files from the exact project and series, in intake order", async () => {
+  const query = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    contains: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue({
+      data: [
+        { id: "a5000000-0000-4000-8000-000000000002", original_file_name: "B.JPG", sequence: "2" },
+        { id: UPLOAD_ID, original_file_name: "A.JPG", sequence: 1 },
+      ],
+      error: null,
+    }),
+  };
+  mocks.dbFrom.mockReturnValue(query);
+  const result = await listNeutralDroneBatchFiles("project-1", "series-1");
+  expect(mocks.dbFrom).toHaveBeenCalledWith("uploads");
+  expect(query.eq).toHaveBeenCalledWith("project_id", "project-1");
+  expect(query.eq).toHaveBeenCalledWith("upload_type", "drone_photo");
+  expect(query.contains).toHaveBeenCalledWith("user_metadata", {
+    intake: {
+      schema_version: "gofreyra.drone-intake/v1",
+      phase: "UNCLASSIFIED",
+      media_kind: "drone_photo",
+      batch_id: "series-1",
+    },
+  });
+  expect(query.not).toHaveBeenCalledWith("received_at", "is", null);
+  expect(query.limit).toHaveBeenCalledWith(200);
+  expect(result.map((file) => file.original_file_name)).toEqual(["A.JPG", "B.JPG"]);
+  expect(result.map((file) => file.sequence)).toEqual([1, 2]);
+  query.limit.mockResolvedValueOnce({
+    data: [{ id: UPLOAD_ID, original_file_name: "A.JPG", sequence: 201 }],
+    error: null,
+  });
+  await expect(listNeutralDroneBatchFiles("project-1", "series-1")).rejects.toThrow();
+});
 
 const uploadRow = {
   id: UPLOAD_ID,

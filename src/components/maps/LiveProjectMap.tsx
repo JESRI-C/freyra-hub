@@ -404,8 +404,10 @@ export function LiveProjectMap({
           iconAnchor: [9, 9],
         });
         const details = [
-          "FØR · ubekræftet kameraposition",
-          new Date(point.capturedAt).toLocaleString("da-DK"),
+          point.intakeMode === "before"
+            ? "FØR · ubekræftet kameraposition"
+            : "Ubekræftet kameraposition",
+          point.capturedAtLabel ?? new Date(point.capturedAt).toLocaleString("da-DK"),
         ];
         if (point.cameraLabel) details.push(point.cameraLabel);
         if (point.altitudeM != null) details.push(`Højde: ${point.altitudeM.toFixed(1)} m`);

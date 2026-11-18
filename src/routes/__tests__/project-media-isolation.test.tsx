@@ -6,9 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const m = vi.hoisted(() => ({
   media: vi.fn(),
+  getPhoto: vi.fn(),
   preview: vi.fn(() => ({})),
   recommend: vi.fn(() => "Kontrollér grundlaget"),
   tab: "handlinger",
+  mediaId: undefined as string | undefined,
+  navigate: vi.fn(),
   task: "00000000-0000-4000-8000-000000000003",
 }));
 const project = {
@@ -35,8 +38,9 @@ vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options: unknown) => ({
     options,
     useParams: () => ({ slug: "pilot" }),
-    useSearch: () => ({ tab: m.tab, task: m.task, work: "plan" }),
-    useNavigate: () => vi.fn(),
+    useLoaderData: () => project,
+    useSearch: () => ({ tab: m.tab, task: m.task, work: "plan", media: m.mediaId }),
+    useNavigate: () => m.navigate,
   }),
   notFound: () => new Error("missing"),
   Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
@@ -46,7 +50,10 @@ vi.mock("@tanstack/react-start", async (importOriginal) => ({
   useServerFn: (fn: unknown) => fn,
 }));
 vi.mock("@/lib/auth", () => ({
-  useAuth: () => ({ user: { id: "actor" }, currentOrg: { name: "Testorganisation" } }),
+  useAuth: () => ({
+    user: { id: "actor" },
+    currentOrg: { id: project.organization_id, name: "Testorganisation", projects: [] },
+  }),
 }));
 vi.mock("@/lib/survey-round.functions", () => ({
   getSurveyRoundAccess: async () => ({ userId: "actor", canPersist: true }),
@@ -78,7 +85,10 @@ vi.mock("@/services/observations-service", () => ({
 vi.mock("@/services/monitoring/drone-upload-map-service", () => ({
   getDroneUploadMapOverview: async () => ({ points: [] }),
 }));
-vi.mock("@/services/project-media-service", () => ({ listProjectMedia: m.media }));
+vi.mock("@/services/project-media-service", () => ({
+  listProjectMedia: m.media,
+  getProjectMedia: m.getPhoto,
+}));
 vi.mock("@/services/geo-service", () => ({
   resolveProjectGeometry: () => ({ hasValidGeometry: false, centroid: null }),
   validateProjectPolygon: () => ({ valid: false }),
@@ -164,6 +174,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
   m.tab = "handlinger";
+  m.mediaId = undefined;
   m.task = "00000000-0000-4000-8000-000000000003";
   m.media.mockResolvedValue({ data: [], error: null });
   host = document.createElement("div");
@@ -192,6 +203,53 @@ afterEach(async () => {
   host.remove();
 });
 describe("project route during signed media outage", () => {
+  it("opens the exact photo from a saved atlas link and stays in the gallery when closed", async () => {
+    const id = "00000000-0000-4000-8000-0000000000ab";
+    const validate = Route.options.validateSearch as (query: Record<string, unknown>) => {
+      media?: string;
+    };
+    const url = new URL(
+      `https://example.test/app/projects/${project.id}?media=${id.toUpperCase()}`,
+    );
+    m.mediaId = validate(Object.fromEntries(url.searchParams)).media;
+    expect(m.mediaId).toBe(id);
+    expect(validate({ media: "ugyldigt" }).media).toBeUndefined();
+    m.tab = "";
+    const item = {
+      id,
+      projectId: project.id,
+      title: "Kildens originalfoto",
+      url: "/original",
+      category: "drone_image",
+      source: "drone",
+      tags: [],
+    };
+    m.getPhoto.mockResolvedValue({
+      data: item,
+      error: null,
+    });
+    await render();
+    expect(m.getPhoto).toHaveBeenCalledWith(project.id, id);
+    expect(m.media).not.toHaveBeenCalled();
+    expect(host.querySelector("aside h3")?.textContent).toBe("Kildens originalfoto");
+    const close = host.querySelector<HTMLButtonElement>('button[aria-label="Luk"]')!;
+    await act(async () => close.click());
+    expect(m.navigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: expect.objectContaining({ tab: "medier", media: undefined }),
+      }),
+    );
+    m.mediaId = "00000000-0000-4000-8000-0000000000ac";
+    m.getPhoto.mockResolvedValue({
+      data: { ...item, id: m.mediaId, projectId: "other" },
+      error: null,
+    });
+    await render();
+    expect(host.querySelector("aside h3")).toBeNull();
+    expect(host.textContent).toContain(
+      "Fotoet i linket kunne ikke åbnes med din aktuelle projektadgang.",
+    );
+  });
   it("focuses only a selected job and returns to full project context without remounting visited drafts", async () => {
     await render();
     expect(host.querySelector("header[data-compact]")?.getAttribute("data-compact")).toBe("true");

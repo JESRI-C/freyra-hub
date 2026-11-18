@@ -93,13 +93,13 @@ describe("municipal report customer boundaries", () => {
     expect(state.query.mock.calls.every(([options]) => !options.enabled)).toBe(true);
     expect(html).not.toContain("Syntetisk projekt");
   });
-  it("shows an empty library and four reusable templates without claiming approval", async () => {
+  it("shows an empty library and all ten reusable templates without claiming approval", async () => {
     const { Route } = await imports[0]();
     const html = renderToStaticMarkup(
       React.createElement(Route.options.component as React.ComponentType),
     );
     expect(html).toContain("Der er endnu ingen gemte rapporter for projektet.");
-    expect(html.split('href="/app/reports/new"').length - 1).toBe(4);
+    expect(html.split('href="/app/reports/new"').length - 1).toBe(10);
     expect(html).toContain("Manglende");
     expect(html).not.toContain("Godkendt");
   });

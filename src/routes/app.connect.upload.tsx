@@ -14,7 +14,10 @@ import {
 } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { Chip, Section } from "@/components/connect/Primitives";
-import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
+import {
+  DroneBeforeBatchWizard,
+  NeutralDroneImport,
+} from "@/components/monitoring/DroneBeforeBatchWizard";
 import { UploadWizard } from "@/components/monitoring/UploadWizard";
 import { useConnectContext } from "@/lib/connect-context";
 import {
@@ -200,6 +203,13 @@ function Page() {
             >
               <Plus className="h-3.5 w-3.5" /> Enkelt fil
             </button>
+            {projectId && (
+              <NeutralDroneImport
+                key={projectId}
+                projectId={projectId}
+                onImported={() => void uploadsQuery.refetch()}
+              />
+            )}
             <button
               type="button"
               onClick={() => setBeforeBatchOpen(true)}

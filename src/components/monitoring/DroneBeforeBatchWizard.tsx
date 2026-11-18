@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
@@ -13,23 +13,30 @@ import { Drawer } from "@/components/connect/Primitives";
 import {
   buildImageDetectedMetadata,
   parseImage,
-  type ImagePreview,
 } from "@/services/monitoring/upload-import-service";
+import { useAuth } from "@/lib/auth";
+import {
+  readPendingDroneBatches,
+  savePendingDroneBatch,
+} from "@/components/project/drone-intake-batch-receipt";
+import { DRONE_BATCH_INTAKE, type DroneIntakeMode } from "@/services/monitoring/drone-batch-intake";
 import { isReadyForAutomaticCameraPosition } from "@/services/monitoring/drone-image-metadata";
 import {
   isMimeAllowed,
+  listNeutralDroneBatchFiles,
   MAX_UPLOAD_BYTES,
   createUploadRequestId,
   cancelUploadIntent,
   resolveUploadMime,
   type UploadIntent,
-  type Upload,
   UploadTransferError,
   uploadFileResumable,
 } from "@/services/monitoring/uploads-service";
 import {
   DRONE_BEFORE_CONCURRENCY,
   MAX_DRONE_BEFORE_BATCH_FILES,
+  droneBatchPosition,
+  groupDroneBatchItems,
   nextBatchSequence,
   runWithConcurrency,
   selectUniqueBatchFiles,
@@ -40,6 +47,8 @@ import {
   isOriginalCheckComplete,
   MAX_ORIGINAL_CHECK_BYTES,
   originalCheckStatusLabel,
+  storedOriginalCheckState,
+  type OriginalCheckUpload,
   type OriginalCheckState,
 } from "./drone-original-check-helpers";
 import {
@@ -49,26 +58,27 @@ import {
   type DroneOriginalPromotionState,
 } from "./drone-original-promotion-helpers";
 
-type QueueStatus = "analysing" | "analysed" | "uploading" | "received" | "upload_failed";
+type QueueStatus = "queued" | "analysing" | "analysed" | "uploading" | "received" | "upload_failed";
 
 interface BatchItem {
   id: string;
   file: File;
   status: QueueStatus;
   progress: number;
-  preview?: ImagePreview;
+  preview?: { hasGps: boolean; hasUtc: boolean; cameraPositionCandidate: boolean; sha256: string };
   clientMetadata?: Record<string, unknown>;
   analysisError?: string;
   uploadError?: string;
   resumeIntent?: UploadIntent;
   clientRequestId: string;
   batchSequence: number;
-  receivedUpload?: Upload;
+  receivedUpload?: OriginalCheckUpload;
   originalCheck?: OriginalCheckState;
   promotion?: DroneOriginalPromotionState;
 }
 
 interface DroneBeforeBatchWizardProps {
+  intakeMode?: DroneIntakeMode;
   open: boolean;
   onClose: () => void;
   projectId: string;
@@ -101,6 +111,8 @@ function errorMessage(_error: unknown): string {
 
 function statusLabel(item: BatchItem): string {
   switch (item.status) {
+    case "queued":
+      return "Afventer seriens tur";
     case "analysing":
       return "Læser metadata og SHA-256";
     case "analysed":
@@ -119,6 +131,7 @@ function statusLabel(item: BatchItem): string {
 }
 
 function statusTone(item: BatchItem): string {
+  if (item.status === "queued") return "bg-slate-100 text-slate-800";
   if (item.status === "received")
     return item.originalCheck?.status === "raw_original_validated"
       ? "bg-slate-100 text-slate-800"
@@ -127,41 +140,186 @@ function statusTone(item: BatchItem): string {
   if (item.status === "uploading" || item.status === "analysing") {
     return "bg-sky-100 text-sky-800";
   }
-  if (
-    item.analysisError ||
-    !item.preview?.droneMetadata.position ||
-    !item.preview?.droneMetadata.capture.capturedAtUtc ||
-    !item.preview ||
-    !isReadyForAutomaticCameraPosition(item.preview.droneMetadata)
-  ) {
+  if (item.analysisError || !item.preview?.cameraPositionCandidate) {
     return "bg-amber-100 text-amber-900";
   }
   return "bg-slate-100 text-slate-800";
 }
 
-export function DroneBeforeBatchWizard({
+async function readPreview(
+  file: File,
+): Promise<Pick<BatchItem, "preview" | "clientMetadata" | "analysisError">> {
+  if (
+    resolveUploadMime(file) !== "image/jpeg" ||
+    !/\.jpe?g$/i.test(file.name) ||
+    file.size > MAX_ORIGINAL_CHECK_BYTES
+  )
+    return {
+      analysisError:
+        "Metadata- og originalkontrol understøtter JPEG op til 32 MiB. Filen kan stadig modtages.",
+    };
+  try {
+    const result = await parseImage(file);
+    const metadata = result.droneMetadata;
+    return {
+      preview: {
+        hasGps: !!metadata.position,
+        hasUtc: !!metadata.capture.capturedAtUtc,
+        cameraPositionCandidate: isReadyForAutomaticCameraPosition(metadata),
+        sha256: metadata.file.sha256,
+      },
+      clientMetadata: buildImageDetectedMetadata(result),
+    };
+  } catch (error) {
+    return { analysisError: errorMessage(error) };
+  }
+}
+
+export function NeutralDroneImport({
+  projectId,
+  disabled,
+  onImported,
+}: {
+  projectId: string;
+  disabled?: boolean;
+  onImported?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        className="inline-flex min-h-11 items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-sm disabled:opacity-50"
+      >
+        <FileImage className="h-4 w-4" /> Importer droneoriginaler
+      </button>
+      <DroneBeforeBatchWizard
+        intakeMode="neutral"
+        open={open}
+        onClose={() => setOpen(false)}
+        projectId={projectId}
+        onImported={onImported}
+      />
+    </>
+  );
+}
+
+function NeutralSeriesReceipt({ batch, index }: { batch: CanonicalDroneBatch; index: number }) {
+  const [files, setFiles] = useState<Awaited<ReturnType<typeof listNeutralDroneBatchFiles>>>();
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+  async function readFiles() {
+    setError(false);
+    setLoading(true);
+    try {
+      setFiles(await listNeutralDroneBatchFiles(batch.projectId, batch.batchId));
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <details
+      onToggle={(event) => {
+        if (event.currentTarget.open && !files && !loading) void readFiles();
+      }}
+    >
+      <summary className="cursor-pointer py-1">
+        Serie {index + 1} · {batch.receivedCount} modtaget · {batch.mediaIds.length} tilknyttet
+      </summary>
+      {loading && <p>Henter filnavne…</p>}
+      {error && (
+        <button type="button" className="underline" onClick={() => void readFiles()}>
+          Hent filer igen
+        </button>
+      )}
+      {files && (
+        <ol className="max-h-40 overflow-auto">
+          {files.map((file) => (
+            <li key={file.id}>
+              {Number(file.sequence)}. {file.original_file_name}
+            </li>
+          ))}
+        </ol>
+      )}
+      {files && files.length < batch.receivedCount && (
+        <p>Nogle filer er ikke tilgængelige på projektet.</p>
+      )}
+    </details>
+  );
+}
+
+function NeutralReceipts({ actorId, projectId }: { actorId: string; projectId: string }) {
+  const [receipts] = useState(() => {
+    try {
+      return readPendingDroneBatches(localStorage, actorId, projectId, "neutral");
+    } catch {
+      return null;
+    }
+  });
+  if (!receipts) return <p role="status">Kvitteringer fra denne browser kunne ikke læses.</p>;
+  if (!receipts.length) return null;
+  return (
+    <section className="rounded-lg border p-3 text-sm">
+      <h3 className="font-medium">Modtagne droneserier</h3>
+      {receipts.map((batch, index) => (
+        <NeutralSeriesReceipt key={batch.batchId} batch={batch} index={index} />
+      ))}
+    </section>
+  );
+}
+
+export function DroneBeforeBatchWizard(props: DroneBeforeBatchWizardProps) {
+  const { user } = useAuth();
+  return user ? (
+    <BatchQueue
+      key={`${user.id}:${props.projectId}:${props.intakeMode ?? "before"}`}
+      {...props}
+      actorId={user.id}
+    />
+  ) : null;
+}
+
+function BatchQueue({
   open,
   onClose,
   projectId,
   onImported,
   onCanonicalBatch,
-}: DroneBeforeBatchWizardProps) {
+  intakeMode = "before",
+  actorId,
+}: DroneBeforeBatchWizardProps & { actorId: string }) {
   const [items, setItems] = useState<BatchItem[]>([]);
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [checkingOriginals, setCheckingOriginals] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [visibleSeries, setVisibleSeries] = useState(1);
   const busyRef = useRef(false);
   const validateOriginal = useServerFn(validateDroneOriginal);
   const promoteOriginal = useServerFn(promoteDroneOriginal);
   const inputRef = useRef<HTMLInputElement>(null);
   const batchIdRef = useRef<string | null>(null);
   const runGenerationRef = useRef(0);
+  const transfer = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      runGenerationRef.current++;
+      transfer.current?.abort();
+    },
+    [],
+  );
 
   const active =
+    processing ||
     checkingOriginals ||
     items.some((item) => item.status === "analysing" || item.status === "uploading");
   const uploadCandidates = items.filter(
-    (item) => item.status === "analysed" || item.status === "upload_failed",
+    (item) =>
+      item.status === "queued" || item.status === "analysed" || item.status === "upload_failed",
   );
   const receivedCount = items.filter((item) => item.status === "received").length;
   const originalRetryCandidates = items.filter(
@@ -171,11 +329,9 @@ export function DroneBeforeBatchWizard({
   );
   const warningCount = items.filter(
     (item) =>
+      item.status !== "queued" &&
       item.status !== "analysing" &&
-      (item.analysisError ||
-        !item.preview?.droneMetadata.position ||
-        !item.preview?.droneMetadata.capture.capturedAtUtc ||
-        (item.preview && !isReadyForAutomaticCameraPosition(item.preview.droneMetadata))),
+      (item.analysisError || !item.preview?.cameraPositionCandidate),
   ).length;
 
   const updateItem = useCallback((id: string, patch: Partial<BatchItem>) => {
@@ -185,34 +341,10 @@ export function DroneBeforeBatchWizard({
   const analyse = useCallback(
     async (added: BatchItem[], generation: number) => {
       await runWithConcurrency(added, DRONE_BEFORE_CONCURRENCY, async (item) => {
-        if (
-          resolveUploadMime(item.file) !== "image/jpeg" ||
-          !/\.jpe?g$/i.test(item.file.name) ||
-          item.file.size > MAX_ORIGINAL_CHECK_BYTES
-        ) {
-          if (runGenerationRef.current !== generation) return;
-          updateItem(item.id, {
-            status: "analysed",
-            analysisError:
-              "Ikke behandlet her: metadata- og originalkontrol understøtter JPEG op til 32 MiB. Filen kan stadig modtages.",
-          });
-          return;
-        }
-        try {
-          const preview = await parseImage(item.file);
-          if (runGenerationRef.current !== generation) return;
-          updateItem(item.id, {
-            status: "analysed",
-            preview,
-            clientMetadata: buildImageDetectedMetadata(preview),
-          });
-        } catch (error) {
-          if (runGenerationRef.current !== generation) return;
-          updateItem(item.id, {
-            status: "analysed",
-            analysisError: errorMessage(error),
-          });
-        }
+        if (runGenerationRef.current !== generation) return;
+        const preview = await readPreview(item.file);
+        if (runGenerationRef.current === generation)
+          updateItem(item.id, { ...preview, status: "analysed" });
       });
     },
     [updateItem],
@@ -236,13 +368,14 @@ export function DroneBeforeBatchWizard({
           invalidCount += 1;
           continue;
         }
+        const batchSequence = firstSequence + accepted.length;
         accepted.push({
-          id: createId("before-photo"),
+          id: createId(intakeMode === "before" ? "before-photo" : "drone-photo"),
           file,
-          status: "analysing",
+          status: batchSequence <= MAX_DRONE_BEFORE_BATCH_FILES ? "analysing" : "queued",
           progress: 0,
           clientRequestId: createUploadRequestId(),
-          batchSequence: firstSequence + accepted.length,
+          batchSequence,
         });
       }
 
@@ -250,26 +383,30 @@ export function DroneBeforeBatchWizard({
       if (selected.duplicateCount > 0) {
         messages.push(`${selected.duplicateCount} dublet(ter) blev sprunget over`);
       }
-      if (selected.capacityRejectedCount > 0) {
-        messages.push(
-          `${selected.capacityRejectedCount} fil(er) overskred grænsen på ${MAX_DRONE_BEFORE_BATCH_FILES}`,
-        );
-      }
       if (invalidCount > 0) {
         messages.push(`${invalidCount} ugyldig(e) billedfil(er) eller filer over 200 MB`);
       }
       setSelectionMessage(messages.length ? `${messages.join(". ")}.` : null);
 
       if (accepted.length === 0) return;
-      if (!batchIdRef.current) batchIdRef.current = createId("before-batch");
+      if (!batchIdRef.current)
+        batchIdRef.current = createId(intakeMode === "before" ? "before-batch" : "drone-batch");
       setItems((current) => [...current, ...accepted]);
       const generation = runGenerationRef.current;
-      void analyse(accepted, generation);
+      void analyse(
+        accepted.filter((item) => item.status === "analysing"),
+        generation,
+      );
     },
-    [analyse, items],
+    [analyse, items, intakeMode],
   );
 
-  const checkReceivedOriginals = async (received: DroneOriginalProcessingCandidate[]) => {
+  const checkReceivedOriginals = async (
+    received: DroneOriginalProcessingCandidate[],
+    signal: AbortSignal,
+    series: number,
+    receivedTotal: number,
+  ) => {
     setCheckingOriginals(true);
     const canonical = new Set<string>();
     try {
@@ -277,15 +414,29 @@ export function DroneBeforeBatchWizard({
         received,
         projectId,
         {
-          validate: (input) => validateOriginal({ data: input }),
-          promote: (input) => promoteOriginal({ data: input }),
+          validate: (input) => {
+            signal.throwIfAborted();
+            return validateOriginal({ data: input });
+          },
+          promote: (input) => {
+            signal.throwIfAborted();
+            return promoteOriginal({ data: input });
+          },
         },
         {
           onOriginalCheck: (id, originalCheck) => updateItem(id, { originalCheck }),
           onPromotion: (id, promotion) => {
-            updateItem(id, { promotion });
-            if (promotion.status === "canonical" && promotion.mediaId)
+            updateItem(
+              id,
+              promotion.status === "canonical"
+                ? { promotion, receivedUpload: undefined }
+                : { promotion },
+            );
+            if (promotion.status === "canonical" && promotion.mediaId) {
               canonical.add(promotion.mediaId);
+              if (intakeMode === "neutral")
+                notifyCanonicalBatch(series, [promotion.mediaId], receivedTotal);
+            }
           },
         },
       );
@@ -295,100 +446,182 @@ export function DroneBeforeBatchWizard({
     return [...canonical];
   };
 
-  const notifyCanonicalBatch = (mediaIds: string[], receivedTotal: number) => {
-    if (!batchIdRef.current || mediaIds.length === 0) return;
-    onCanonicalBatch?.({
+  const batchIdFor = (series: number) =>
+    series === 1 ? batchIdRef.current! : `${batchIdRef.current}-${series}`;
+  const notifyCanonicalBatch = (series: number, mediaIds: string[], receivedTotal: number) => {
+    if (
+      !batchIdRef.current ||
+      receivedTotal === 0 ||
+      (intakeMode === "before" && mediaIds.length === 0)
+    )
+      return;
+    const batch = {
       projectId,
-      batchId: batchIdRef.current,
+      batchId: batchIdFor(series),
       mediaIds: [...new Set(mediaIds)],
       receivedCount: receivedTotal,
-    });
+    };
+    if (intakeMode === "before" && onCanonicalBatch) onCanonicalBatch(batch);
+    else {
+      try {
+        savePendingDroneBatch(localStorage, actorId, batch, intakeMode);
+      } catch {
+        setSelectionMessage(
+          "Originalerne er gemt på sagen. Serien kunne ikke gemmes til genåbning i denne browser.",
+        );
+      }
+    }
   };
 
+  const seriesItems = groupDroneBatchItems(items);
+  const alreadyReceived = (series: number) =>
+    seriesItems.get(series)?.filter((item) => item.status === "received").length ?? 0;
   const retryOriginalChecks = async () => {
     if (busyRef.current || active || clearing) return;
     busyRef.current = true;
+    setProcessing(true);
+    const controller = new AbortController();
+    transfer.current = controller;
     try {
-      const canonical = await checkReceivedOriginals(
-        originalRetryCandidates.map((item) => ({
-          key: item.id,
-          upload: item.receivedUpload!,
-          originalCheck: item.originalCheck,
-          promotion: item.promotion,
-        })),
-      );
+      for (const [series, group] of groupDroneBatchItems(originalRetryCandidates)) {
+        if (controller.signal.aborted) return;
+        const canonical = await checkReceivedOriginals(
+          group.map((item) => ({
+            key: item.id,
+            upload: item.receivedUpload!,
+            originalCheck: item.originalCheck,
+            promotion: item.promotion,
+          })),
+          controller.signal,
+          series,
+          alreadyReceived(series),
+        );
+        if (!controller.signal.aborted)
+          notifyCanonicalBatch(series, canonical, alreadyReceived(series));
+      }
+      if (controller.signal.aborted) return;
       onImported?.();
-      notifyCanonicalBatch(canonical, receivedCount);
     } finally {
       busyRef.current = false;
+      setProcessing(false);
     }
   };
 
   const uploadBatch = async () => {
     if (busyRef.current || active || clearing) return;
     busyRef.current = true;
-    const batchId = batchIdRef.current ?? createId("before-batch");
-    batchIdRef.current = batchId;
-    let successes = 0;
-    const candidates = [...uploadCandidates];
-    const received: { key: string; upload: Upload; sequence: number }[] = [];
+    setProcessing(true);
+    const controller = new AbortController();
+    transfer.current = controller;
 
     try {
-      await runWithConcurrency(candidates, DRONE_BEFORE_CONCURRENCY, async (item) => {
-        updateItem(item.id, { status: "uploading", progress: 0, uploadError: undefined });
-        try {
-          const upload = await uploadFileResumable({
-            file: item.file,
-            projectId,
-            uploadType: "drone_photo",
-            userMetadata: {
-              intake: {
-                schema_version: "gofreyra.drone-before-intake/v1",
-                phase: "BEFORE",
-                media_kind: "drone_photo",
-                batch_id: batchId,
-                batch_sequence: item.batchSequence,
-              },
-              // Browser-derived EXIF/XMP/SHA is untrusted evidence. The server
-              // must re-extract and populate detected_metadata before use.
-              client_preview: item.clientMetadata ?? {
-                metadata_parse_error: item.analysisError ?? "Metadata mangler",
-              },
-            },
-            onProgress: (progress) => {
-              updateItem(item.id, {
-                progress: Math.max(0, Math.min(100, Math.round(progress))),
-              });
-            },
-            resumeIntent: item.resumeIntent,
-            clientRequestId: item.clientRequestId,
-          });
-          successes += 1;
-          received.push({ key: item.id, upload, sequence: item.batchSequence });
+      for (const [series, candidates] of groupDroneBatchItems(uploadCandidates)) {
+        if (controller.signal.aborted) return;
+        const received: (DroneOriginalProcessingCandidate & { sequence: number })[] = [];
+        await runWithConcurrency(candidates, DRONE_BEFORE_CONCURRENCY, async (item) => {
+          if (controller.signal.aborted) return;
+          const details =
+            item.status === "queued"
+              ? await readPreview(item.file)
+              : {
+                  preview: item.preview,
+                  clientMetadata: item.clientMetadata,
+                  analysisError: item.analysisError,
+                };
+          if (controller.signal.aborted) return;
           updateItem(item.id, {
-            status: "received",
-            progress: 100,
-            resumeIntent: undefined,
-            receivedUpload: upload,
-            originalCheck: { status: "queued" },
+            ...details,
+            status: "uploading",
+            progress: 0,
+            uploadError: undefined,
           });
-        } catch (error) {
-          updateItem(item.id, {
-            status: "upload_failed",
-            uploadError: errorMessage(error),
-            resumeIntent: error instanceof UploadTransferError ? error.intent : item.resumeIntent,
-          });
-        }
-      });
+          try {
+            const upload = await uploadFileResumable({
+              file: item.file,
+              projectId,
+              uploadType: "drone_photo",
+              userMetadata: {
+                intake: {
+                  ...DRONE_BATCH_INTAKE[intakeMode],
+                  media_kind: "drone_photo",
+                  batch_id: batchIdFor(series),
+                  batch_sequence: droneBatchPosition(item.batchSequence).sequence,
+                },
+                // Browser-derived EXIF/XMP/SHA is untrusted evidence. The server
+                // must re-extract and populate detected_metadata before use.
+                client_preview: details.clientMetadata ?? {
+                  metadata_parse_error: details.analysisError ?? "Metadata mangler",
+                },
+              },
+              onProgress: (progress) => {
+                updateItem(item.id, {
+                  progress: Math.max(0, Math.min(100, Math.round(progress))),
+                });
+              },
+              resumeIntent: item.resumeIntent,
+              clientRequestId: item.clientRequestId,
+              signal: controller.signal,
+            });
+            if (controller.signal.aborted) return;
+            const originalCheck = storedOriginalCheckState(upload) ?? { status: "queued" as const };
+            // The queue only needs these fields after the server acknowledges the
+            // bytes. Raw preview and validation envelopes can each approach 1 MiB.
+            const reference: OriginalCheckUpload = {
+              id: upload.id,
+              project_id: upload.project_id,
+              uploaded_by: upload.uploaded_by,
+              file_name: upload.file_name,
+              original_file_name: upload.original_file_name,
+              file_size: upload.file_size,
+              mime_type: upload.mime_type,
+              upload_type: upload.upload_type,
+              storage_path: upload.storage_path,
+              intent_request_id: upload.intent_request_id,
+              received_at: upload.received_at,
+              status: upload.status,
+            };
+            received.push({
+              key: item.id,
+              upload: reference,
+              originalCheck,
+              sequence: item.batchSequence,
+            });
+            if (intakeMode === "neutral") {
+              notifyCanonicalBatch(series, [], alreadyReceived(series) + received.length);
+            }
+            updateItem(item.id, {
+              status: "received",
+              progress: 100,
+              resumeIntent: undefined,
+              receivedUpload: reference,
+              clientMetadata: undefined,
+              originalCheck,
+            });
+          } catch (error) {
+            updateItem(item.id, {
+              status: "upload_failed",
+              uploadError: errorMessage(error),
+              resumeIntent: error instanceof UploadTransferError ? error.intent : item.resumeIntent,
+            });
+          }
+        });
 
-      if (successes > 0) onImported?.();
-      const canonical = await checkReceivedOriginals(
-        received.sort((a, b) => a.sequence - b.sequence),
-      );
-      if (successes > 0) onImported?.();
-      notifyCanonicalBatch(canonical, receivedCount + successes);
+        if (controller.signal.aborted) return;
+        const canonical = await checkReceivedOriginals(
+          received.sort((a, b) => a.sequence - b.sequence),
+          controller.signal,
+          series,
+          alreadyReceived(series) + received.length,
+        );
+        if (controller.signal.aborted) return;
+        if (received.length > 0) {
+          notifyCanonicalBatch(series, canonical, alreadyReceived(series) + received.length);
+          onImported?.();
+        }
+      }
     } finally {
       busyRef.current = false;
+      setProcessing(false);
     }
   };
 
@@ -398,15 +631,13 @@ export function DroneBeforeBatchWizard({
     if (pending.length > 0) {
       setClearing(true);
       const failedIds = new Set<string>();
-      await Promise.all(
-        pending.map(async (item) => {
-          try {
-            await cancelUploadIntent(item.resumeIntent!.uploadId);
-          } catch {
-            failedIds.add(item.id);
-          }
-        }),
-      );
+      await runWithConcurrency(pending, DRONE_BEFORE_CONCURRENCY, async (item) => {
+        try {
+          await cancelUploadIntent(item.resumeIntent!.uploadId);
+        } catch {
+          failedIds.add(item.id);
+        }
+      });
       setClearing(false);
       if (failedIds.size > 0) {
         setItems((current) => current.filter((item) => failedIds.has(item.id)));
@@ -419,6 +650,7 @@ export function DroneBeforeBatchWizard({
     runGenerationRef.current += 1;
     batchIdRef.current = null;
     setItems([]);
+    setVisibleSeries(1);
     setSelectionMessage(null);
     if (inputRef.current) inputRef.current.value = "";
     return true;
@@ -426,6 +658,10 @@ export function DroneBeforeBatchWizard({
 
   const handleClose = () => {
     if (busyRef.current || active || clearing) return;
+    if (uploadCandidates.length || originalRetryCandidates.length) {
+      onClose();
+      return;
+    }
     void reset().then((cleared) => {
       if (cleared) onClose();
     });
@@ -449,17 +685,20 @@ export function DroneBeforeBatchWizard({
   };
 
   const allReceived = items.length > 0 && receivedCount === items.length;
-  const summary = useMemo(
-    () => `${items.length}/${MAX_DRONE_BEFORE_BATCH_FILES} billeder · ${receivedCount} modtaget`,
-    [items.length, receivedCount],
-  );
+  const currentSeries = seriesItems.has(visibleSeries)
+    ? visibleSeries
+    : seriesItems.keys().next().value;
 
   return (
     <Drawer
       open={open}
       onClose={handleClose}
       title="Tilføj dronebilleder"
-      subtitle="Billeder til FØR-dokumentation"
+      subtitle={
+        intakeMode === "before"
+          ? "Billeder til FØR-dokumentation"
+          : "Droneoriginaler fra én eller flere optagedatoer"
+      }
       footer={
         <>
           <button
@@ -468,7 +707,7 @@ export function DroneBeforeBatchWizard({
             disabled={active || clearing}
             className="rounded-lg border bg-card px-3 py-1.5 text-xs disabled:opacity-50"
           >
-            Luk
+            {allReceived && originalRetryCandidates.length === 0 ? "Luk billedkø" : "Luk"}
           </button>
           {originalRetryCandidates.length > 0 && (
             <button
@@ -513,12 +752,16 @@ export function DroneBeforeBatchWizard({
         Billederne afventer faglig gennemgang.
       </div>
 
+      {intakeMode === "neutral" && open && items.length === 0 && (
+        <NeutralReceipts actorId={actorId} projectId={projectId} />
+      )}
       <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 hover:bg-muted/30">
         <FileImage className="h-7 w-7 text-muted-foreground" />
-        <div className="mt-2 text-sm font-medium">Vælg op til 200 originale dronebilleder</div>
+        <div className="mt-2 text-sm font-medium">Vælg originale dronebilleder</div>
         <div className="mt-1 text-center text-xs text-muted-foreground">
-          JPEG-billeder op til 32 MiB kan behandles her. Andre billedformater og større JPEG-filer
-          kan modtages, men afventer behandling.
+          Vælg alle billederne på én gang. De behandles i serier på op til{" "}
+          {MAX_DRONE_BEFORE_BATCH_FILES}. JPEG-billeder op til 32 MiB kan behandles her. Andre
+          billedformater og større JPEG-filer kan modtages, men afventer behandling.
         </div>
         <input
           ref={inputRef}
@@ -526,7 +769,7 @@ export function DroneBeforeBatchWizard({
           accept="image/*,.jpg,.jpeg,.tif,.tiff,.dng,.png,.webp,.heic"
           multiple
           className="hidden"
-          disabled={active || clearing || items.length >= MAX_DRONE_BEFORE_BATCH_FILES}
+          disabled={active || clearing}
           onChange={(event) => {
             if (event.target.files) handleFiles(event.target.files);
             event.target.value = "";
@@ -542,7 +785,9 @@ export function DroneBeforeBatchWizard({
 
       {items.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="font-medium">{summary}</span>
+          <span className="font-medium">
+            {items.length} billeder · {receivedCount} modtaget
+          </span>
           {warningCount > 0 && (
             <span className="inline-flex items-center gap-1 text-amber-800">
               <AlertTriangle className="h-3.5 w-3.5" /> {warningCount} kræver kontrol
@@ -557,23 +802,37 @@ export function DroneBeforeBatchWizard({
           <div>
             <div className="font-medium">Alle originaler er modtaget</div>
             <div className="mt-0.5 text-xs">
-              Se originalkontrol og tilknytning ved hver fil. Modtagelse, råkontrol og kanonisk
-              registrering gør ikke billederne rapportklare eller afslutter en FØR-runde.
+              {intakeMode === "before"
+                ? "Se originalkontrol og tilknytning ved hver fil. Modtagelse, råkontrol og kanonisk registrering gør ikke billederne rapportklare eller afslutter en FØR-runde."
+                : "Se originalkontrol og tilknytning ved hver fil. Billederne afventer faglig gennemgang."}
             </div>
           </div>
         </div>
       )}
 
+      {seriesItems.size > 1 && (
+        <label className="flex items-center gap-2 text-sm">
+          Vis serie
+          <select
+            value={currentSeries}
+            onChange={(event) => setVisibleSeries(Number(event.target.value))}
+          >
+            {[...seriesItems].map(([series, group]) => (
+              <option key={series} value={series}>
+                Serie {series} · {group.length} billeder
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="max-h-[48vh] space-y-2 overflow-y-auto pr-1">
-        {items.map((item) => {
-          const metadata = item.preview?.droneMetadata;
-          const hasGps = Boolean(metadata?.position);
-          const hasUtc = Boolean(metadata?.capture.capturedAtUtc);
-          const cameraPositionCandidate = metadata
-            ? isReadyForAutomaticCameraPosition(metadata)
-            : false;
+        {(currentSeries ? seriesItems.get(currentSeries) : [])?.map((item) => {
+          const { hasGps, hasUtc, cameraPositionCandidate } = item.preview ?? {};
           const canRemove =
-            !active && (item.status === "analysed" || item.status === "upload_failed");
+            !active &&
+            (item.status === "queued" ||
+              item.status === "analysed" ||
+              item.status === "upload_failed");
           return (
             <div key={item.id} className="rounded-lg border bg-card p-3 text-xs">
               <div className="flex items-start justify-between gap-2">
@@ -610,7 +869,7 @@ export function DroneBeforeBatchWizard({
                 </div>
               )}
 
-              {item.status !== "analysing" && (
+              {item.status !== "analysing" && item.status !== "queued" && (
                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
                   <span className={hasGps ? "text-emerald-700" : "text-amber-800"}>
                     <MapPin className="mr-1 inline h-3 w-3" /> Browser-GPS{" "}
@@ -622,17 +881,19 @@ export function DroneBeforeBatchWizard({
                   <span>
                     {item.originalCheck?.sha256
                       ? `Server-SHA-256 ${item.originalCheck.sha256.slice(0, 12)}`
-                      : `Foreløbig SHA-256 ${metadata?.file.sha256 ? metadata.file.sha256.slice(0, 12) : "afventer"}`}
+                      : `Foreløbig SHA-256 ${item.preview?.sha256.slice(0, 12) ?? "afventer"}`}
                   </span>
                 </div>
               )}
 
-              {item.status !== "analysing" && !cameraPositionCandidate && (
-                <div className="mt-2 rounded-md bg-amber-50 p-2 text-amber-900">
-                  Originalen må modtages, men billedet er ikke klar til automatisk kortposition.
-                  Projektets centrum bruges aldrig som erstatning for manglende GPS eller UTC.
-                </div>
-              )}
+              {item.status !== "analysing" &&
+                item.status !== "queued" &&
+                !cameraPositionCandidate && (
+                  <div className="mt-2 rounded-md bg-amber-50 p-2 text-amber-900">
+                    Originalen må modtages, men billedet er ikke klar til automatisk kortposition.
+                    Projektets centrum bruges aldrig som erstatning for manglende GPS eller UTC.
+                  </div>
+                )}
               {item.analysisError && (
                 <div className="mt-2 text-red-700">Metadatafejl: {item.analysisError}</div>
               )}

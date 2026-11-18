@@ -268,8 +268,9 @@ export async function openFieldOfflineStore(
         req.onsuccess = () => result(req.result?.blob ?? null);
       });
     },
-    async claim(actorId: string, now = Date.now()): Promise<OfflineItem | null> {
+    async claim(actorId: string, now = Date.now(), itemId?: string): Promise<OfflineItem | null> {
       FieldPhotoUuid.parse(actorId);
+      if (itemId) FieldPhotoUuid.parse(itemId);
       return transaction(db, ["items"], "readwrite", (tx, result, fail) => {
         const store = tx.objectStore("items");
         const req = store.index("actor").getAll(actorId);
@@ -309,6 +310,7 @@ export async function openFieldOfflineStore(
               .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
               .find(
                 (i) =>
+                  (!itemId || i.id === itemId) &&
                   (i.state === "queued" ||
                     i.state === "retry" ||
                     (i.state === "sending" && i.leaseUntil <= now)) &&

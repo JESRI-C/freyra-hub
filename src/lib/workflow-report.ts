@@ -57,7 +57,12 @@ export const WorkflowReportSnapshotSchema = z
           const comparison = PhotoComparisonSchema.parse(value);
           if (
             entry.payload.source !== "photo-comparison:" + comparison.comparisonId ||
-            !snapshot.inputs.some((e) => e.id === comparison.executionRevisionId)
+            (comparison.executionRevisionId !== null &&
+              !snapshot.inputs.some(
+                (e) =>
+                  e.id === comparison.executionRevisionId &&
+                  e.payload.source.startsWith("action-execution:"),
+              ))
           )
             issue("Sammenligningens udførelsesversion mangler.");
         } else if (entry.payload.source.startsWith("workflow-followup:")) {

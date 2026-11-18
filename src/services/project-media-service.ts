@@ -12,6 +12,7 @@ import { getProjectMedia as getSeedMedia } from "@/data/project-media";
 import { getCanonicalDroneMediaUrl } from "@/lib/canonical-drone-media.functions";
 import { canonicalDroneMediaReference } from "./monitoring/canonical-drone-media-reference";
 import { PhotoCaptureSchema } from "@/lib/field-photo-position";
+import type { ComparisonPhoto } from "@/lib/photo-comparison";
 import { uploadFieldPhoto } from "./field-photo-upload-service";
 import { FieldPhotoUploadPayload, type FieldPhotoReceipt } from "@/lib/field-photo-upload";
 // Minimal interface for an untyped Supabase query builder, used to access the
@@ -28,6 +29,8 @@ interface UntypedQueryBuilder {
   update(values: Record<string, unknown>): UntypedQueryBuilder;
   delete(): UntypedQueryBuilder;
   eq(column: string, value: unknown): UntypedQueryBuilder;
+  in(column: string, values: string[]): UntypedQueryBuilder;
+  not(column: string, operator: "in", filter: string): UntypedQueryBuilder;
   limit(count: number): UntypedQueryBuilder;
   range(from: number, to: number): UntypedQueryBuilder;
   order(
@@ -280,6 +283,90 @@ export async function getProjectMedia(
     return { data: null, error: "Originalen blev ikke fundet, eller projektadgangen er ændret." };
   return materializePrivateMedia(data as Record<string, unknown>, projectId);
 }
+/** Finding a pair needs capture metadata. Only the chosen originals need signed links. */
+export async function listComparisonPhotos(
+  projectId: string,
+  selectedIds?: [string, string],
+): Promise<ComparisonPhoto[]> {
+  const db = getDb();
+  if (!db || !isSupabaseConfigured) throw new Error("Kundedatabasen er ikke konfigureret.");
+  const photos: ComparisonPhoto[] = [];
+  for (let offset = 0; ; offset += 500) {
+    let query = db
+      .from("comparison_photo_sources")
+      .select(
+        "id,project_id,title,captured_at,capture_date,lat,lng,status,action_id,before_media_id,sha256",
+      )
+      .eq("project_id", projectId)
+      .in("category", ["field_photo", "drone_image"]);
+    if (selectedIds) query = query.in("id", selectedIds);
+    const { data, error } = await query
+      .order("uploaded_at", { ascending: false })
+      .order("id")
+      .range(offset, offset + 499);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as Record<string, unknown>[];
+    for (const row of rows) {
+      if (row.project_id !== projectId)
+        throw new Error("Fotoregistret matcher ikke den valgte sag.");
+      photos.push({
+        id: String(row.id),
+        projectId,
+        title: String(row.title),
+        capturedAt: typeof row.captured_at === "string" ? row.captured_at : undefined,
+        localCaptureDate: typeof row.capture_date === "string" ? row.capture_date : undefined,
+        coordinates:
+          typeof row.lat === "number" && typeof row.lng === "number"
+            ? { lat: row.lat, lng: row.lng }
+            : undefined,
+        status: (row.status as MediaStatus) ?? "uploaded",
+        actionId: typeof row.action_id === "string" ? row.action_id : null,
+        beforeMediaId: typeof row.before_media_id === "string" ? row.before_media_id : null,
+        sha256: typeof row.sha256 === "string" ? row.sha256 : null,
+      });
+    }
+    if (rows.length < 500) return photos;
+  }
+}
+
+export type WatercoursePhoto = Pick<
+  ComparisonPhoto,
+  "id" | "title" | "capturedAt" | "localCaptureDate" | "coordinates"
+>;
+
+/** All photo categories can document a reach. Only the selected originals need signed URLs. */
+export async function listWatercoursePhotos(projectId: string): Promise<WatercoursePhoto[]> {
+  const photos: WatercoursePhoto[] = await listComparisonPhotos(projectId);
+  const db = getDb();
+  if (!db) throw new Error("Kundedatabasen er ikke konfigureret.");
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await db
+      .from("project_media")
+      .select("id,project_id,title,captured_at,lat,lng")
+      .eq("project_id", projectId)
+      .not("category", "in", "(field_photo,drone_image,document_scan)")
+      .order("uploaded_at", { ascending: false })
+      .order("id")
+      .range(offset, offset + 499);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as Record<string, unknown>[];
+    for (const row of rows) {
+      if (row.project_id !== projectId)
+        throw new Error("Fotoregistret matcher ikke den valgte sag.");
+      photos.push({
+        id: String(row.id),
+        title: String(row.title),
+        capturedAt: typeof row.captured_at === "string" ? row.captured_at : undefined,
+        coordinates:
+          typeof row.lat === "number" && typeof row.lng === "number"
+            ? { lat: row.lat, lng: row.lng }
+            : undefined,
+      });
+    }
+    if (rows.length < 500) return photos;
+  }
+}
+
 export async function listProjectMedia(
   projectId: string,
 ): Promise<MediaServiceResult<ProjectMediaItem[]>> {

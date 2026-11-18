@@ -1,8 +1,12 @@
-import { DRONE_METADATA_SCHEMA_VERSION } from "./drone-image-metadata";
+import {
+  DRONE_METADATA_EXTRACTOR,
+  DRONE_METADATA_SCHEMA_VERSION,
+  matchesLocalCameraCapture,
+} from "./drone-image-metadata";
+import { DRONE_BATCH_INTAKE, type DroneIntakeMode } from "./drone-batch-intake";
 import { listUploads, type Upload } from "./uploads-service";
 
 const POSTGRES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const BEFORE_INTAKE_SCHEMA = "gofreyra.drone-before-intake/v1";
 const SHA256_HEX = /^[0-9a-f]{64}$/i;
 const RECEIVED_UPLOAD_STATUSES = new Set([
   "awaiting_validation",
@@ -24,15 +28,15 @@ function isReceivedUpload(upload: Upload): boolean {
   return upload.status === "draft" && upload.intent_request_id == null;
 }
 
-function isDroneBeforeUpload(upload: Upload): boolean {
-  if (upload.upload_type !== "drone_photo" || !isRecord(upload.user_metadata)) return false;
+function droneIntakeMode(upload: Upload): DroneIntakeMode | undefined {
+  if (upload.upload_type !== "drone_photo" || !isRecord(upload.user_metadata)) return;
   const intake = upload.user_metadata["intake"];
-  return (
-    isRecord(intake) &&
-    intake["schema_version"] === BEFORE_INTAKE_SCHEMA &&
-    intake["phase"] === "BEFORE" &&
-    intake["media_kind"] === "drone_photo"
-  );
+  if (!isRecord(intake) || intake["media_kind"] !== "drone_photo") return;
+  for (const mode of ["neutral", "before"] as const) {
+    const expected = DRONE_BATCH_INTAKE[mode];
+    if (intake["schema_version"] === expected.schema_version && intake["phase"] === expected.phase)
+      return mode;
+  }
 }
 
 export type DroneUploadMapPointTrust = "raw_unvalidated";
@@ -43,7 +47,7 @@ export interface DroneUploadMapPoint {
   fileName: string;
   coordinates: { lat: number; lng: number };
   capturedAt: string;
-  /** Imported local timestamps must not be silently converted to a timezone. */
+  /** Display this camera-local text directly when the source has no documented UTC instant. */
   capturedAtLabel?: string;
   positionNotice?: string;
   altitudeM?: number;
@@ -51,6 +55,7 @@ export interface DroneUploadMapPoint {
   cameraLabel?: string;
   batchId?: string;
   batchSequence?: number;
+  intakeMode?: DroneIntakeMode;
   uploadStatus: string;
   /** Client EXIF/XMP is only an orientation aid until a server re-extracts it. */
   positionTrust: DroneUploadMapPointTrust;
@@ -60,7 +65,7 @@ export type DroneUploadMapPointRejection =
   | "wrong_project"
   | "not_received"
   | "inactive_upload"
-  | "not_drone_before"
+  | "not_drone_batch"
   | "missing_position"
   | "invalid_metadata";
 
@@ -81,6 +86,8 @@ type UploadLister = (params: {
   projectId?: string | null;
   status?: string;
   limit?: number;
+  afterId?: string | null;
+  uploadType?: Upload["upload_type"];
 }) => Promise<Upload[]>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -115,18 +122,21 @@ function optionalString(value: unknown, maxLength: number): string | undefined {
 function validClientPreview(
   upload: Upload,
   preview: Record<string, unknown>,
+  intakeMode: DroneIntakeMode,
 ):
   | {
       latitude: number;
       longitude: number;
       capturedAt: string;
+      capturedAtLabel?: string;
       altitudeM?: number;
       directionDeg?: number;
       cameraLabel?: string;
     }
   | "missing_position"
   | "invalid_metadata" {
-  if (preview["ready_for_camera_position"] !== true) return "missing_position";
+  const localOnly = intakeMode === "neutral" && preview["ready_for_camera_position"] === false;
+  if (preview["ready_for_camera_position"] !== true && !localOnly) return "missing_position";
   if (preview["metadata_schema_version"] !== DRONE_METADATA_SCHEMA_VERSION) {
     return "invalid_metadata";
   }
@@ -140,7 +150,7 @@ function validClientPreview(
     longitude == null ||
     Math.abs(latitude) > 90 ||
     Math.abs(longitude) > 180 ||
-    !capturedAt
+    (!localOnly && !capturedAt)
   ) {
     return "invalid_metadata";
   }
@@ -174,7 +184,7 @@ function validClientPreview(
     qa["errors"].length > 0 ||
     !["ready", "review_required"].includes(String(qa["status"] ?? "")) ||
     qa["status"] !== preview["metadata_status"] ||
-    capture["capturedAtUtc"] !== capturedAt
+    (!localOnly && capture["capturedAtUtc"] !== capturedAt)
   ) {
     return "invalid_metadata";
   }
@@ -199,7 +209,39 @@ function validClientPreview(
   const model = optionalString(preview["camera_model"], 100);
   const cameraLabel = [make, model].filter(Boolean).join(" ") || undefined;
 
-  return { latitude, longitude, capturedAt, altitudeM, directionDeg, cameraLabel };
+  let capturedAtLabel: string | undefined;
+  if (localOnly) {
+    const localTime = capture["localTimestamp"];
+    const warnings = qa["warnings"];
+    if (
+      droneMetadata["extractor"] !== DRONE_METADATA_EXTRACTOR ||
+      preview["captured_at"] != null ||
+      capture["capturedAtUtc"] != null ||
+      capture["offset"] != null ||
+      capture["source"] != null ||
+      capture["timezoneKnown"] !== false ||
+      typeof localTime !== "string" ||
+      qa["status"] !== "review_required" ||
+      !Array.isArray(warnings) ||
+      warnings.length !== 1 ||
+      !isRecord(warnings[0]) ||
+      warnings[0].code !== "CAPTURE_TIMEZONE_UNKNOWN" ||
+      (preview["altitude_m"] != null && altitudeM == null) ||
+      (preview["direction_deg"] != null && directionDeg == null) ||
+      !matchesLocalCameraCapture(raw, localTime, latitude, longitude, position["source"])
+    )
+      return "invalid_metadata";
+    capturedAtLabel = `${localTime.replace("T", " ")} (lokal tid, tidszone ukendt)`;
+  }
+  return {
+    latitude,
+    longitude,
+    capturedAt: capturedAt ?? "",
+    capturedAtLabel,
+    altitudeM,
+    directionDeg,
+    cameraLabel,
+  };
 }
 
 /**
@@ -213,7 +255,8 @@ export function parseDroneUploadMapPoint(
 ): DroneUploadMapPointResult {
   const projectId = expectedProjectId.toLowerCase();
   if (upload.project_id?.toLowerCase() !== projectId) return { reason: "wrong_project" };
-  if (!isDroneBeforeUpload(upload)) return { reason: "not_drone_before" };
+  const intakeMode = droneIntakeMode(upload);
+  if (!intakeMode) return { reason: "not_drone_batch" };
   if (!upload.received_at) return { reason: "not_received" };
   if (!isReceivedUpload(upload)) return { reason: "inactive_upload" };
 
@@ -222,7 +265,7 @@ export function parseDroneUploadMapPoint(
 
   const preview = userMetadata["client_preview"];
   if (!isRecord(preview)) return { reason: "missing_position" };
-  const parsed = validClientPreview(upload, preview);
+  const parsed = validClientPreview(upload, preview, intakeMode);
   if (typeof parsed === "string") return { reason: parsed };
 
   const batchId = optionalString(intake["batch_id"], 160);
@@ -239,11 +282,13 @@ export function parseDroneUploadMapPoint(
       fileName: upload.original_file_name,
       coordinates: { lat: parsed.latitude, lng: parsed.longitude },
       capturedAt: parsed.capturedAt,
+      capturedAtLabel: parsed.capturedAtLabel,
       altitudeM: parsed.altitudeM,
       directionDeg: parsed.directionDeg,
       cameraLabel: parsed.cameraLabel,
       batchId,
       batchSequence,
+      intakeMode,
       uploadStatus: upload.status,
       positionTrust: "raw_unvalidated",
     },
@@ -257,22 +302,36 @@ export async function getDroneUploadMapOverview(
   const normalizedProjectId = projectId.trim().toLowerCase();
   if (!POSTGRES_UUID.test(normalizedProjectId)) throw new Error("Ugyldig projektreference.");
 
-  const rows = await lister({ projectId: normalizedProjectId, limit: 500 });
-  // Do not trust the adapter or a stale mock to preserve project scope. Live
-  // access is protected independently by uploads RLS.
-  const projectRows = rows.filter((row) => row.project_id?.toLowerCase() === normalizedProjectId);
-  const droneRows = projectRows.filter(isDroneBeforeUpload);
-  const receivedRows = droneRows.filter(isReceivedUpload);
-
-  const parsed = receivedRows.map((row) => parseDroneUploadMapPoint(row, normalizedProjectId));
-  const points = parsed.flatMap((result) => ("point" in result ? [result.point] : []));
+  const points: DroneUploadMapPoint[] = [];
+  let totalDroneUploads = 0,
+    receivedDroneUploads = 0;
+  let afterId: string | null = null;
+  const limit = 500;
+  for (;;) {
+    const rows: Upload[] = await lister({
+      projectId: normalizedProjectId,
+      uploadType: "drone_photo",
+      limit,
+      afterId,
+    });
+    for (const row of rows) {
+      if (row.project_id?.toLowerCase() !== normalizedProjectId || !droneIntakeMode(row)) continue;
+      totalDroneUploads++;
+      if (!isReceivedUpload(row)) continue;
+      receivedDroneUploads++;
+      const result = parseDroneUploadMapPoint(row, normalizedProjectId);
+      if ("point" in result) points.push(result.point);
+    }
+    if (rows.length < limit) break;
+    afterId = rows[rows.length - 1].id;
+  }
 
   return {
     points,
-    totalDroneUploads: droneRows.length,
-    receivedDroneUploads: receivedRows.length,
+    totalDroneUploads,
+    receivedDroneUploads,
     mappableUploads: points.length,
-    missingCameraPosition: receivedRows.length - points.length,
+    missingCameraPosition: receivedDroneUploads - points.length,
     // Every rendered point in this slice comes from client_preview and remains
     // untrusted regardless of the upload workflow status.
     unvalidatedCameraPositions: points.length,

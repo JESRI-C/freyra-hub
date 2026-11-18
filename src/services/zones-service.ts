@@ -13,6 +13,7 @@ export type ZoneType =
   | "pilot_area" // Pilotområde
   | "buffer" // Bufferzoner
   | "nature" // §3-naturareal
+  | "nature_survey"
   | "watercourse" // Vandløb/sø
   | "forest" // Skov
   | "grassland" // Eng/overdrev
@@ -25,6 +26,7 @@ export const ZONE_TYPE_LABELS: Record<ZoneType, string> = {
   pilot_area: "Pilotområde",
   buffer: "Bufferzone",
   nature: "§3-natur",
+  nature_survey: "Naturens undersøgelsesområde",
   watercourse: "Vandløb / Sø",
   forest: "Skov",
   grassland: "Eng / Overdrev",
@@ -38,6 +40,7 @@ export const ZONE_TYPE_COLORS: Record<ZoneType, { fill: string; stroke: string }
   pilot_area: { fill: "#2BC48A", stroke: "#1a9e70" },
   buffer: { fill: "#8B5CF6", stroke: "#6d40d4" },
   nature: { fill: "#22c55e", stroke: "#16a34a" },
+  nature_survey: { fill: "#2BC48A", stroke: "#15803d" },
   watercourse: { fill: "#3B82F6", stroke: "#2563eb" },
   forest: { fill: "#15803d", stroke: "#14532d" },
   grassland: { fill: "#84cc16", stroke: "#65a30d" },

@@ -15,7 +15,11 @@ import { DroneIntakeAssistant } from "./DroneIntakeAssistant";
 import { DroneImageInspectionPanel } from "./DroneImageInspectionPanel";
 import { PhotoPointVerificationPanel } from "./PhotoPointVerificationPanel";
 import { SeededOriginalsPanel } from "./SeededOriginalsPanel";
-import { readPendingDroneBatch, savePendingDroneBatch } from "./drone-intake-batch-receipt";
+import {
+  mergeDroneBatch,
+  readPendingDroneBatches,
+  savePendingDroneBatch,
+} from "./drone-intake-batch-receipt";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
 import { createProjectBaseline, getProjectBaseline } from "@/lib/public-baseline.functions";
 import { getVerificationPlan, saveVerificationPlan } from "@/lib/verification-plan.functions";
@@ -116,16 +120,17 @@ function Workspace({
   onPhotosChanged,
 }: Props & { actorId: string }) {
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [intakeBatch, setIntakeBatch] = useState<CanonicalDroneBatch>();
-  const [pendingBatch, setPendingBatch] = useState<CanonicalDroneBatch>();
+  const [intakeBatchId, setIntakeBatchId] = useState<string>();
+  const [pendingBatches, setPendingBatches] = useState<CanonicalDroneBatch[]>([]);
+  const intakeBatch = pendingBatches.find((batch) => batch.batchId === intakeBatchId);
   const [batchReceiptError, setBatchReceiptError] = useState<string | null>(null);
   const [inspectionRefresh, setInspectionRefresh] = useState(0);
   useEffect(() => {
     try {
-      setPendingBatch(readPendingDroneBatch(localStorage, actorId, project.id));
+      setPendingBatches(readPendingDroneBatches(localStorage, actorId, project.id));
     } catch {
       setBatchReceiptError(
-        "Den seneste billedserie kunne ikke genåbnes fra denne browser. De uploadede originaler er bevaret i sagen.",
+        "Billedserierne kunne ikke genåbnes fra denne browser. De uploadede originaler er bevaret i sagen.",
       );
     }
   }, [actorId, project.id]);
@@ -419,24 +424,17 @@ function Workspace({
   };
   const receiveCanonicalBatch = (batch: CanonicalDroneBatch) => {
     if (batch.projectId !== project.id) return;
-    const next = {
-      ...batch,
-      mediaIds:
-        intakeBatch?.batchId === batch.batchId
-          ? [...new Set([...intakeBatch.mediaIds, ...batch.mediaIds])]
-          : batch.mediaIds,
-    };
     try {
-      savePendingDroneBatch(localStorage, actorId, next);
+      const saved = savePendingDroneBatch(localStorage, actorId, batch);
+      setPendingBatches((current) => saved.reduce(mergeDroneBatch, current));
       setBatchReceiptError(null);
     } catch {
+      setPendingBatches((current) => mergeDroneBatch(current, batch));
       setBatchReceiptError(
         "Billedserien kan behandles her, men genoptagelse efter navigation kunne ikke gemmes i browseren.",
       );
     }
-    setPendingBatch(next);
-    setIntakeBatch(next);
-    setUploadOpen(false);
+    setIntakeBatchId(batch.batchId);
     void onPhotosChanged();
   };
   return (
@@ -505,14 +503,24 @@ function Workspace({
           {error}
         </p>
       )}
-      {(!phase || phase === "datagrundlag") && !intakeBatch && pendingBatch && (
-        <button
-          type="button"
-          className="rounded-lg border px-4 py-2 text-sm"
-          onClick={() => setIntakeBatch(pendingBatch)}
-        >
-          Fortsæt med seneste billedserie · {pendingBatch.mediaIds.length} originaler
-        </button>
+      {(!phase || phase === "datagrundlag") && pendingBatches.length > 0 && (
+        <Card className="space-y-2 p-4">
+          <h3 className="font-semibold">Uploadserier</h3>
+          <ul className="flex flex-wrap gap-2">
+            {pendingBatches.map((batch, index) => (
+              <li key={batch.batchId}>
+                <button
+                  type="button"
+                  className="min-h-11 rounded-lg border px-4 py-2 text-sm aria-pressed:border-primary aria-pressed:bg-primary/10"
+                  aria-pressed={batch.batchId === intakeBatch?.batchId}
+                  onClick={() => setIntakeBatchId(batch.batchId)}
+                >
+                  Serie {index + 1} · {batch.mediaIds.length} originaler
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
       {batchReceiptError && (
         <p role="status" className="text-sm text-amber-700">

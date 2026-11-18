@@ -12,7 +12,7 @@ export async function buildWorkflowReportPackage(
     images,
     "freyra.workflow-package/v1",
     snapshot,
-    "Gemte rapport- og inputversioner; ingen kilde indhentes igen ved eksport.\n" +
+    "Rapportindhold og inputversioner læses fra den gemte version.\n" +
       "Originalreferencer og kontrolsummer er ikke en kopi af originalfilerne eller en fuld backup.\n" +
       "PDF-illustrationer er visningskopier. Baseline og metodeplan følger inputversionerne.\n" +
       "Review gælder præcis de angivne input og dokumentation; ingen natureffekt er automatisk godkendt.\n",

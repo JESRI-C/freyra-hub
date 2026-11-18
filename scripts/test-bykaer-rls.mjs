@@ -642,6 +642,108 @@ const workflowMigration = (await readdir("supabase/migrations")).find((name) =>
 );
 await db.exec(await readFile("supabase/migrations/" + workflowMigration, "utf8"));
 await db.exec(await readFile("supabase/migrations/" + workflowMigration, "utf8"));
+const reviewDocumentMigration = (await readdir("supabase/migrations")).find((name) =>
+  name.endsWith("_pin_workflow_report_review_document.sql"),
+);
+await db.exec(await readFile("supabase/migrations/" + reviewDocumentMigration, "utf8"));
+await db.exec("alter table public.project_media add column mime_type text");
+const receiptSchema = await readFile(
+  "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
+  "utf8",
+);
+await db.exec(receiptSchema.split("-- Service calls supply a server-authenticated actor.")[0]);
+const receiptReportMigration = (await readdir("supabase/migrations")).find((name) =>
+  name.endsWith("_verified_field_photo_report_sources.sql"),
+);
+await db.exec(await readFile("supabase/migrations/" + receiptReportMigration, "utf8"));
+const standaloneComparisonMigration = (await readdir("supabase/migrations")).find((name) =>
+  name.endsWith("_standalone_photo_comparison.sql"),
+);
+await db.exec(await readFile("supabase/migrations/" + standaloneComparisonMigration, "utf8"));
+const fieldOriginal = "00000000-0000-0000-0000-000000000096";
+const unverifiedOriginal = "00000000-0000-0000-0000-000000000097";
+const fieldHash = "b".repeat(64);
+for (const id of [fieldOriginal, unverifiedOriginal]) {
+  const filePath = `${projectA}/field/${id}.jpg`;
+  await q(
+    `insert into field_photo_uploads(id,project_id,created_by,storage_path,payload,received_at,object_id,object_updated_at)
+    values($1,$2,$3,$4,$5::jsonb,now(),$1::uuid,now())`,
+    [id, projectA, uidA, filePath, JSON.stringify({ sha256: fieldHash, sizeBytes: 12 })],
+  );
+  await q(
+    `insert into project_media(id,project_id,title,source,category,file_path,storage_bucket,mime_type,metadata)
+    values($1,$2,'Feltfoto','field_upload','field_photo',$3,'project-media','image/jpeg',$4::jsonb)`,
+    [id, projectA, filePath, JSON.stringify({ field_upload_id: id, original_sha256: fieldHash })],
+  );
+}
+await q(
+  `insert into field_photo_receipts(upload_id,project_id,object_id,object_version,object_updated_at,sha256,size_bytes,status,verified_by)
+  select id,project_id,object_id,object_version,object_updated_at,$2,12,'verified',created_by from field_photo_uploads where id=$1`,
+  [fieldOriginal, fieldHash],
+);
+await actor(uidA);
+await check(
+  "report media reads verified receipt, never the claimed metadata hash",
+  "select id, sha256 from report_media_sources where id in ($1,$2) order by id",
+  [fieldOriginal, unverifiedOriginal],
+  (rows) => {
+    assert.deepEqual(rows, [
+      { id: fieldOriginal, sha256: fieldHash },
+      { id: unverifiedOriginal, sha256: null },
+    ]);
+  },
+);
+await check(
+  "report media view preserves foreign project isolation",
+  "select id from report_media_sources where id=$1",
+  [mediaB],
+  (rows) => assert.equal(rows.length, 0),
+);
+const fieldPhotoSourceId = `media:${fieldOriginal}`;
+const fieldReport = {
+  ...content,
+  sections: content.sections.map((section) => ({ ...section, sourceIds: [fieldPhotoSourceId] })),
+  sources: [{ ...source, id: fieldPhotoSourceId, checksum: fieldHash }],
+};
+const fieldDraft = (
+  await q(rpc, [
+    null,
+    orgA,
+    projectA,
+    0,
+    "draft",
+    JSON.stringify({
+      ...fieldReport,
+      sources: [{ ...fieldReport.sources[0], checksum: null }],
+    }),
+  ])
+).rows[0].revision;
+assert.equal(fieldDraft.content.sources[0].checksum, fieldHash);
+count++;
+await check(
+  "approved report freezes the verified field checksum",
+  rpc,
+  [fieldDraft.report_id, orgA, projectA, 1, "approved", JSON.stringify(fieldReport)],
+  (rows) => {
+    assert.equal(rows[0].revision.content.sources[0].checksum, fieldHash);
+  },
+);
+await assert.rejects(
+  q(rpc, [
+    null,
+    orgA,
+    projectA,
+    0,
+    "draft",
+    JSON.stringify({
+      ...fieldReport,
+      sources: [{ ...source, id: fieldPhotoSourceId, checksum: "c".repeat(64) }],
+    }),
+  ]),
+  /Source checksum mismatch/,
+);
+count++;
+await db.exec("reset role");
 const actionId = "00000000-0000-0000-0000-000000000095";
 await q("insert into actions values($1,$2)", [actionId, projectA]);
 await actor(uidA);
@@ -750,6 +852,29 @@ await denied("direct API cannot use foreign photo", entrySql, [
 ]);
 await q(entrySql, [compareId, orgA, projectA, 1, JSON.stringify(pairPayload)]);
 count++;
+const standaloneId = "00000000-0000-0000-0000-000000000098";
+const standalone = { ...pair, comparisonId: standaloneId, executionRevisionId: null };
+const standalonePayload = {
+  ...pairPayload,
+  source: `photo-comparison:${standaloneId}`,
+  decision: JSON.stringify(standalone),
+};
+await denied("standalone comparison rejects a photo from another project", entrySql, [
+  standaloneId,
+  orgA,
+  projectA,
+  1,
+  JSON.stringify({
+    ...standalonePayload,
+    decision: JSON.stringify({ ...standalone, afterId: mediaB }),
+  }),
+]);
+const standaloneRevision = (
+  await q(entrySql, [standaloneId, orgA, projectA, 1, JSON.stringify(standalonePayload)])
+).rows[0].id;
+const standaloneRow = (
+  await q("select * from project_workspace_entries where id=$1", [standaloneRevision])
+).rows[0];
 const taskId = "00000000-0000-0000-0000-000000000097";
 const task = {
   schema: "freyra.workflow-followup/v1",
@@ -878,6 +1003,26 @@ const workflow = {
   review: null,
 };
 const workflowContent = { ...content, workflowSnapshot: workflow };
+await check(
+  "workflow report freezes a standalone photo pair without an execution record",
+  rpc,
+  [
+    null,
+    orgA,
+    projectA,
+    0,
+    "draft",
+    JSON.stringify({
+      ...workflowContent,
+      workflowSnapshot: { ...workflow, inputs: [standaloneRow] },
+    }),
+  ],
+  (rows) => {
+    const inputs = rows[0].revision.content.workflowSnapshot.inputs;
+    assert.equal(inputs.length, 1);
+    assert.equal(JSON.parse(inputs[0].payload.decision).executionRevisionId, null);
+  },
+);
 const frozen = (await q(rpc, [null, orgA, projectA, 0, "draft", JSON.stringify(workflowContent)]))
   .rows[0].revision;
 count++;
@@ -918,14 +1063,55 @@ const reviewed = {
     sectionTexts: Object.fromEntries(content.sections.map((section) => [section.id, section.text])),
   },
 };
-await q(rpc, [
+const reviewedContent = { ...workflowContent, workflowSnapshot: reviewed };
+await denied("workflow approval requires a separately saved review version", rpc, [
   frozen.report_id,
   orgA,
   projectA,
   1,
   "approved",
-  JSON.stringify({ ...workflowContent, workflowSnapshot: reviewed }),
+  JSON.stringify(reviewedContent),
 ]);
+await denied("a workflow report cannot discard its frozen source basis", rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  1,
+  "draft",
+  JSON.stringify(content),
+]);
+await q(rpc, [frozen.report_id, orgA, projectA, 1, "review", JSON.stringify(reviewedContent)]);
+count++;
+await assert.rejects(
+  q(rpc, [
+    frozen.report_id,
+    orgA,
+    projectA,
+    2,
+    "approved",
+    JSON.stringify({ ...reviewedContent, scope: "Changed scope" }),
+  ]),
+  /Gem et accepteret dokumentationsreview/,
+);
+count++;
+await assert.rejects(
+  q(rpc, [
+    frozen.report_id,
+    orgA,
+    projectA,
+    2,
+    "approved",
+    JSON.stringify({
+      ...reviewedContent,
+      sections: content.sections.map((section) => ({
+        ...section,
+        basis: "not_measured",
+        sourceIds: [],
+      })),
+    }),
+  ]),
+  /Gem et accepteret dokumentationsreview/,
+);
 count++;
 await denied("workflow review does not approve changed result", rpc, [
   frozen.report_id,
@@ -939,6 +1125,8 @@ await denied("workflow review does not approve changed result", rpc, [
     workflowSnapshot: reviewed,
   }),
 ]);
+await q(rpc, [frozen.report_id, orgA, projectA, 2, "approved", JSON.stringify(reviewedContent)]);
+count++;
 await q(entrySql, [
   actionId,
   orgA,
@@ -953,7 +1141,7 @@ await denied("stale workflow snapshot must be refreshed", rpc, [
   frozen.report_id,
   orgA,
   projectA,
-  2,
+  3,
   "draft",
   JSON.stringify(workflowContent),
 ]);

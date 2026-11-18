@@ -26,7 +26,11 @@ export async function listPhotoAtlasSources(scope: ProjectScope) {
     [ATLAS_EVIDENCE_TYPE, BASELINE_EVIDENCE_TYPE].includes(item.evidence_type ?? ""),
   );
 }
-export async function loadPhotoAtlas(scope: ProjectScope, evidenceId: string) {
+export async function loadPhotoAtlas(
+  scope: ProjectScope,
+  evidenceId: string,
+  readIllustratedRegisterFields = true,
+) {
   await assertProjectScope(scope);
   const link = await getEvidenceDownloadUrl({ projectId: scope.projectId, evidenceId });
   if (link.error || !link.data) throw new Error(link.error ?? "Fotoatlasset kunne ikke åbnes.");
@@ -41,7 +45,11 @@ export async function loadPhotoAtlas(scope: ProjectScope, evidenceId: string) {
   const checksum = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (b) =>
     b.toString(16).padStart(2, "0"),
   ).join("");
-  return { ...parsePhotoAtlas(new TextDecoder().decode(bytes)), evidenceId, checksum };
+  return {
+    ...parsePhotoAtlas(new TextDecoder().decode(bytes), undefined, readIllustratedRegisterFields),
+    evidenceId,
+    checksum,
+  };
 }
 export async function importPhotoAtlas(
   scope: ProjectScope,

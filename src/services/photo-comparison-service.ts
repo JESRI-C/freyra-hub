@@ -13,7 +13,7 @@ import {
   type ProjectScope,
 } from "./project-workspace-service";
 import { listActionExecutions } from "./action-execution-service";
-import { getProjectMedia } from "./project-media-service";
+import { getProjectMedia, listComparisonPhotos } from "./project-media-service";
 export const comparisonSource = (id: string) => "photo-comparison:" + id;
 export function comparisonRevisions(entries: WorkspaceEntry[]) {
   return entries
@@ -52,27 +52,33 @@ export async function listPhotoComparisons(scope: ProjectScope) {
 export async function inspectPhotoComparison(scope: ProjectScope, input: PhotoComparison) {
   const comparison = PhotoComparisonSchema.parse(input);
   await assertProjectScope(scope);
-  const history = await listActionExecutions(scope);
+  const history = comparison.executionRevisionId ? await listActionExecutions(scope) : [];
   const exact = executionRevisions(history).find(
     (e) => e.entry.id === comparison.executionRevisionId,
   );
-  if (!exact) throw new Error("Udførelsesversionen findes ikke på sagen.");
+  if (comparison.executionRevisionId && !exact)
+    throw new Error("Udførelsesversionen findes ikke på sagen.");
   const latest = latestExecutions(history).find(
-    (e) => e.execution.actionId === exact.execution.actionId,
+    (e) => e.execution.actionId === exact?.execution.actionId,
   );
-  if (!latest) throw new Error("Aktuel udførelsesversion kunne ikke findes.");
-  const [before, after] = await Promise.all([
+  if (comparison.executionRevisionId && !latest)
+    throw new Error("Aktuel udførelsesversion kunne ikke findes.");
+  const [before, after, sources] = await Promise.all([
     getProjectMedia(scope.projectId, comparison.beforeId),
     getProjectMedia(scope.projectId, comparison.afterId),
+    listComparisonPhotos(scope.projectId, [comparison.beforeId, comparison.afterId]),
   ]);
   if (!before.data || !after.data) throw new Error("En original er ikke tilgængelig på sagen.");
   if (before.data.projectId !== scope.projectId || after.data.projectId !== scope.projectId)
     throw new Error("Originalerne tilhører en anden sag.");
+  const earlierSource = sources.find((source) => source.id === comparison.beforeId);
+  const laterSource = sources.find((source) => source.id === comparison.afterId);
+  if (!earlierSource || !laterSource) throw new Error("En fotokilde mangler på sagen.");
   return {
-    assessment: assessPhotoComparison(comparison, exact, latest, before.data, after.data),
+    assessment: assessPhotoComparison(comparison, exact, latest, earlierSource, laterSource),
     execution: exact,
-    before: before.data,
-    after: after.data,
+    before: { ...before.data, ...earlierSource },
+    after: { ...after.data, ...laterSource },
   };
 }
 export async function savePhotoComparison(

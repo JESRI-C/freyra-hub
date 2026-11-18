@@ -785,13 +785,15 @@ export function MapEditorMap({
       zones.forEach((zone) => {
         if (!zone.geojson) return;
         const c = ZONE_TYPE_COLORS[zone.area_type as ZoneType] ?? ZONE_TYPE_COLORS.pilot_area;
+        const popup = document.createElement("div");
+        const name = document.createElement("strong");
+        name.textContent = zone.name;
+        popup.append(name, document.createElement("br"), ZONE_TYPE_LABELS[zone.area_type] ?? "");
+        if (zone.area_ha) popup.append(document.createElement("br"), `${zone.area_ha} ha`);
         L.geoJSON({ type: "Feature", geometry: zone.geojson, properties: {} } as never, {
           style: { color: c.stroke, weight: 2, fillColor: c.fill, fillOpacity: 0.3 },
         })
-          .bindPopup(
-            `<strong>${zone.name}</strong><br/>${ZONE_TYPE_LABELS[zone.area_type as ZoneType]}` +
-              `${zone.area_ha ? `<br/>${zone.area_ha} ha` : ""}`,
-          )
+          .bindPopup(popup)
           .on("click", () => callbacksRef.current.onZoneClicked?.(zone))
           .addTo(group);
       });
@@ -1034,7 +1036,8 @@ export function MapEditorMap({
   }, [locationPoints, ready, visitSegments]);
   useEffect(() => {
     if (!mapRef.current || !ready || !locationBounds?.length) return;
-    mapRef.current.fitBounds(locationBounds, { padding: [30, 30], maxZoom: 17 });
+    // A zoom animation to the first point can otherwise discard the next group's bounds.
+    mapRef.current.fitBounds(locationBounds, { padding: [30, 30], maxZoom: 17, animate: false });
   }, [locationBounds, ready]);
 
   // ── WMS overlays (matrikelskel, markblokke, etc.) ────────────────────────────

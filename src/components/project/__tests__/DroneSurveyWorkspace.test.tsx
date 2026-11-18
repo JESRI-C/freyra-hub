@@ -378,6 +378,65 @@ describe("guided drone survey workspace", () => {
     ).toBeUndefined();
   });
 
+  it("keeps the upload queue open after partial success so the remaining files can be retried", () => {
+    const open = find(
+      tree(),
+      (element) => element.type === "button" && text(element).includes("Tilføj dronebilleder"),
+    )!;
+    (open.props.onClick as () => void)();
+    const wizard = find(tree(), (element) => element.type === DroneBeforeBatchWizard)!;
+    expect(wizard.props.open).toBe(true);
+    const batch = {
+      projectId: props.project.id,
+      batchId: "before-batch-retry",
+      mediaIds: [OTHER_ROUND],
+      receivedCount: 1,
+    };
+    (wizard.props.onCanonicalBatch as (value: typeof batch) => void)(batch);
+    const retry = find(tree(), (element) => element.type === DroneBeforeBatchWizard)!;
+    expect(retry.props.open).toBe(true);
+    (retry.props.onCanonicalBatch as (value: typeof batch) => void)({
+      ...batch,
+      mediaIds: [result.round.id],
+      receivedCount: 2,
+    });
+    expect(find(tree(), (element) => element.type === DroneIntakeAssistant)!.props.batch).toEqual({
+      ...batch,
+      mediaIds: [OTHER_ROUND, result.round.id],
+      receivedCount: 2,
+    });
+    (retry.props.onClose as () => void)();
+    expect(find(tree(), (element) => element.type === DroneBeforeBatchWizard)!.props.open).toBe(
+      false,
+    );
+  });
+
+  it("lets the user switch to an earlier series while preparing another series", () => {
+    const first = {
+      projectId: props.project.id,
+      batchId: "first-series",
+      mediaIds: [OTHER_ROUND],
+      receivedCount: 1,
+    };
+    const second = { ...first, batchId: "second-series", mediaIds: [result.round.id] };
+    const emit = (batch: typeof first) => {
+      const wizard = find(tree(), (element) => element.type === DroneBeforeBatchWizard)!;
+      (wizard.props.onCanonicalBatch as (value: typeof first) => void)(batch);
+    };
+    emit(first);
+    emit(second);
+    const seriesOne = find(
+      tree(),
+      (element) => element.type === "button" && text(element).includes("Serie 1 · 1 originaler"),
+    )!;
+    expect(seriesOne.props["aria-pressed"]).toBe(false);
+    (seriesOne.props.onClick as () => void)();
+    expect(find(tree(), (element) => element.type === DroneIntakeAssistant)!.props.batch).toEqual(
+      first,
+    );
+    expect(state.start).not.toHaveBeenCalled();
+  });
+
   it("ignores an upload completion belonging to another project", () => {
     const wizard = find(tree(), (element) => element.type === DroneBeforeBatchWizard)!;
     (wizard.props.onCanonicalBatch as (value: unknown) => void)({

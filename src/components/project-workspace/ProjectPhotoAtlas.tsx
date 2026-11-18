@@ -21,6 +21,8 @@ import {
 } from "@/services/photo-atlas-service";
 import {
   AtlasReviewSchema,
+  atlasPositionLabel,
+  atlasWatercourseLabel,
   parsePhotoAtlas,
   filterAtlasPhotos,
   initialAtlasReview,
@@ -263,15 +265,14 @@ export function ProjectPhotoAtlas({
       {canEdit ? (
         <details className="rounded-lg border p-3">
           <summary className="cursor-pointer font-medium">
-            Indlæs eksisterende fotoatlas eller baselinedata
+            Indlæs fotoatlas, fotoregister eller baselinedata
           </summary>
           <p className="my-2 text-sm text-muted-foreground">
-            HTML-atlassets indlejrede illustrationer og fotooplysninger kan genbruges. HTML-kode
-            udføres aldrig. Originalfilerne erstattes ikke af illustrationerne. Baseline-JSON uden
-            billeder viser registreringerne og deres kildehenvisninger.
+            Vælg et HTML-fotoatlas, et fotoregister eller en baseline i JSON-format. Et register
+            uden indlejrede billeder viser kamerapositioner, observationer og kildehenvisninger.
           </p>
           <label className="block text-sm">
-            Importér fotoatlas eller baseline
+            Importér fotoatlas, fotoregister eller baseline
             <input
               type="file"
               accept=".html,.htm,.json"
@@ -297,8 +298,8 @@ export function ProjectPhotoAtlas({
             <div className="mt-3 space-y-2">
               <p>
                 {preview.photos.length} fotos ·{" "}
-                {[...new Set(preview.photos.map((p) => p.watercourse || "Uafklaret"))].join(", ")}.
-                Gemmes kun på {projectName}.
+                {[...new Set(preview.photos.map(atlasWatercourseLabel))].join(", ")}. Gemmes kun på{" "}
+                {projectName}.
               </p>
               <button
                 type="button"
@@ -619,7 +620,7 @@ export function ProjectPhotoAtlas({
                               {p.id} · {p.filename}
                             </h3>
                             <p className="text-xs text-muted-foreground">
-                              {p.watercourse || "Vandløb uafklaret"} · {photoDateLabel(p)}
+                              {atlasWatercourseLabel(p)} · {photoDateLabel(p)}
                             </p>
                             <p className="text-sm line-clamp-3">
                               {p.observation || "Observation mangler."}
@@ -741,9 +742,22 @@ function AtlasPhotoDialog({
           {photo.id} · {photo.filename}
         </DialogTitle>
         <DialogDescription>
-          {photo.watercourse || "Vandløbstilknytning uafklaret"} · {photoDateLabel(photo)}.
-          Originalerne ændres ikke ved redigering af beskrivelsen.
+          {atlasWatercourseLabel(photo)} · {photoDateLabel(photo)}. Originalerne ændres ikke ved
+          redigering af beskrivelsen.
         </DialogDescription>
+        {atlasPositionLabel(photo) && (
+          <p className="text-sm">
+            {atlasPositionLabel(photo)}
+            {photo.distance_m != null &&
+              ` · Afstand fra kamera til vandløbslinje: ${photo.distance_m.toLocaleString("da-DK")} m`}
+          </p>
+        )}
+        {photo.field_precautions && (
+          <p className="text-sm">Felthensyn · {photo.field_precautions}</p>
+        )}
+        {photo.source_review && (
+          <p className="text-sm">Gennemgang angivet i kilden · {photo.source_review}</p>
+        )}
         {!mediaAvailable && (
           <p role="status" className="rounded-lg border p-3 text-sm">
             Sagens medieoversigt afventer kontrol. Din åbne vurdering er bevaret. Gemning og

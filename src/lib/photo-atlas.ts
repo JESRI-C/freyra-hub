@@ -14,6 +14,7 @@ const PhotoSchema = z.object({
   lat: coordinate(90),
   lon: coordinate(180),
   watercourse: optionalText,
+  watercourse_relation: z.literal("nearest").optional(),
   watercourse_id: optionalText,
   section_id: optionalText,
   match_status: optionalText,
@@ -27,6 +28,8 @@ const PhotoSchema = z.object({
     .default([]),
   species_status: optionalText,
   species_evidence: optionalText,
+  field_precautions: text.optional(),
+  source_review: text.optional(),
   date_status: optionalText,
   source: optionalText,
   sha256: z
@@ -41,6 +44,77 @@ const PhotoSchema = z.object({
     .optional(),
 });
 export type AtlasPhoto = z.infer<typeof PhotoSchema>;
+// The Danish register stores the nearest watercourse and the camera position separately.
+const importPhoto = z.preprocess((row) => {
+  if (!row || typeof row !== "object" || !("foto_id" in row) || "id" in row) return row;
+  const r = row as Record<string, unknown>;
+  if (r.kamera_gps_ikke_motiv !== true && (r.latitude != null || r.longitude != null))
+    throw new Error("Fotoregistret skal identificere koordinaterne som kameraets position.");
+  if (
+    typeof r.kameratid_uden_verificeret_tidszone === "string" &&
+    /(?:Z|[+-]\d{2}:\d{2})$/.test(r.kameratid_uden_verificeret_tidszone)
+  )
+    throw new Error("Fotoregistrets lokale kameratid indeholder en modstridende tidszone.");
+  return {
+    id: r.foto_id,
+    filename: r.filnavn,
+    date: r.dato,
+    time: r.kameratid_uden_verificeret_tidszone,
+    lat: r.latitude,
+    lon: r.longitude,
+    watercourse: r.naermeste_lokale_vandloebsnavn,
+    watercourse_relation: "nearest",
+    watercourse_id: r.naermeste_vandomraade_id,
+    match_status: r.positionsflag,
+    distance_m: r.afstand_kamera_til_linje_m,
+    sha256: r.original_sha256,
+    source: r.original_url,
+    yaw: r.gimbal_yaw_deg,
+    observation: r.observation,
+    vegetation: r.vegetationsstruktur,
+    visibility: r.rendens_synlighed,
+    species: r.usikre_artskandidater,
+    field_precautions: r.felthensyn ?? undefined,
+    source_review: r.gennemgangsniveau ?? undefined,
+  };
+}, PhotoSchema);
+export function atlasWatercourseLabel(photo: AtlasPhoto) {
+  if (!photo.watercourse || photo.watercourse === "Uafklaret")
+    return "Vandløbstilknytning uafklaret";
+  return photo.watercourse_relation === "nearest"
+    ? `Nærmeste vandløb i registret: ${photo.watercourse}`
+    : photo.watercourse;
+}
+const registerPositionLabels: Record<string, string> = {
+  strong_spatial_match: "Tæt sammenfald med vandløbslinjen",
+  camera_near_reach: "Kamera nær strækningen",
+  camera_off_channel_manual_review: "Kamera uden for vandløbslinjen, manuel afklaring påkrævet",
+  near_confluence: "Kamera nær et sammenløb",
+};
+export function atlasPositionLabel(photo: AtlasPhoto) {
+  if (photo.watercourse_relation !== "nearest") return "";
+  return Object.hasOwn(registerPositionLabels, photo.match_status)
+    ? registerPositionLabels[photo.match_status]
+    : photo.match_status || "Positionsstatus uoplyst";
+}
+export function atlasPhotoMapPoints(photos: AtlasPhoto[]) {
+  return photos.flatMap((p) => {
+    if (p.lat == null || p.lon == null) return [];
+    return [
+      {
+        id: p.id,
+        position: [p.lon, p.lat] as [number, number],
+        ...(p.watercourse_relation === "nearest"
+          ? {
+              nearestWatercourse: p.watercourse,
+              positionFlag: p.match_status,
+              ...(p.distance_m != null ? { distanceToLineM: p.distance_m } : {}),
+            }
+          : {}),
+      },
+    ];
+  });
+}
 export type PhotoAtlas = {
   title: string;
   version: string;
@@ -63,7 +137,11 @@ export const ATLAS_METHOD =
   "Fotobaseret registrering. Kamera-GPS er ikke nødvendigvis motivposition. Artsbud er foreløbige. Optagedato er ikke arbejdsdato; før/efter kræver dokumenteret indsats. Dronefotos dokumenterer ikke alene økologisk tilstand, biomasse eller hydraulisk kapacitet.";
 
 /** Extract data only. Uploaded HTML/scripts are never inserted or executed. */
-export function parsePhotoAtlas(source: string, title = "Fotoatlas"): PhotoAtlas {
+export function parsePhotoAtlas(
+  source: string,
+  title = "Fotoatlas",
+  readIllustratedRegisterFields = true,
+): PhotoAtlas {
   if (source.length > 100 * 1024 * 1024) throw new Error("Fotoatlasset overstiger 100 MB.");
   const match = source.match(
     /<script\b(?=[^>]*\bid\s*=\s*["']photo-data["'])(?=[^>]*\btype\s*=\s*["']application\/json["'])[^>]*>([\s\S]*?)<\/script\s*>/i,
@@ -84,11 +162,32 @@ export function parsePhotoAtlas(source: string, title = "Fotoatlas"): PhotoAtlas
   });
   const metadata = Array.isArray(input) ? null : wrapper.parse(input);
   const rawPhotos = Array.isArray(input) ? input : (metadata?.observations ?? metadata?.photos);
+  // The illustrated register records camera-to-line matches and uses its own
+  // review text. Older frozen reports must still be able to use their original interpretation.
+  const illustratedRegisterRow = (row: unknown) => {
+    if (
+      !readIllustratedRegisterFields ||
+      !row ||
+      typeof row !== "object" ||
+      !("match_status" in row) ||
+      typeof row.match_status !== "string" ||
+      !Object.hasOwn(registerPositionLabels, row.match_status) ||
+      !("original_bytes" in row && "review_level" in row && "suitability" in row) ||
+      "watercourse_relation" in row
+    )
+      return row;
+    return {
+      ...row,
+      watercourse_relation: "nearest",
+      field_precautions: row.suitability ?? undefined,
+      source_review: row.review_level ?? undefined,
+    };
+  };
   const photos = z
-    .array(PhotoSchema)
+    .array(importPhoto)
     .min(1, "Datasættet indeholder ingen fotos.")
     .max(10000)
-    .parse(rawPhotos);
+    .parse(Array.isArray(rawPhotos) ? rawPhotos.map(illustratedRegisterRow) : rawPhotos);
   if (metadata?.image_count !== undefined && metadata.image_count !== photos.length)
     throw new Error("Det angivne fotoantal stemmer ikke med datasættet.");
   const ids = new Set<string>();

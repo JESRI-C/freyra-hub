@@ -75,6 +75,127 @@ function upload(overrides: Partial<Upload> = {}): Upload {
 }
 
 describe("drone upload map points", () => {
+  function neutralLocalUpload() {
+    const row = upload();
+    const exif = { DateTimeOriginal: "2026:09:16 12:09:07", latitude: 55.327, longitude: 9.267 };
+    const xmp = { CreateDate: "2026-09-16T12:09:07" };
+    const capture = { localTimestamp: "2026-09-16T12:09:07", timezoneKnown: false };
+    const position = { latitude: exif.latitude, longitude: exif.longitude, source: "exif" };
+    const raw = { exif, xmp, parseErrors: [] as string[] };
+    const qa = {
+      status: "review_required",
+      errors: [] as string[],
+      warnings: [{ code: "CAPTURE_TIMEZONE_UNKNOWN" }],
+    };
+    const preview = {
+      metadata_schema_version: "drone-image-metadata/v1",
+      metadata_status: qa.status,
+      content_sha256: "b".repeat(64),
+      ready_for_camera_position: false,
+      latitude: exif.latitude,
+      longitude: exif.longitude,
+      drone_metadata: {
+        schemaVersion: "drone-image-metadata/v1",
+        extractor: "exifr@7.1.3",
+        file: {
+          name: row.original_file_name,
+          sizeBytes: row.file_size,
+          mimeType: row.mime_type,
+          sha256: "b".repeat(64),
+        },
+        raw,
+        capture,
+        qa,
+        position,
+      },
+    };
+    row.user_metadata = {
+      intake: {
+        schema_version: "gofreyra.drone-intake/v1",
+        phase: "UNCLASSIFIED",
+        media_kind: "drone_photo",
+      },
+      client_preview: preview,
+    };
+    return { row, preview, raw, exif, xmp, capture, position, qa };
+  }
+
+  it("shows a neutral camera's exact local clock and unconfirmed position without an invented UTC instant", () => {
+    const { row, xmp } = neutralLocalUpload();
+    Object.assign(xmp, { xmp: { CreateDate: "1970-01-01" } });
+    expect(parseDroneUploadMapPoint(row, PROJECT_ID)).toMatchObject({
+      point: {
+        coordinates: { lat: 55.327, lng: 9.267 },
+        capturedAt: "",
+        capturedAtLabel: "2026-09-16 12:09:07 (lokal tid, tidszone ukendt)",
+        intakeMode: "neutral",
+        positionTrust: "raw_unvalidated",
+      },
+    });
+    const data = row.user_metadata as { intake: { schema_version: string; phase: string } };
+    Object.assign(data.intake, {
+      schema_version: "gofreyra.drone-before-intake/v1",
+      phase: "BEFORE",
+    });
+    expect(parseDroneUploadMapPoint(row, PROJECT_ID)).toEqual({ reason: "missing_position" });
+  });
+  it.each([
+    [
+      "calendar overflow",
+      ({ exif, xmp, capture }) => {
+        exif.DateTimeOriginal = "2026:02:31 12:09:07";
+        xmp.CreateDate = capture.localTimestamp = "2026-02-31T12:09:07";
+      },
+    ],
+    [
+      "conflicting sensor time",
+      ({ xmp }) => {
+        xmp.CreateDate = "2026-09-16T13:09:07";
+      },
+    ],
+    ["conflicting coordinates", ({ xmp }) => Object.assign(xmp, { latitude: 56, longitude: 9 })],
+    [
+      "untrusted timestamp offset",
+      ({ exif }) => Object.assign(exif, { OffsetTimeOriginal: "+02:00" }),
+    ],
+    [
+      "available GPS date and time",
+      ({ exif }) => Object.assign(exif, { GPSDateStamp: "2026:09:16", GPSTimeStamp: "10:09:07" }),
+    ],
+    [
+      "unexpected UTC",
+      ({ preview }) => Object.assign(preview, { captured_at: "2026-09-16T12:09:07Z" }),
+    ],
+    [
+      "false local time",
+      ({ capture }) => {
+        capture.localTimestamp = "2026-09-16T23:59:59";
+      },
+    ],
+    [
+      "invalid latitude",
+      ({ preview }) => {
+        preview.latitude = NaN;
+      },
+    ],
+    ["mixed QA warnings", ({ qa }) => qa.warnings.push({ code: "POSITION_VARIANTS" })],
+    [
+      "unsupported extractor",
+      ({ preview }) => {
+        preview.drone_metadata.extractor = "other";
+      },
+    ],
+    ["raw parse errors", ({ raw }) => raw.parseErrors.push("damaged")],
+  ] satisfies [string, (fixture: ReturnType<typeof neutralLocalUpload>) => unknown][])(
+    "rejects neutral local preview with %s",
+    (_name, change) => {
+      const fixture = neutralLocalUpload();
+      change(fixture);
+      expect(parseDroneUploadMapPoint(fixture.row, PROJECT_ID)).toEqual({
+        reason: "invalid_metadata",
+      });
+    },
+  );
   it("maps a complete BEFORE client preview without promoting it to validated evidence", () => {
     expect(parseDroneUploadMapPoint(upload(), PROJECT_ID)).toEqual({
       point: {
@@ -88,6 +209,7 @@ describe("drone upload map points", () => {
         cameraLabel: "DJI Mavic 3 Enterprise",
         batchId: "before-batch-1",
         batchSequence: 7,
+        intakeMode: "before",
         uploadStatus: "awaiting_validation",
         positionTrust: "raw_unvalidated",
       },
@@ -106,7 +228,7 @@ describe("drone upload map points", () => {
       "inactive_upload",
     ],
     ["archived", { status: "archived" }, "inactive_upload"],
-    ["not a drone photo", { upload_type: "image" }, "not_drone_before"],
+    ["not a drone photo", { upload_type: "image" }, "not_drone_batch"],
   ] as const)("rejects %s", (_label, overrides, reason) => {
     expect(parseDroneUploadMapPoint(upload(overrides), PROJECT_ID)).toEqual({ reason });
   });
@@ -133,7 +255,7 @@ describe("drone upload map points", () => {
       },
     } as Upload["user_metadata"];
 
-    expect(parseDroneUploadMapPoint(row, PROJECT_ID)).toEqual({ reason: "not_drone_before" });
+    expect(parseDroneUploadMapPoint(row, PROJECT_ID)).toEqual({ reason: "not_drone_batch" });
   });
 
   it("rejects forged, incomplete and internally inconsistent client metadata", () => {
@@ -224,7 +346,12 @@ describe("drone upload map points", () => {
       unvalidatedCameraPositions: 1,
       points: [{ uploadId: "a5000000-0000-4000-8000-000000000001" }],
     });
-    expect(lister).toHaveBeenCalledWith({ projectId: PROJECT_ID, limit: 500 });
+    expect(lister).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      uploadType: "drone_photo",
+      limit: 500,
+      afterId: null,
+    });
   });
 
   it("fails closed for a malformed project id", async () => {
@@ -247,5 +374,26 @@ describe("drone upload map points", () => {
     expect(overview.mappableUploads).toBe(120);
     expect(overview.points).toHaveLength(120);
     expect(new Set(overview.points.map((point) => point.uploadId)).size).toBe(120);
+  });
+  it("maps neutral camera positions beyond 500 existing uploads and rejects mixed intake contracts", async () => {
+    const row = upload();
+    const metadata = row.user_metadata as { intake: { schema_version: string; phase: string } };
+    metadata.intake.schema_version = "gofreyra.drone-intake/v1";
+    expect(parseDroneUploadMapPoint(row, PROJECT_ID)).toEqual({ reason: "not_drone_batch" });
+    metadata.intake.phase = "UNCLASSIFIED";
+    expect(parseDroneUploadMapPoint(row, PROJECT_ID)).toMatchObject({
+      point: { intakeMode: "neutral", positionTrust: "raw_unvalidated" },
+    });
+    const before = Array.from({ length: 500 }, (_, i) =>
+      upload({ id: `a5000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}` }),
+    );
+    const lister = vi
+      .fn()
+      .mockResolvedValueOnce(before)
+      .mockResolvedValueOnce([{ ...row, id: OTHER_PROJECT_ID }]);
+    const result = await getDroneUploadMapOverview(PROJECT_ID, lister);
+    expect(result.points).toHaveLength(501);
+    expect(result.points[500].intakeMode).toBe("neutral");
+    expect(lister.mock.calls[1][0].afterId).toBe(before[499].id);
   });
 });

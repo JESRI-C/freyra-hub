@@ -34,6 +34,95 @@ const dataset = (photos: unknown[] = [photo]) => ({
 });
 const read = (value: unknown) => parsePhotoAtlas(JSON.stringify(value));
 describe("photo-atlas data and provenance", () => {
+  it("keeps the illustrated register's own observations and camera-to-line interpretation", () => {
+    const legacy = {
+      ...photo,
+      match_status: "near_confluence",
+      distance_m: 2.06,
+      original_bytes: 12000,
+      review_level: "Visuel billedvurdering",
+      suitability: "Kontrollér brinken i felten.",
+    };
+    const html = `<script type="application/json" id="photo-data">${JSON.stringify([legacy])}</script>`;
+    const atlas = {
+      ...parsePhotoAtlas(html),
+      evidenceId: crypto.randomUUID(),
+      checksum: "c".repeat(64),
+    };
+    const content = atlasReportContent({
+      atlas,
+      photos: atlas.photos,
+      reviews: new Map(),
+      projectName: "Test",
+      organizationName: "Test",
+      purpose: "Test",
+    });
+    expect(content.photoAtlas?.mapPoints?.[0]).toMatchObject({
+      nearestWatercourse: photo.watercourse,
+      positionFlag: "near_confluence",
+      distanceToLineM: 2.06,
+    });
+    const caption = content.photoAtlas?.captions?.[photo.id];
+    for (const part of [
+      "Nærmeste vandløb",
+      "2,06 m",
+      "sammenløb",
+      legacy.review_level,
+      legacy.suitability,
+      photo.observation,
+    ])
+      expect(caption).toContain(part);
+    expect(parsePhotoAtlas(html, undefined, false).photos[0].watercourse_relation).toBeUndefined();
+    expect(
+      read([{ ...photo, match_status: "near_confluence" }]).photos[0].watercourse_relation,
+    ).toBeUndefined();
+  });
+  it("imports the Danish register as camera evidence and retains the distinction between a reference and a photo", () => {
+    const row = {
+      foto_id: "DRN-REF",
+      filnavn: "KILDE.JPG",
+      dato: "2026-08-24",
+      kameratid_uden_verificeret_tidszone: "2026-08-24T09:31:01",
+      kamera_gps_ikke_motiv: true,
+      positionsflag: "camera_off_channel_manual_review",
+      afstand_kamera_til_linje_m: 23.6,
+      latitude: 55,
+      longitude: 9,
+      naermeste_lokale_vandloebsnavn: "Testbæk",
+      original_sha256: "a".repeat(64),
+      observation: "Åben rende",
+      usikre_artskandidater: ["Mulig art"],
+      original_url: null,
+    };
+    const atlas = { ...read([row]), evidenceId: crypto.randomUUID(), checksum: "b".repeat(64) };
+    const content = atlasReportContent({
+      atlas,
+      photos: atlas.photos,
+      reviews: new Map(),
+      projectName: "Prøve",
+      organizationName: "Prøve",
+      purpose: "Afprøvning",
+    });
+    expect(content.photoAtlas?.mapPoints).toMatchObject([
+      { id: "DRN-REF", position: [9, 55], nearestWatercourse: "Testbæk" },
+    ]);
+    expect(content.sections[2].text).toContain("0 af 1 valgte fotos har en indlejret illustration");
+    expect(content.sections[2].text).toContain("Åben rende");
+    expect(content.sections[1].text).toContain("manuel afklaring påkrævet: 1");
+    expect(content.sections[2].text).toContain("23,6 m");
+    expect(content.photoAtlas?.mapPoints?.[0]).toMatchObject({
+      distanceToLineM: 23.6,
+      positionFlag: "camera_off_channel_manual_review",
+    });
+    expect(content.sections[2].text).toContain("Nærmeste vandløb i registret: Testbæk");
+    expect(content.sources[0].checksum).toBeNull();
+    expect(initialAtlasReview(atlas.photos[0]).speciesStatus).toBe("suggestion");
+    expect(photoDateLabel(atlas.photos[0])).toContain("tidszone ukendt");
+    expect(() => read([{ ...row, kamera_gps_ikke_motiv: false }])).toThrow("kameraets position");
+    expect(() =>
+      read([{ ...row, kameratid_uden_verificeret_tidszone: "2026-08-24T09:31:01Z" }]),
+    ).toThrow("tidszone");
+  });
   it("reads the existing baseline contract without inventing intervention status", () => {
     const atlas = read(dataset());
     expect(atlas.photos).toHaveLength(1);

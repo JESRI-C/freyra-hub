@@ -21,6 +21,7 @@ import { getMyProjectRole, permissionsFor } from "@/services/project-members-ser
 import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/supabase/types";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
+import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import type { WorkOrderListView } from "@/lib/work-order-navigation";
 import { ProjectWorkOrdersWorkspace, type WorkOrderView } from "./ProjectWorkOrdersWorkspace";
 import { countCanonicalProjectOriginals } from "@/services/project-media-service";
@@ -34,6 +35,9 @@ import { PlantingSuitabilityPanel } from "@/components/lavbund/PlantingSuitabili
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "./ProjectMembersPanel";
 import { PhotoComparisonPanel } from "./PhotoComparisonPanel";
+import { BridgeObservationsPanel } from "./BridgeObservationsPanel";
+import { NatureSurveyPanel } from "./NatureSurveyPanel";
+import { WatercourseObservationPanel } from "@/components/maps/WatercourseObservationPanel";
 import { adjacentMunicipalStep } from "@/lib/municipal-workflow";
 import { WorkflowFollowupPanel } from "./WorkflowFollowupPanel";
 
@@ -144,6 +148,7 @@ export function MunicipalCaseWorkspace({
   }, [project.id, selectedProjectId, selectProject]);
   const cache = useQueryClient();
   const getAccess = useServerFn(getSurveyRoundAccess);
+  const getFieldAccess = useServerFn(getFieldJobAccess);
   const listBaselines = useServerFn(listProjectBaselines);
   const access = useQuery({
     queryKey: ["municipal-case-access", user?.id, project.id],
@@ -151,6 +156,19 @@ export function MunicipalCaseWorkspace({
     enabled: !!user,
     retry: false,
   });
+  const fieldAccess = useQuery({
+    queryKey: ["municipal-field-access", user?.id, project.id],
+    queryFn: () => getFieldAccess({ data: { projectId: project.id } }),
+    enabled: !!user && step === "gennemgang",
+    retry: false,
+  });
+  const canRecordField =
+    !!user &&
+    fieldAccess.data?.userId === user.id &&
+    fieldAccess.data.projectId === project.id &&
+    fieldAccess.data.canContribute &&
+    !fieldAccess.isError &&
+    !fieldAccess.isFetching;
   const media = useQuery({
     queryKey: ["municipal-original-count", user?.id, project.id],
     queryFn: () => countCanonicalProjectOriginals(project.id),
@@ -396,6 +414,35 @@ export function MunicipalCaseWorkspace({
                 }
               />
             )}
+            {step === "gennemgang" &&
+              user &&
+              access.data?.userId === user.id &&
+              !access.isError && (
+                <>
+                  <BridgeObservationsPanel
+                    key={`bridges:${user.id}:${project.id}`}
+                    projectId={project.id}
+                    actorId={user.id}
+                    canEdit={canRecordField}
+                  />
+                  <NatureSurveyPanel
+                    key={`nature:${user.id}:${project.id}`}
+                    project={project}
+                    actorId={user.id}
+                    canEdit={canRecordField}
+                    canConfigureAreas={access.data.canPersist && !access.isFetching}
+                  />
+                  {project.organization_id && access.data.projectId === project.id && (
+                    <WatercourseObservationPanel
+                      key={`watercourse:${user.id}:${project.id}`}
+                      projectId={project.id}
+                      organizationId={project.organization_id}
+                      actorId={user.id}
+                      canEdit={access.data.canPersist && !access.isFetching}
+                    />
+                  )}
+                </>
+              )}
             {step === "baseline" && progress.baselineUnavailable && (
               <div role="alert" className="space-y-3 rounded-lg border bg-card p-5">
                 <p>

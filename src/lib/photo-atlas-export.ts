@@ -1,6 +1,9 @@
 import type { AtlasPhoto, AtlasReview, PhotoAtlas } from "./photo-atlas";
 import {
   ATLAS_METHOD,
+  atlasPhotoMapPoints,
+  atlasPositionLabel,
+  atlasWatercourseLabel,
   photoDateLabel,
   speciesText,
   documentedPhotoComparison,
@@ -8,8 +11,13 @@ import {
 import type { ReportContent, ReportSource } from "./report-document";
 import type { ReportImage } from "@/services/report-assets";
 
+function atlasSpeciesLabel(photo: AtlasPhoto, review?: AtlasReview) {
+  const species = review ? review.species : speciesText(photo);
+  if (!species) return "Arter ikke registreret.";
+  return `${review?.speciesStatus === "field_confirmed" ? "Brugerregistreret feltkontrol" : "Foreløbigt artsbud"}: ${species}`;
+}
 export function atlasPhotoText(photo: AtlasPhoto, review?: AtlasReview) {
-  return `${photo.id} · ${photo.filename} · ${photoDateLabel(photo)}\n${photo.watercourse || "Vandløbstilknytning afventer"}${review?.reach ? " · Strækning: " + review.reach : ""}\n${(review ? review.observation : photo.observation) || "Observation mangler."}\nVegetation: ${(review ? review.vegetation : photo.vegetation) || "Ikke beskrevet."}\nMotivplacering og usikkerhed: ${review?.subjectPosition || "Ikke registreret; kamera-GPS er ikke motivposition."}${review?.closePhotoIds ? "\nNærfotos: " + review.closePhotoIds : ""}`;
+  return `${photo.id} · ${photo.filename} · ${photoDateLabel(photo)}\n${atlasWatercourseLabel(photo)}${review?.reach ? " · Strækning: " + review.reach : ""}\n${(review ? review.observation : photo.observation) || "Observation mangler."}\nVegetation: ${(review ? review.vegetation : photo.vegetation) || "Ikke beskrevet."}\nMotivplacering og usikkerhed: ${review?.subjectPosition || "Ikke registreret; kamera-GPS er ikke motivposition."}${review?.closePhotoIds ? "\nNærfotos: " + review.closePhotoIds : ""}`;
 }
 export function atlasReportContent(input: {
   atlas: PhotoAtlas & { evidenceId: string; checksum: string };
@@ -20,6 +28,15 @@ export function atlasReportContent(input: {
   purpose: string;
 }): ReportContent {
   const { atlas, photos, reviews } = input;
+  const illustrated = photos.filter((photo) => photo.image).length;
+  const positionCounts = new Map<string, number>();
+  for (const photo of photos) {
+    const label = atlasPositionLabel(photo);
+    if (label) positionCounts.set(label, (positionCounts.get(label) ?? 0) + 1);
+  }
+  const positionSummary = Array.from(positionCounts, ([label, count]) => `${label}: ${count}`).join(
+    ". ",
+  );
   // Use the existing, server-canonicalized evidence reference. Imported original
   // checksums must not masquerade as verified project_media original checksums.
   const sources: ReportSource[] = [
@@ -51,15 +68,33 @@ export function atlasReportContent(input: {
     },
     {
       title: "Kort og dokumentationsgrundlag",
-      text: `${photos.length} registrerede fotos. Vandløbstilknytning: ${[...new Set(photos.map((p) => p.watercourse || "Uafklaret"))].join(", ")}. Optagedatoer: ${[...new Set(photos.map((p) => p.date || "Mangler"))].sort().join(", ")}. Kortet viser kamerapositioner og dokumenterer ikke fotoernes dækningsområde, en juridisk projektgrænse eller præcis motivposition. Vandområde-ID gælder kildeområdet, ikke nødvendigvis kommunens delstrækning.`,
+      text: `${photos.length} registrerede fotos. ${[...new Set(photos.map(atlasWatercourseLabel))].join(", ")}. Optagedatoer: ${[...new Set(photos.map((p) => p.date || "Mangler"))].sort().join(", ")}. Kortet viser kamerapositioner og dokumenterer ikke fotoernes dækningsområde, en juridisk projektgrænse eller præcis motivposition. Vandområde-ID gælder kildeområdet, ikke nødvendigvis kommunens delstrækning.${positionSummary ? "\n\nRegistrets positionskategorier. " + positionSummary + "." : ""}`,
       basis: "documented",
     },
     {
       title: "Observationer og vegetationsbeskrivelser",
-      text: `Fotobilaget indeholder illustration, foto-ID, optagedato, observation og vegetation for alle ${photos.length} valgte fotos. ${photos.filter((p) => reviews.has(p.id)).length} fotos har en gemt brugergennemgang; dette er ikke i sig selv en faglig godkendelse.\n\n${
+      text: `${illustrated} af ${photos.length} valgte fotos har en indlejret illustration. ${photos.filter((p) => reviews.has(p.id)).length} fotos har en gemt brugergennemgang.\n\n${
         photos
-          .filter((p) => reviews.has(p.id))
-          .map((p) => atlasPhotoText(p, reviews.get(p.id)?.review))
+          .filter((p) => reviews.has(p.id) || !p.image)
+          .map((p) => {
+            const review = reviews.get(p.id)?.review;
+            const description = atlasPhotoText(p, review);
+            if (p.image) return description;
+            return [
+              description,
+              atlasPositionLabel(p),
+              p.watercourse_relation === "nearest" &&
+                p.distance_m != null &&
+                `Afstand fra kamera til vandløbslinje: ${p.distance_m.toLocaleString("da-DK")} m.`,
+              atlasSpeciesLabel(p, review),
+              p.field_precautions && `Felthensyn: ${p.field_precautions}`,
+              p.source_review && `Kildens gennemgangsniveau: ${p.source_review}`,
+              `Registreret original-SHA-256: ${p.sha256 || "Mangler"}`,
+              p.source && `Originalreference: ${p.source}`,
+            ]
+              .filter(Boolean)
+              .join("\n");
+          })
           .join("\n\n") ||
         "Der er endnu ingen særskilt gemt fotogennemgang. De importerede beskrivelser fremgår af fotobilaget."
       }`,
@@ -81,7 +116,7 @@ export function atlasReportContent(input: {
         (photos.some(
           (p) => reviews.get(p.id)?.review.species || (!reviews.has(p.id) && p.species.length),
         )
-          ? "Foreløbige artsbud fremgår af det enkelte foto i fotobilaget. Ingen arter er registreret bekræftet ved relevant feltkontrol."
+          ? "Foreløbige artsbud fremgår af fotobeskrivelserne. Ingen arter er registreret bekræftet ved relevant feltkontrol."
           : "Der er ingen artsregistreringer i det valgte grundlag.") +
           " Dronefotos alene udgør ikke en sikker artsbestemmelse.",
       basis: "screening",
@@ -131,12 +166,13 @@ export function atlasReportContent(input: {
     },
     {
       title: "Metode, kilder og faglige begrænsninger",
-      text: `${atlas.method}\n\n${ATLAS_METHOD}\n\nKildedatasæt: ${atlas.title}. Version: ${atlas.version}. Fotoatlasfilens SHA-256: ${atlas.checksum}. Illustrationer er visningskopier. Oprindelige filer er ikke blevet hentet eller omskrevet som del af denne import.\n\nVandstand, temperatur, ilt og pH er ikke målt her. Formelt økologisk tilstand eller effekt af plantning beregnes ikke fra disse billeder. Lokale optagetider uden tidszone omregnes ikke til UTC. Alle afsnit afventer faglig rapportgennemgang. Atlasdokumentet har ingen serverregistreret originalkontrolsum og kan ikke alene danne grundlag for en godkendt rapport.\n\nFotoregister med originalreferencer (ikke verificeret ved atlasimport) er samlet i fotobilaget: foto-ID, filnavn, optagedato, beskrivelse, kamera-GPS, registreret original-SHA-256 og klikbar kildehenvisning. De samme oplysninger kan hentes som selvstændigt HTML-atlas og baseline-JSON.`,
+      text: `${[...new Set([atlas.method, ATLAS_METHOD])].join("\n\n")}\n\nKildedatasæt: ${atlas.title}. Version: ${atlas.version}. Fotoatlasfilens SHA-256: ${atlas.checksum}. Illustrationer er visningskopier. Oprindelige filer er ikke blevet hentet eller omskrevet som del af denne import.\n\nVandstand, temperatur, ilt og pH er ikke målt her. Formelt økologisk tilstand eller effekt af plantning beregnes ikke fra disse billeder. Lokale optagetider uden tidszone omregnes ikke til UTC. Alle afsnit afventer faglig rapportgennemgang. Atlasdokumentet har ingen serverregistreret originalkontrolsum og kan ikke alene danne grundlag for en godkendt rapport.\n\nFotobeskrivelser, kort og kilderegister henviser til de valgte poster. Filreferencer og kontrolsummer stammer fra det importerede register. Originalfilernes indhold er ikke verificeret ved atlasimport. De samme oplysninger kan hentes som selvstændigt HTML-atlas og baseline-JSON.`,
       basis: "documented",
     },
   ];
   return {
     templateId: "watercourse",
+    photoLayoutVersion: 2,
     title: `${input.projectName} · fotobaseret baseline`,
     projectName: input.projectName,
     organizationName: input.organizationName,
@@ -147,20 +183,25 @@ export function atlasReportContent(input: {
       evidenceId: atlas.evidenceId,
       checksum: atlas.checksum,
       photoIds: photos.map((p) => p.id),
+      illustratedPhotoCount: illustrated,
+      mapPoints: atlasPhotoMapPoints(photos),
       captions: Object.fromEntries(
         photos.map((p) => {
           const r = reviews.get(p.id)?.review;
-          const species = r ? r.species : speciesText(p);
           return [
             p.id,
             [
               `${p.id} · ${p.filename}`,
-              `${photoDateLabel(p)} · ${p.watercourse || "Tilknytning uafklaret"}`,
+              `${photoDateLabel(p)} · ${atlasWatercourseLabel(p)}`,
+              atlasPositionLabel(p),
+              p.watercourse_relation === "nearest" &&
+                p.distance_m != null &&
+                `Afstand fra kamera til vandløbslinje: ${p.distance_m.toLocaleString("da-DK")} m.`,
               (r ? r.observation : p.observation) || "Observation mangler.",
               `Vegetation: ${(r ? r.vegetation : p.vegetation) || "Ikke beskrevet"}`,
-              species
-                ? `${r?.speciesStatus === "field_confirmed" ? "Brugerregistreret feltkontrol" : "Foreløbigt artsbud"}: ${species}`
-                : "Arter ikke registreret.",
+              atlasSpeciesLabel(p, r),
+              p.field_precautions && `Felthensyn: ${p.field_precautions}`,
+              p.source_review && `Kildens gennemgangsniveau: ${p.source_review}`,
               r?.subjectPosition ? "Motivplacering: " + r.subjectPosition : "",
               r?.closePhotoIds ? "Nærfotos: " + r.closePhotoIds : "",
             ]
@@ -232,6 +273,7 @@ export function buildPhotoAtlasHtml(
       vegetation: r ? r.vegetation : p.vegetation,
       species: r ? (r.species ? [r.species] : []) : p.species,
       captureLabel: photoDateLabel(p),
+      watercourseLabel: atlasWatercourseLabel(p),
       review: r ?? null,
     };
   });
@@ -239,13 +281,13 @@ export function buildPhotoAtlasHtml(
     .replace(/</g, "\\u003c")
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
-  return `<!doctype html><html lang="da"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(projectName)} · fotoatlas</title><style>body{font:16px system-ui;margin:auto;max-width:1500px;padding:24px;background:#f5f8f5;color:#193c2f}header{border-bottom:2px solid #27543d}input,select,button{font:inherit;padding:10px;border:1px solid #a5b7ab;border-radius:7px}form{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px}.photo{background:white;border:1px solid #c4d0c7;border-radius:10px;padding:10px;text-align:left}.photo img{width:100%;aspect-ratio:3/2;object-fit:cover}.photo p{white-space:pre-wrap}dialog{max-width:95vw;width:1300px;max-height:95vh;overflow:auto;border:1px solid #a5b7ab;border-radius:10px}dialog::backdrop{background:#000b}#zoom-frame{overflow:auto;max-height:70vh;background:#111}#large{display:block;width:100%;max-width:none}a{color:#27543d}#map{width:100%;height:340px;background:#e8f0e9;border:1px solid #a5b7ab}circle{cursor:pointer;fill:#27543d}circle:focus{stroke:#f90;stroke-width:3}@media print{form,dialog,button{display:none!important}.grid{grid-template-columns:1fr 1fr}.photo{break-inside:avoid}}</style><header><p>FREYRA · FOTOATLAS</p><h1>${escapeHtml(projectName)}</h1><p>${escapeHtml(atlas.method)} ${escapeHtml(ATLAS_METHOD)}</p></header><form onsubmit="return false"><label>Søg <input id="search" type="search" placeholder="Foto-ID, filnavn eller beskrivelse"></label><label>Vandløb <select id="watercourse"><option value="">Alle</option></select></label><label>Optagedato <select id="date"><option value="">Alle</option></select></label><label>Billedgruppe <select id="section"><option value="">Alle</option></select></label></form><p id="count" role="status"></p><details><summary>Kortskitse over kamerapositioner</summary><p>Skitse uden baggrundskort. Kameraets position er ikke motivets placering eller en præcis områdegrænse.</p><svg id="map" viewBox="0 0 1000 340" role="img" aria-label="Kamerapositioner"></svg></details><main id="photos" class="grid"></main><dialog id="dialog"><button id="close">Luk</button> <button id="previous">Forrige foto</button> <button id="next">Næste foto</button> <label>Zoom <input id="zoom" type="range" min="1" max="4" step="0.25" value="1"></label><h2 id="title"></h2><div id="zoom-frame"><img id="large" alt=""></div><p id="description" style="white-space:pre-wrap"></p><a id="source" target="_blank" rel="noopener noreferrer">Åbn originalens kildehenvisning</a></dialog><script type="application/json" id="photo-data">${data}</script><script>
+  return `<!doctype html><html lang="da"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(projectName)} · fotoatlas</title><style>body{font:16px system-ui;margin:auto;max-width:1500px;padding:24px;background:#f5f8f5;color:#193c2f}header{border-bottom:2px solid #27543d}input,select,button{font:inherit;padding:10px;border:1px solid #a5b7ab;border-radius:7px}form{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px}.photo{background:white;border:1px solid #c4d0c7;border-radius:10px;padding:10px;text-align:left}.photo img{width:100%;aspect-ratio:3/2;object-fit:cover}.photo p{white-space:pre-wrap}dialog{max-width:95vw;width:1300px;max-height:95vh;overflow:auto;border:1px solid #a5b7ab;border-radius:10px}dialog::backdrop{background:#000b}#zoom-frame{overflow:auto;max-height:70vh;background:#111}#large{display:block;width:100%;max-width:none}a{color:#27543d}#map{width:100%;height:340px;background:#e8f0e9;border:1px solid #a5b7ab}circle{cursor:pointer;fill:#27543d}circle:focus{stroke:#f90;stroke-width:3}@media print{form,dialog,button{display:none!important}.grid{grid-template-columns:1fr 1fr}.photo{break-inside:avoid}}</style><header><p>FREYRA · FOTOATLAS</p><h1>${escapeHtml(projectName)}</h1><p>${escapeHtml([...new Set([atlas.method, ATLAS_METHOD])].join(" "))}</p></header><form onsubmit="return false"><label>Søg <input id="search" type="search" placeholder="Foto-ID, filnavn eller beskrivelse"></label><label>Vandløb <select id="watercourse"><option value="">Alle</option></select></label><label>Optagedato <select id="date"><option value="">Alle</option></select></label><label>Billedgruppe <select id="section"><option value="">Alle</option></select></label></form><p id="count" role="status"></p><details><summary>Kortskitse over kamerapositioner</summary><p>Skitse uden baggrundskort. Kameraets position er ikke motivets placering eller en præcis områdegrænse.</p><svg id="map" viewBox="0 0 1000 340" role="img" aria-label="Kamerapositioner"></svg></details><main id="photos" class="grid"></main><dialog id="dialog"><button id="close">Luk</button> <button id="previous">Forrige foto</button> <button id="next">Næste foto</button> <label>Zoom <input id="zoom" type="range" min="1" max="4" step="0.25" value="1"></label><h2 id="title"></h2><div id="zoom-frame"><img id="large" alt=""></div><p id="description" style="white-space:pre-wrap"></p><a id="source" target="_blank" rel="noopener noreferrer">Åbn originalens kildehenvisning</a></dialog><script type="application/json" id="photo-data">${data}</script><script>
 const photos=JSON.parse(document.getElementById('photo-data').textContent);let shown=photos,selected=null;const byId=id=>document.getElementById(id);const put=(tag,text)=>{const node=document.createElement(tag);node.textContent=text;return node;};
 for(const [id,key] of [['watercourse','watercourse'],['date','date'],['section','section_id']])for(const value of [...new Set(photos.map(p=>p[key]).filter(Boolean))].sort()){const option=put('option',value);option.value=value;byId(id).append(option);}
 function describe(p){const r=p.review;return [p.id+' · '+p.filename,p.captureLabel,p.image?'Rapportillustration; originalreference er ikke selve originalfilen.':'Billedfil mangler i dette datasæt.',p.observation||'Observation mangler','Vegetation: '+(p.vegetation||'Ikke beskrevet'),'Arter: '+(r?.species||p.species.map(s=>typeof s==='string'?s:JSON.stringify(s)).join('; ')||'Ikke registreret'),r?.speciesStatus==='field_confirmed'?'Brugerregistreret feltbekræftelse: '+r.confirmationEvidence+' · Fagperson: '+r.reviewer:'Artsbud er foreløbige; kontrol kræves.','Kamera-GPS: '+(p.lat==null?'mangler':p.lat+', '+p.lon),'Motivplacering: '+(r?.subjectPosition||'Ikke registreret'),r?.reach?'Delstrækning: '+r.reach:'',r?.closePhotoIds?'Nærfotos: '+r.closePhotoIds:'',r?.access?'Adgang: '+r.access:'',r?.natureConcerns?'Naturhensyn: '+r.natureConcerns:'',r?.workDate?'Arbejdsdato: '+r.workDate+' · Kilde/arbejdsgrænse: '+r.workEvidence:'Arbejdsdato er ikke dokumenteret.',r?.workPhotoIds?'Udførelsesfotos: '+r.workPhotoIds:'',r?.planting?'Beplantning: '+r.planting+' · Status: '+(r.plantingStatus==='documented_execution'?'Udførelse registreret '+r.plantingDate+' · Kilde: '+r.plantingEvidence:'Forslag; faglig afklaring afventer.'):'',r?.followup?'Opfølgning: '+r.followup:'',r?.samePlaceEvidence?'Samme sted: '+r.samePlaceEvidence:'','Registreret original-SHA-256: '+(p.sha256||'Mangler')+' · Kildehenvisning; ikke verificeret ved atlaseksport.',p.date_status||'Optagedato er ikke dokumentation for en indsats.'].filter(Boolean).join(String.fromCharCode(10,10));}
 function open(p){selected=p;byId('title').textContent=p.id+' · '+p.filename;byId('large').src=p.image||'';byId('large').alt=p.observation||p.filename;byId('description').textContent=describe(p);byId('zoom').value='1';byId('large').style.width='100%';byId('source').hidden=!p.source;if(p.source)byId('source').href=p.source;if(!byId('dialog').open)byId('dialog').showModal();}
 function map(){const svg=byId('map');svg.replaceChildren();const points=shown.filter(p=>p.lat!=null&&p.lon!=null);if(!points.length)return;const minX=Math.min(...points.map(p=>p.lon)),maxX=Math.max(...points.map(p=>p.lon)),minY=Math.min(...points.map(p=>p.lat)),maxY=Math.max(...points.map(p=>p.lat));for(const p of points){const point=document.createElementNS('http://www.w3.org/2000/svg','circle');point.setAttribute('cx',String(25+(p.lon-minX)/(maxX-minX||1)*950));point.setAttribute('cy',String(315-(p.lat-minY)/(maxY-minY||1)*290));point.setAttribute('r','5');point.setAttribute('tabindex','0');point.setAttribute('aria-label',p.id);const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=p.id;point.append(title);point.addEventListener('click',()=>open(p));point.addEventListener('keydown',e=>{if(e.key==='Enter')open(p)});svg.append(point);}}
-function render(){const q=byId('search').value.toLocaleLowerCase('da-DK');shown=photos.filter(p=>(!byId('watercourse').value||p.watercourse===byId('watercourse').value)&&(!byId('date').value||p.date===byId('date').value)&&(!byId('section').value||p.section_id===byId('section').value)&&[p.id,p.filename,p.observation,p.vegetation,p.review?.species||''].join(' ').toLocaleLowerCase('da-DK').includes(q));byId('count').textContent=shown.length+' af '+photos.length+' fotos';const grid=byId('photos');grid.replaceChildren();for(const p of shown){const button=put('button','');button.type='button';button.className='photo';const img=document.createElement('img');if(p.image)img.src=p.image;img.alt=p.observation||p.filename;img.loading='lazy';button.append(img,put('h2',p.id+' · '+p.filename),put('p',(p.watercourse||'Uafklaret')+' · '+(p.date||'Dato mangler')),put('p',p.observation||'Observation mangler'));button.addEventListener('click',()=>open(p));grid.append(button);}map();}
+function render(){const q=byId('search').value.toLocaleLowerCase('da-DK');shown=photos.filter(p=>(!byId('watercourse').value||p.watercourse===byId('watercourse').value)&&(!byId('date').value||p.date===byId('date').value)&&(!byId('section').value||p.section_id===byId('section').value)&&[p.id,p.filename,p.observation,p.vegetation,p.review?.species||''].join(' ').toLocaleLowerCase('da-DK').includes(q));byId('count').textContent=shown.length+' af '+photos.length+' fotos';const grid=byId('photos');grid.replaceChildren();for(const p of shown){const button=put('button','');button.type='button';button.className='photo';const img=document.createElement('img');if(p.image)img.src=p.image;img.alt=p.observation||p.filename;img.loading='lazy';button.append(img,put('h2',p.id+' · '+p.filename),put('p',(p.watercourseLabel||p.watercourse||'Uafklaret')+' · '+(p.date||'Dato mangler')),put('p',p.observation||'Observation mangler'));button.addEventListener('click',()=>open(p));grid.append(button);}map();}
 for(const id of ['search','watercourse','date','section'])byId(id).addEventListener('input',render);byId('close').onclick=()=>byId('dialog').close();byId('zoom').oninput=()=>byId('large').style.width=(Number(byId('zoom').value)*100)+'%';for(const [id,delta] of [['previous',-1],['next',1]])byId(id).onclick=()=>{const i=shown.findIndex(p=>p.id===selected?.id);if(shown[i+delta])open(shown[i+delta]);};document.addEventListener('keydown',e=>{if(!byId('dialog').open)return;if(e.key==='ArrowLeft')byId('previous').click();if(e.key==='ArrowRight')byId('next').click();});render();
 </script></html>`;
 }

@@ -1,8 +1,10 @@
 // Uploads service — CRUD, signed URLs and upload-type classification.
+import { z } from "zod";
 import { supabase, isSupabaseConfigured, requireSupabaseUrl } from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { logAuditEvent } from "./audit-service";
 import { uploadWithTus } from "./resumable-upload-service";
+import { DRONE_BATCH_INTAKE } from "./drone-batch-intake";
 
 // Read-only extension for the additive original-validation migration. Client
 // INSERT/UPDATE types deliberately retain the generated caller-owned contract.
@@ -405,16 +407,57 @@ async function finalizeIntent(
 export async function listUploads(params: {
   projectId?: string | null;
   status?: string;
+  uploadType?: Upload["upload_type"];
+  afterId?: string | null;
   limit?: number;
 }): Promise<Upload[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  let q = supabase.from("uploads").select("*").order("created_at", { ascending: false });
+  let q = supabase.from("uploads").select("*");
+  q =
+    params.afterId === undefined
+      ? q.order("created_at", { ascending: false })
+      : q.order("id", { ascending: true });
+  if (params.afterId) q = q.gt("id", params.afterId);
+  if (params.uploadType) q = q.eq("upload_type", params.uploadType);
   if (params.projectId) q = q.eq("project_id", params.projectId);
   if (params.status) q = q.eq("status", params.status);
   q = q.limit(params.limit ?? 50);
   const { data, error } = await q;
   if (error) throw error;
   return (data as Upload[] | null) ?? [];
+}
+
+const neutralDroneBatchFiles = z
+  .array(
+    z.object({
+      id: z.string().uuid(),
+      original_file_name: z.string().min(1),
+      sequence: z
+        .union([z.number(), z.string().regex(/^\d+$/).transform(Number)])
+        .pipe(z.number().int().min(1).max(200)),
+    }),
+  )
+  .max(200);
+
+export async function listNeutralDroneBatchFiles(
+  projectId: string,
+  batchId: string,
+): Promise<z.infer<typeof neutralDroneBatchFiles>> {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Forbindelse til projektet mangler.");
+  const { data, error } = await supabase
+    .from("uploads")
+    .select("id,original_file_name,sequence:user_metadata->intake->batch_sequence")
+    .eq("project_id", projectId)
+    .eq("upload_type", "drone_photo")
+    .contains("user_metadata", {
+      intake: { ...DRONE_BATCH_INTAKE.neutral, batch_id: batchId, media_kind: "drone_photo" },
+    })
+    .not("received_at", "is", null)
+    .limit(200);
+  if (error) throw error;
+  return neutralDroneBatchFiles
+    .parse(data ?? [])
+    .sort((left, right) => left.sequence - right.sequence);
 }
 
 export async function getUpload(id: string): Promise<Upload | null> {

@@ -1,7 +1,14 @@
 import { jsPDF } from "jspdf";
 import { REPORT_FONT } from "./fonts/report-font";
 import type { ReportImage } from "@/services/report-assets";
-import { BASIS_LABELS, reportWorkOrderDataBasis, type ReportRevision } from "./report-document";
+import {
+  BASIS_LABELS,
+  numberedAtlasMapPoints,
+  reportPhotoMapNumbers,
+  reportWorkOrderDataBasis,
+  type ReportRevision,
+} from "./report-document";
+import { PhotoComparisonSchema, comparisonCaptureLabel } from "./photo-comparison";
 
 export type ReportFormat = "pdf" | "docx" | "csv" | "geojson";
 const encoder = new TextEncoder();
@@ -73,6 +80,7 @@ export function zipFiles(files: Record<string, string | Uint8Array>): Uint8Array
 export function reportLines(revision: ReportRevision): string[] {
   const c = revision.content;
   const source = reportWorkOrderDataBasis(c);
+  const mapNumbers = reportPhotoMapNumbers(c);
   return [
     "FREYRA",
     c.title,
@@ -114,16 +122,35 @@ export function reportLines(revision: ReportRevision): string[] {
     "Kilderegister",
     ...(c.sources.length ? [] : ["Ingen registrerede kilder."]),
     c.photoAtlas
-      ? "Fotobilaget indeholder visningskopier fra den registrerede atlasfil. Originalreferencer og registrerede originalchecksums fremgår ved fotoerne; de erstatter ikke verificerede originalfiler."
+      ? c.photoAtlas.illustratedPhotoCount === undefined
+        ? "Fotobilaget indeholder visningskopier fra den registrerede atlasfil. Originalreferencer og registrerede originalchecksums fremgår ved fotoerne; de erstatter ikke verificerede originalfiler."
+        : `Fotoatlasset omfatter ${c.photoAtlas.photoIds.length} registreringer og ${c.photoAtlas.illustratedPhotoCount} indlejrede illustrationer. Filreferencer og kontrolsummer stammer fra kilden.`
       : "Fotoatlas medtager kun JPEG/PNG-kilder med gemt filsti og originalchecksum. Øvrige kilder er kun medtaget som referencer.",
     ...c.sources.flatMap((s) => [
-      `${s.id}: ${s.title}`,
+      mapNumbers.has(s.id)
+        ? `Kortpunkt ${mapNumbers.get(s.id)} · ${s.title} · ${s.id}`
+        : `${s.id}: ${s.title}`,
       `Metode: ${s.method}; version: ${s.version}`,
-      `Dato: ${s.capturedAt ?? "Ukendt"}; GPS: ${s.position?.join(", ") ?? "Mangler"}`,
-      `Original SHA-256: ${s.checksum ?? "Ikke dokumenteret"}`,
+      `Dato: ${s.localCaptureDate ? comparisonCaptureLabel(s) : (s.capturedAt ?? "Ukendt")}; GPS: ${s.position?.join(", ") ?? "Mangler"}`,
+      ...(s.photoPointReview
+        ? [`Fotopunkt ${s.photoPointReview.bindingId}. Faglig gennemgang ${s.photoPointReview.id}.`]
+        : []),
+      `${s.id.startsWith("field:") || s.id.startsWith("survey-area:") ? "Registrering SHA-256" : "Original SHA-256"}: ${s.checksum ?? "Ikke dokumenteret"}`,
     ]),
+    ...numberedAtlasMapPoints(c, mapNumbers).map(
+      (point) =>
+        `Kortpunkt ${point.number} · Atlasfoto ${point.id} · GPS ${point.position.join(", ")}`,
+    ),
   ];
 }
+function reportImageHeading(revision: ReportRevision, image: ReportImage) {
+  if (image.id !== "gps-overview") return "Fotoatlas";
+  if (revision.content.natureSurvey) return "Naturens undersøgelsesområder";
+  return revision.content.bridgeObservations?.length
+    ? "Broer og rørunderføringer"
+    : "Fotopositioner";
+}
+
 export function buildDocx(revision: ReportRevision, images: ReportImage[] = []): Uint8Array {
   const source = reportWorkOrderDataBasis(revision.content);
   const headings = new Set([
@@ -135,19 +162,56 @@ export function buildDocx(revision: ReportRevision, images: ReportImage[] = []):
   const paragraphs = reportLines(revision)
     .map(
       (line) =>
-        `<w:p><w:pPr><w:spacing w:after="80"/>${headings.has(line) ? "<w:keepNext/>" : ""}</w:pPr><w:r><w:rPr>${headings.has(line) ? '<w:b/><w:sz w:val="28"/>' : '<w:sz w:val="20"/>'}</w:rPr><w:t xml:space="preserve">${xml(line)}</w:t></w:r></w:p>`,
+        `<w:p><w:pPr><w:spacing w:after="80"/>${headings.has(line) ? "<w:keepNext/>" : ""}</w:pPr><w:r><w:rPr>${headings.has(line) ? '<w:b/><w:sz w:val="28"/>' : '<w:sz w:val="20"/>'}</w:rPr><w:t xml:space="preserve">${xml(line).replace(/\r?\n/g, '</w:t><w:br/><w:t xml:space="preserve">')}</w:t></w:r></w:p>`,
     )
     .join("");
   const files: Record<string, string | Uint8Array> = {};
-  const imageParagraphs = images
-    .map((image, i) => {
-      files[`word/media/image${i}.${image.format}`] = image.bytes;
-      const scale = Math.min(5943600 / image.width, 7315200 / image.height),
-        width = Math.round(image.width * scale),
-        height = Math.round(image.height * scale);
-      return `<w:p><w:pPr><w:pageBreakBefore/><w:keepNext/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>${i === 0 && image.id === "gps-overview" ? "Fotopositioner" : "Fotoatlas"}</w:t></w:r></w:p><w:p><w:r><w:drawing><wp:inline><wp:extent cx="${width}" cy="${height}"/><wp:docPr id="${i + 1}" name="${xml(image.id)}" descr="${xml(image.caption)}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${i + 1}" name="Image ${i + 1}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="image${i}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${width}" cy="${height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p><w:p><w:r><w:t>${xml(image.caption)}</w:t></w:r></w:p>`;
+  const indexById = new Map(images.map((image, index) => [image.id, index]));
+  images.forEach((image, index) => {
+    files[`word/media/image${index}.${image.format}`] = image.bytes;
+  });
+  const imageBlock = (index: number, drawingId: number, maxWidth: number, maxHeight: number) => {
+    const image = images[index];
+    const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+    const width = Math.round(image.width * scale);
+    const height = Math.round(image.height * scale);
+    return `<w:p><w:r><w:drawing><wp:inline><wp:extent cx="${width}" cy="${height}"/><wp:docPr id="${drawingId}" name="${xml(image.id)}" descr="${xml(image.caption)}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${drawingId}" name="Image ${drawingId}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="image${index}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${width}" cy="${height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p><w:p><w:r><w:t>${xml(image.caption)}</w:t></w:r></w:p>`;
+  };
+  const imagePageHeading = (heading: string) =>
+    `<w:p><w:pPr><w:pageBreakBefore/><w:keepNext/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>${xml(heading)}</w:t></w:r></w:p>`;
+  const pairedIndexes = new Set<number>();
+  let drawingId = images.length;
+  const pairCell = (label: string, index: number) =>
+    `<w:tc><w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${label}</w:t></w:r></w:p>${imageBlock(index, ++drawingId, 2743200, 4114800)}</w:tc>`;
+  const pairInputs =
+    revision.content.photoLayoutVersion === 2 ? revision.content.workflowSnapshot?.inputs : [];
+  const pairTables = (pairInputs ?? [])
+    .filter((entry) => entry.payload.source.startsWith("photo-comparison:"))
+    .map((entry, index) => {
+      const comparison = PhotoComparisonSchema.parse(JSON.parse(entry.payload.decision));
+      const earlier = indexById.get(`media:${comparison.beforeId}`);
+      const later = indexById.get(`media:${comparison.afterId}`);
+      if (earlier === undefined || later === undefined) return "";
+      pairedIndexes.add(earlier);
+      pairedIndexes.add(later);
+      return (
+        imagePageHeading(`Fotopar ${index + 1}`) +
+        '<w:tbl><w:tblPr><w:tblW w:w="9200" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="4600"/><w:gridCol w:w="4600"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr>' +
+        pairCell("Tidligere optagelse", earlier) +
+        pairCell("Senere optagelse", later) +
+        "</w:tr></w:tbl>"
+      );
     })
     .join("");
+  const imageParagraphs =
+    images
+      .map((image, index) =>
+        pairedIndexes.has(index)
+          ? ""
+          : imagePageHeading(reportImageHeading(revision, image)) +
+            imageBlock(index, index + 1, 5943600, 7315200),
+      )
+      .join("") + pairTables;
   files["[Content_Types].xml"] =
     '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
   files["_rels/.rels"] =
@@ -161,6 +225,11 @@ export function buildDocx(revision: ReportRevision, images: ReportImage[] = []):
 export function buildReportCsv(revision: ReportRevision): string {
   const source = reportWorkOrderDataBasis(revision.content);
   const classified = source && source.kind !== "unknown";
+  const reviewedPhotos = revision.content.sources.some((s) => s.photoPointReview);
+  const mapNumbers = reportPhotoMapNumbers(revision.content);
+  const atlasPoints = numberedAtlasMapPoints(revision.content, mapNumbers);
+  const atlasById = new Map(atlasPoints.map((point) => [point.sourceId, point]));
+  const hasRiverMatches = atlasPoints.some((point) => point.nearestWatercourse !== undefined);
   const pin = revision.content.workOrderApproval;
   const cell = (v: unknown) =>
     `"${String(v ?? "")
@@ -179,10 +248,38 @@ export function buildReportCsv(revision: ReportRevision): string {
       "method",
       "source_version",
       "original_sha256",
+      ...(mapNumbers.size ? ["map_number"] : []),
+      ...(hasRiverMatches
+        ? ["nearest_watercourse", "position_flag", "camera_to_watercourse_line_m"]
+        : []),
       ...(classified ? ["execution_data_basis", "execution_revision_id"] : []),
+      ...(reviewedPhotos
+        ? [
+            "local_capture_date",
+            "photo_review_id",
+            "photo_review_sha256",
+            "binding_id",
+            "binding_sha256",
+            "original_validation_sha256",
+          ]
+        : []),
     ],
   ];
-  for (const s of revision.content.sources)
+  const atlasReferences = atlasPoints.map((point) => ({
+    id: point.sourceId,
+    title: point.id,
+    kind: "atlas_photo_reference",
+    capturedAt: null,
+    position: point.position,
+    method: "Kamera-GPS fra det gemte fotoatlas",
+    version: point.atlasChecksum,
+    checksum: null,
+  }));
+  const sources: typeof revision.content.sources = [
+    ...revision.content.sources,
+    ...atlasReferences,
+  ];
+  for (const s of sources)
     rows.push([
       revision.report_id,
       revision.version,
@@ -195,12 +292,31 @@ export function buildReportCsv(revision: ReportRevision): string {
       s.method,
       s.version,
       s.checksum,
+      ...(mapNumbers.size ? [mapNumbers.get(s.id)] : []),
+      ...(hasRiverMatches
+        ? [
+            atlasById.get(s.id)?.nearestWatercourse,
+            atlasById.get(s.id)?.positionFlag,
+            atlasById.get(s.id)?.distanceToLineM,
+          ]
+        : []),
       ...(classified ? [pin!.executionDataBasis, pin!.executionRevisionId] : []),
+      ...(reviewedPhotos
+        ? [
+            s.localCaptureDate,
+            s.photoPointReview?.id,
+            s.photoPointReview?.sha256,
+            s.photoPointReview?.bindingId,
+            s.photoPointReview?.bindingSha256,
+            s.photoPointReview?.originalValidationSha256,
+          ]
+        : []),
     ]);
   return "\ufeff" + rows.map((r) => r.map(cell).join(";")).join("\r\n");
 }
 export function buildReportGeoJSON(revision: ReportRevision) {
   const source = reportWorkOrderDataBasis(revision.content);
+  const mapNumbers = reportPhotoMapNumbers(revision.content);
   const pin = revision.content.workOrderApproval;
   return {
     type: "FeatureCollection",
@@ -212,19 +328,64 @@ export function buildReportGeoJSON(revision: ReportRevision) {
           execution_revision_id: pin!.executionRevisionId,
         }
       : {}),
-    features: revision.content.sources
-      .filter((s) => s.position)
-      .map((s) => ({
+    features: [
+      ...(revision.content.natureSurvey?.areas ?? []).map((area, index) => ({
         type: "Feature",
-        geometry: { type: "Point", coordinates: s.position },
+        geometry: area.geometry,
         properties: {
-          source_id: s.id,
-          title: s.title,
-          method: s.method,
-          version: s.version,
-          checksum: s.checksum,
+          zone_id: area.id,
+          name: area.name,
+          method: area.method,
+          hectares: area.hectares,
+          map_number: index + 1,
         },
       })),
+      ...(revision.content.bridgeObservations ?? []).map((row, index) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [row.longitude, row.latitude] },
+        properties: {
+          observation_id: row.id,
+          object_id: row.objectId,
+          structure_type: row.structureType,
+          observed_at: row.observedAt,
+          accuracy_m: row.accuracyM,
+          map_number: index + 1,
+        },
+      })),
+      ...revision.content.sources
+        .filter((s) => s.position)
+        .map((s) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: s.position },
+          properties: {
+            source_id: s.id,
+            title: s.title,
+            method: s.method,
+            version: s.version,
+            checksum: s.checksum,
+            ...(mapNumbers.has(s.id) ? { map_number: mapNumbers.get(s.id) } : {}),
+            ...(s.photoPointReview
+              ? { photo_point_review: s.photoPointReview, local_capture_date: s.localCaptureDate }
+              : {}),
+          },
+        })),
+      ...numberedAtlasMapPoints(revision.content, mapNumbers).map((point) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: point.position },
+        properties: {
+          atlas_evidence_id: point.evidenceId,
+          photo_id: point.id,
+          map_number: point.number,
+          ...(point.nearestWatercourse !== undefined
+            ? {
+                nearest_watercourse: point.nearestWatercourse,
+                position_flag: point.positionFlag,
+                camera_to_watercourse_line_m: point.distanceToLineM,
+              }
+            : {}),
+        },
+      })),
+    ],
   };
 }
 export async function generateReportFile(
@@ -275,8 +436,26 @@ export async function generateReportFile(
         y += heading ? 7 : 5;
       }
     }
+    const imagesById = new Map(images.map((image) => [image.id, image]));
+    pdf.setFontSize(8);
+    const comparisonImages = (revision.content.workflowSnapshot?.inputs ?? [])
+      .filter((entry) => entry.payload.source.startsWith("photo-comparison:"))
+      .flatMap((entry, index) => {
+        const comparison = PhotoComparisonSchema.parse(JSON.parse(entry.payload.decision));
+        const earlier = imagesById.get(`media:${comparison.beforeId}`);
+        const later = imagesById.get(`media:${comparison.afterId}`);
+        if (!earlier || !later) return [];
+        const earlierCaption = pdf.splitTextToSize(earlier.caption, 170) as string[];
+        const laterCaption = pdf.splitTextToSize(later.caption, 170) as string[];
+        if (earlierCaption.length > 14 || laterCaption.length > 14) return [];
+        return [{ number: index + 1, earlier, later, earlierCaption, laterCaption }];
+      });
+    const pairedIds = new Set(
+      comparisonImages.flatMap(({ earlier, later }) => [earlier.id, later.id]),
+    );
     let atlasY: number | null = null;
     for (const image of images) {
+      if (pairedIds.has(image.id)) continue;
       if (revision.content.photoAtlas && image.id.startsWith("atlas:")) {
         pdf.setFontSize(7);
         const lines = pdf.splitTextToSize(image.caption, 94) as string[];
@@ -322,7 +501,7 @@ export async function generateReportFile(
       atlasY = null;
       pdf.addPage();
       pdf.setFontSize(16);
-      pdf.text(image.id === "gps-overview" ? "Fotopositioner" : "Fotoatlas", 20, 22);
+      pdf.text(reportImageHeading(revision, image), 20, 22);
       pdf.setFontSize(9);
       const caption = pdf.splitTextToSize(image.caption, 170) as string[];
       const maxHeight = Math.max(60, 230 - Math.min(caption.length * 4, 80));
@@ -338,6 +517,30 @@ export async function generateReportFile(
         }
         pdf.text(line, 20, captionY);
         captionY += 4;
+      }
+    }
+    for (const pair of comparisonImages) {
+      pdf.addPage();
+      pdf.setFontSize(16);
+      pdf.text(`Fotopar ${pair.number}`, 20, 22);
+      for (const [label, image, caption, y] of [
+        ["Tidligere optagelse", pair.earlier, pair.earlierCaption, 32],
+        ["Senere optagelse", pair.later, pair.laterCaption, 151],
+      ] as const) {
+        pdf.setFontSize(10);
+        pdf.text(label, 20, y);
+        pdf.setFontSize(8);
+        const scale = Math.min(170 / image.width, (103 - caption.length * 3.5) / image.height);
+        const height = image.height * scale;
+        pdf.addImage(
+          image.bytes,
+          image.format.toUpperCase(),
+          20,
+          y + 4,
+          image.width * scale,
+          height,
+        );
+        caption.forEach((line, i) => pdf.text(line, 20, y + 8 + height + i * 3.5));
       }
     }
     for (let page = 1; page <= pdf.getNumberOfPages(); page++) {

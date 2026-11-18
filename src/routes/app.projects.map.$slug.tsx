@@ -264,8 +264,8 @@ function GeoMapPage() {
                 <div>
                   <div className="font-medium">
                     {droneUploadOverview.mappableUploads} af{" "}
-                    {droneUploadOverview.receivedDroneUploads} FØR-dronefotos har en GPS-kandidat på
-                    kortet
+                    {droneUploadOverview.receivedDroneUploads} modtagne dronefotos har en
+                    GPS-kandidat på kortet
                   </div>
                   <div className="mt-0.5 flex items-start gap-1 text-xs text-violet-800">
                     <ShieldAlert className="mt-0.5 h-3 w-3 shrink-0" />

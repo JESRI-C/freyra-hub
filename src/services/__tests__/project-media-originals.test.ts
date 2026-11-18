@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   existing: [] as Record<string, unknown>[],
+  otherCategories: [] as Record<string, unknown>[],
+  excluded: vi.fn(),
   insertError: null as { message: string } | null,
   payload: {} as Record<string, unknown>,
   upload: vi.fn(),
@@ -16,12 +18,19 @@ vi.mock("@/lib/supabase/client", () => ({
       from: () => ({ upload: mocks.upload, remove: mocks.remove, createSignedUrl: mocks.signed }),
     },
     from: () => {
+      let supplemental = false;
       const query = {
         select: () => query,
         eq: () => query,
+        in: () => query,
+        not: (field: string, operator: string, value: string) => {
+          mocks.excluded(field, operator, value);
+          supplemental = true;
+          return query;
+        },
         order: () => query,
         range: async (from: number, to: number) => ({
-          data: mocks.existing.slice(from, to + 1),
+          data: (supplemental ? mocks.otherCategories : mocks.existing).slice(from, to + 1),
           error: null,
         }),
         limit: async () => ({ data: mocks.existing, error: null }),
@@ -50,7 +59,12 @@ vi.mock("../monitoring/drone-ingest", () => ({
     exif: {},
   }),
 }));
-import { uploadProjectMedia, listProjectMedia } from "../project-media-service";
+import {
+  uploadProjectMedia,
+  listProjectMedia,
+  listComparisonPhotos,
+  listWatercoursePhotos,
+} from "../project-media-service";
 const input = () => ({
   projectId: "project",
   file: new File(["original"], "photo.jpg", { type: "image/jpeg" }),
@@ -63,6 +77,8 @@ const input = () => ({
 });
 beforeEach(() => {
   mocks.existing = [];
+  mocks.otherCategories = [];
+  mocks.excluded.mockClear();
   mocks.insertError = null;
   mocks.payload = {};
   mocks.fieldUpload.mockReset().mockImplementation(async (input) => {
@@ -87,6 +103,41 @@ beforeEach(() => {
     .mockResolvedValue({ data: { signedUrl: "private-signed-url" }, error: null });
 });
 describe("private original persistence", () => {
+  it("lists neutral drone metadata and all other observation image categories without signing originals", async () => {
+    const common = {
+      project_id: "project",
+      id: "drone",
+      title: "Original.JPG",
+      lat: 55,
+      lng: 9,
+      capture_date: "2026-09-16",
+    };
+    mocks.existing = [common];
+    mocks.otherCategories = [
+      "satellite_snapshot",
+      "before_after",
+      "biodiversity_observation",
+      "water_observation",
+      "soil_observation",
+    ].map((category) => ({ ...common, id: category, title: category, captured_at: null }));
+    const photos = await listWatercoursePhotos("project");
+    expect(photos.map((photo) => photo.id)).toEqual([
+      "drone",
+      ...mocks.otherCategories.map((row) => row.id),
+    ]);
+    expect(photos[0]).toMatchObject({
+      localCaptureDate: "2026-09-16",
+      coordinates: { lat: 55, lng: 9 },
+    });
+    expect(mocks.excluded).toHaveBeenCalledWith(
+      "category",
+      "in",
+      "(field_photo,drone_image,document_scan)",
+    );
+    expect(mocks.signed).not.toHaveBeenCalled();
+    mocks.otherCategories = [{ ...common, project_id: "other-project" }];
+    await expect(listWatercoursePhotos("project")).rejects.toThrow("valgte sag");
+  });
   it("requires a reason before uploading a manually positioned field photo", async () => {
     const result = await uploadProjectMedia({
       ...input(),
@@ -193,4 +244,30 @@ it("lists all originals beyond a database page boundary", async () => {
   const result = await listProjectMedia("project");
   expect(result.error).toBeNull();
   expect(result.data).toHaveLength(501);
+});
+
+it("finds comparison candidates across pages without opening any private originals", async () => {
+  const hash = "a".repeat(64);
+  mocks.existing = Array.from({ length: 501 }, (_, i) => ({
+    id: String(i),
+    project_id: "project",
+    title: "Feltfoto",
+    sha256: hash,
+    before_media_id: "previous",
+    capture_date: "2026-10-01",
+    lat: 55,
+    lng: 9,
+  }));
+  const candidates = await listComparisonPhotos("project");
+  expect(candidates).toHaveLength(501);
+  expect(candidates[500]).toMatchObject({
+    id: "500",
+    coordinates: { lat: 55, lng: 9 },
+    sha256: hash,
+    beforeMediaId: "previous",
+    capturedAt: undefined,
+    localCaptureDate: "2026-10-01",
+  });
+  expect(candidates[500]).not.toHaveProperty("url");
+  expect(mocks.signed).not.toHaveBeenCalled();
 });

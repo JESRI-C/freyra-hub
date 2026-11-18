@@ -123,31 +123,30 @@ export async function refreshWorkflowFollowups(scope: ProjectScope) {
     comparisons = latestPhotoComparisons(comparisonHistory);
   const candidates = executionFollowupCandidates(
     executions,
-    new Set(comparisons.map((c) => c.comparison.executionRevisionId)),
+    new Set(
+      comparisons.flatMap(({ comparison }) =>
+        comparison.executionRevisionId ? [comparison.executionRevisionId] : [],
+      ),
+    ),
   );
   for (const { entry, comparison } of comparisons) {
     const result = await inspectPhotoComparison(scope, comparison);
-    if (result.assessment.gaps.length)
+    const previous = result.execution;
+    const current = executions.find((e) => e.execution.actionId === previous?.execution.actionId);
+    if (result.assessment.gaps.length && (previous || result.assessment.status === "insufficient"))
       candidates.push({
         eventKey:
           "comparison:" +
           entry.id +
           ":" +
-          (executions.find((e) => e.execution.actionId === result.execution.execution.actionId)
-            ?.entry.id ?? result.execution.entry.id),
+          (current?.entry.id ?? previous?.entry.id ?? "capture-dates"),
         title: "Afklar fotopar og sammenlignelighed",
         reason: result.assessment.gaps.join(" "),
         sourceIds: [
           ...new Set([
             entry.id,
-            result.execution.entry.id,
-            ...(executions.find((e) => e.execution.actionId === result.execution.execution.actionId)
-              ? [
-                  executions.find(
-                    (e) => e.execution.actionId === result.execution.execution.actionId,
-                  )!.entry.id,
-                ]
-              : []),
+            ...(previous ? [previous.entry.id] : []),
+            ...(current ? [current.entry.id] : []),
           ]),
         ],
       });
