@@ -1,36 +1,50 @@
-import { readFile, writeFile, access } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { readFile, writeFile, access } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
-const root = new URL('../', import.meta.url);
-const register = JSON.parse(await readFile(new URL('src/components/development/product-plan.json', root), 'utf8'));
+const root = new URL("../", import.meta.url);
+const register = JSON.parse(
+  await readFile(new URL("src/components/development/product-plan.json", root), "utf8"),
+);
 const states = {
-  mapping: 'Kortlægning',
-  implementation: 'Implementering',
-  acceptance_pending: 'Samlet accept afventer',
-  done: 'Færdig og verificeret',
+  mapping: "Kortlægning",
+  implementation: "Implementering",
+  acceptance_pending: "Samlet accept afventer",
+  done: "Færdig og verificeret",
 };
 const ids = new Set();
 for (const feature of register.features) {
-  if (!/^F-\d{3}$/.test(feature.resId) || ids.has(feature.resId)) throw Error('Invalid or duplicate RES ID');
+  if (!/^F-\d{3}$/.test(feature.resId) || ids.has(feature.resId))
+    throw Error("Invalid or duplicate RES ID");
   ids.add(feature.resId);
   if (!states[feature.deliveryStatus]) throw Error(`Missing delivery status: ${feature.id}`);
-  if (!feature.acceptance || !feature.stage) throw Error(`Missing acceptance or status: ${feature.id}`);
-  if (!feature.source || !['http:', 'https:'].includes(new URL(feature.source).protocol)) throw Error(`Missing or invalid product source: ${feature.id}`);
-  if (feature.deliveryStatus === 'done' && !feature.acceptanceEvidence) throw Error(`Missing acceptance evidence: ${feature.id}`);
-  const entries = Object.entries(feature).filter(([key, value]) => /^goFreyra.*(?:Code|Migration)$/.test(key) && typeof value === 'string');
+  if (!feature.acceptance || !feature.stage)
+    throw Error(`Missing acceptance or status: ${feature.id}`);
+  if (!feature.source || !["http:", "https:"].includes(new URL(feature.source).protocol))
+    throw Error(`Missing or invalid product source: ${feature.id}`);
+  if (feature.deliveryStatus === "done" && !feature.acceptanceEvidence)
+    throw Error(`Missing acceptance evidence: ${feature.id}`);
+  const entries = Object.entries(feature).filter(
+    ([key, value]) => /^goFreyra.*(?:Code|Migration)$/.test(key) && typeof value === "string",
+  );
   feature.codeLinks = entries.map(([label, path]) => ({ label, path, reuse: false }));
-  for (const path of feature.goFreyraReuseCode ?? []) feature.codeLinks.push({ label: 'Mulig genbrug', path, reuse: true });
+  for (const path of feature.goFreyraReuseCode ?? [])
+    feature.codeLinks.push({ label: "Mulig genbrug", path, reuse: true });
   for (const { path } of feature.codeLinks) {
-    if (!/^(src|supabase)\//.test(path) || path.split('/').includes('..')) throw Error(`Invalid code path: ${path}`);
+    if (!/^(src|supabase)\//.test(path) || path.split("/").includes(".."))
+      throw Error(`Invalid code path: ${path}`);
     await access(new URL(path, root));
   }
-  feature.evidenceLinks = [...new Set(Object.entries(feature)
-    .filter(([key]) => /^goFreyra.*Evidence$/.test(key))
-    .flatMap(([, value]) => Array.isArray(value) ? value : [value])
-    .filter(value => typeof value === 'string' && /^evidence\/[a-z0-9-]+\.json$/.test(value)))];
+  feature.evidenceLinks = [
+    ...new Set(
+      Object.entries(feature)
+        .filter(([key]) => /^goFreyra.*Evidence$/.test(key))
+        .flatMap(([, value]) => (Array.isArray(value) ? value : [value]))
+        .filter((value) => typeof value === "string" && /^evidence\/[a-z0-9-]+\.json$/.test(value)),
+    ),
+  ];
   // Evidence records remain private; only their references belong in the plan.
 }
-const payload = JSON.stringify({ ...register, states }).replaceAll('<', '\\u003c');
+const payload = JSON.stringify({ ...register, states }).replaceAll("<", "\\u003c");
 const html = `<!doctype html>
 <html lang="da"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GoFreyra · Skyhost udviklingstavle</title>
@@ -78,6 +92,6 @@ function render(){
 }
 for(const control of [search,moduleSelect,stateSelect,base])control.addEventListener('input',render);render();
 </script></html>`;
-const output = new URL('docs/skyhost-development-board.html', root);
+const output = new URL("docs/skyhost-development-board.html", root);
 await writeFile(output, html);
 console.log(`Generated ${register.features.length} cards: ${fileURLToPath(output)}`);

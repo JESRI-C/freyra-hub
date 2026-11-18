@@ -31,12 +31,10 @@ describe("official layers fail visibly", () => {
         ],
       ],
     };
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({ features: [{ id: "synthetic-half", geometry, properties: {} }] }),
-      });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ features: [{ id: "synthetic-half", geometry, properties: {} }] }),
+    });
     vi.stubGlobal("fetch", fetchMock);
     const api = await import("../paragraph3-service");
     const result = await api.fetchParagraph3Overlap(0, 0, 999999, 0.02, project);

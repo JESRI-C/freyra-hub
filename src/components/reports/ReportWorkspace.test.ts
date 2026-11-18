@@ -206,16 +206,26 @@ describe("real report editor draft hydration", () => {
   });
   it("saves a visually chosen map viewport on a new revision and restores automatic overview on request", async () => {
     const content = newReportContent("Projekt A", "Organisation A", "Scope", "Kunde");
-    const revision: ReportRevision = { id: "map-revision", report_id: "map-report", version: 1, status: "draft",
-      created_at: "2026-11-17T12:00:00Z", created_by: "user-a", content };
+    const revision: ReportRevision = {
+      id: "map-revision",
+      report_id: "map-report",
+      version: 1,
+      status: "draft",
+      created_at: "2026-11-17T12:00:00Z",
+      created_by: "user-a",
+      content,
+    };
     state.revisions = [revision];
     state.search = { report: revision.report_id, version: revision.version };
     await render("builder");
-    const button = (name: string) => [...host.querySelectorAll("button")].find(b => b.textContent === name)!;
+    const button = (name: string) =>
+      [...host.querySelectorAll("button")].find((b) => b.textContent === name)!;
     await act(async () => button("Vælg kortudsnit").click());
     const map = host.querySelector<SVGElement>('svg[aria-label^="Kortudsnit"]')!;
     expect(map.querySelectorAll("image").length).toBeGreaterThan(0);
-    await act(async () => { map.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowRight", bubbles: true})); });
+    await act(async () => {
+      map.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
     await act(async () => button("Zoom ind").click());
     await act(async () => button("Brug dette kortudsnit").click());
     vi.mocked(saveReportDocument).mockResolvedValueOnce({ ...revision, version: 2 });
@@ -502,7 +512,9 @@ describe("real report editor draft hydration", () => {
       await openLatest("builder");
       expect(host.textContent).toContain("Beskriv hvad feltfotoet viser.");
       await enterText(
-        host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Konklusion og anbefalinger"]')!,
+        host.querySelector<HTMLTextAreaElement>(
+          'textarea[aria-label="Konklusion og anbefalinger"]',
+        )!,
         "Feltfotoet viser en vegetationsbræmme.",
       );
       const reReview = [...host.querySelectorAll("label")].find((label) =>

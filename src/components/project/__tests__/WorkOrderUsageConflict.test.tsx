@@ -43,19 +43,19 @@ beforeEach(() => {
     error: null,
   });
   mock.from.mockImplementation((table: string) => {
-    const chain: any = {};
+    const response = Promise.resolve({
+      data:
+        table === "work_order_time_versions"
+          ? [{ id: id(5), minutes: 60, version: 1, reason: "" }]
+          : [],
+      error: null,
+    });
+    const chain: Record<string, unknown> = {};
     for (const method of ["select", "eq", "order", "limit", "insert", "match", "ilike"])
       chain[method] = () => chain;
     chain.single = async () => ({ data: null, error: mock.error });
     chain.maybeSingle = async () => ({ data: null, error: null });
-    chain.then = (resolve: Function) =>
-      Promise.resolve({
-        data:
-          table === "work_order_time_versions"
-            ? [{ id: id(5), minutes: 60, version: 1, reason: "" }]
-            : [],
-        error: null,
-      }).then(resolve as any);
+    chain.then = response.then.bind(response);
     return chain;
   });
   host = document.createElement("div");

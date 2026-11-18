@@ -263,7 +263,8 @@ export function SkyhostDevelopmentBoard() {
       <section aria-label="Dokumenterede delprøver" className="min-w-0 space-y-3">
         <h2 className="text-lg font-semibold">Dokumenterede delprøver</h2>
         <p className="text-sm text-muted-foreground">
-          Interne prøveresultater opbevares privat. Hele funktionsområdet og en fysisk telefon afventer fortsat accept på denne udgivelse.
+          Interne prøveresultater opbevares privat. Hele funktionsområdet og en fysisk telefon
+          afventer fortsat accept på denne udgivelse.
         </p>
         {acceptanceEvidence.map((evidence) => (
           <div
