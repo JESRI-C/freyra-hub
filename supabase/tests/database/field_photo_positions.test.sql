@@ -26,13 +26,13 @@ SELECT is((SELECT radius_m FROM public.field_photo_position_versions WHERE versi
 SELECT is((SELECT status FROM public.field_photo_position_versions WHERE version=1),'within_limit','small offset is within limit');
 SELECT is(pg_temp.position(55.0001,10,0,0,'fc305000-0000-4000-8000-000000000001'),(SELECT id FROM public.field_photo_position_versions WHERE version=1),'lost response retry returns the existing version');
 SELECT throws_ok($$SELECT pg_temp.position(55.0002,10,0,0,'fc305000-0000-4000-8000-000000000001')$$,'22023',NULL,'request identity cannot be reused with changed position');
-SELECT throws_ok($$SELECT pg_temp.position(55.0002,10,0,0,gen_random_uuid())$$,'40001',NULL,'stale correction is rejected');
+SELECT throws_ok($$SELECT pg_temp.position(55.0002,10,0,0,gen_random_uuid())$$,'PT409',NULL,'stale correction is rejected');
 SELECT lives_ok($$SELECT pg_temp.position(55.001,10,1,0,'fc305000-0000-4000-8000-000000000002')$$,'an out of range point is retained for clarification');
 SELECT is((SELECT status FROM public.field_photo_position_versions WHERE version=2),'needs_review','excess movement is marked without blocking the record');
 SELECT is((SELECT lat FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'),55::double precision,'correction never changes original coordinate');
 SELECT lives_ok($$SELECT * FROM public.save_field_photo_policy('fc302000-0000-4000-8000-000000000001','fc301000-0000-4000-8000-000000000001',20,'Synthetic tighter rule',0,'fc306000-0000-4000-8000-000000000001')$$,'editor can version the distance rule');
 SELECT is((SELECT radius_m FROM public.field_photo_position_versions WHERE version=1),50,'old correction retains its rule snapshot');
-SELECT throws_ok($$SELECT pg_temp.position(55.0002,10,2,0,gen_random_uuid())$$,'40001',NULL,'stale policy cannot be silently used');
+SELECT throws_ok($$SELECT pg_temp.position(55.0002,10,2,0,gen_random_uuid())$$,'PT409',NULL,'stale policy cannot be silently used');
 SELECT lives_ok($$SELECT pg_temp.position(55.0002,10,2,1,'fc305000-0000-4000-8000-000000000003')$$,'new correction records the current rule');
 SELECT is((SELECT status FROM public.field_photo_position_versions WHERE version=3),'needs_review','distance remains measured from original, not the last correction');
 SELECT lives_ok($$UPDATE public.project_media SET title='Revised photo title' WHERE id='fc304000-0000-4000-8000-000000000001'$$,'ordinary descriptive title editing is preserved');

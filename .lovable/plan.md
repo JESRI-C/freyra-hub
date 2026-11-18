@@ -29,3 +29,12 @@ Den tidligere F00–F29-/S00–S16-plan og Rapportmotor 2.0-planen bevares. Dett
 ## Offentlig kildepakke
 
 Kun kode og Scrum-plan må offentliggøres. Interne projekt- og testnoter, skærmbilleder og servernøgler opbevares privat. Udviklingstavlen viser derfor en privatmarkering frem for interne prøveresultater. Produktionsudgivelse og hosted accept er fortsat åbne.
+
+## Aktuelle udgivelsesgates
+
+Kodepakken er tilgængelig som PR #51 til den eksisterende appgren. Produktionen er endnu ikke erstattet.
+
+- GitHub har replayet alle migrationer fra en tom, isoleret database. 2257 databaseprøver blev kørt; 15 forventede den tidligere konfliktkode 40001. Den aktuelle kontrakt returnerer PT409. Assertions er tilpasset den specifikke konfliktkontrakt og skal genafprøves; adgangskontrol og konflikt-afvisning bevares.
+- Sikkerhedsgaten fandt XML-parseren 5.11.2 og picomatch 4.0.7. XML-parseren opdateres til den verificerede 5.12.1. Picomatch har endnu ingen offentlig rettet npm-version. Udgivelse afventer afhjælpning; sikkerhedskontrollen forbliver blokerende.
+- De øvrige kodekontroller køres uafhængigt, så en sikkerhedsfejl ikke skjuler type-, test- eller byggefejl. En rød gate er fortsat rød.
+- Produktionsdatabase, serverbindinger og hosted medarbejder-/lederforløb mangler fortsat afsluttet verifikation. Ingen testkonti kopieres til produktion.

@@ -50,7 +50,7 @@ RESET ROLE;
 SET LOCAL ROLE service_role;
 SELECT lives_ok($$SELECT pg_temp.prepare()$$,'server acquires a processing lease');
 SELECT throws_ok($$SELECT pg_temp.prepare()$$,'55P03',NULL,'second worker cannot process an active lease');
-SELECT throws_ok($$SELECT pg_temp.complete(repeat('a',64),gen_random_uuid())$$,'40001',NULL,'another lease cannot commit a result');
+SELECT throws_ok($$SELECT pg_temp.complete(repeat('a',64),gen_random_uuid())$$,'PT409',NULL,'another lease cannot commit a result');
 SELECT lives_ok($$SELECT public.release_field_photo_verification('fd304000-0000-4000-8000-000000000001',(SELECT lease_id FROM public.field_photo_processing_jobs),'download_failed')$$,'interrupted download releases only its own lease');
 SELECT lives_ok($$SELECT pg_temp.prepare()$$,'durable failed job can be retried');
 SELECT is((SELECT attempts FROM public.field_photo_processing_jobs),2,'retry count is recorded');

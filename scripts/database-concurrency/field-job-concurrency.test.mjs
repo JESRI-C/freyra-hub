@@ -204,12 +204,12 @@ try {
   await actualLock(staleTemplate, templateWinner);
   await commit(templateWinner);
   await staleTemplate.marker("TEMPLATE_STALE_DONE");
-  assert.equal(staleTemplate.rows().find((row) => row.result)?.result, "40001");
+  assert.equal(staleTemplate.rows().find((row) => row.result)?.result, "PT409");
   await commit(staleTemplate);
   scenarios.push({
     name: "competing_template_revision",
     actualLockVerified: true,
-    staleSqlstate: "40001",
+    staleSqlstate: "PT409",
   });
 
   const [after] = await query(

@@ -195,7 +195,7 @@ SELECT lives_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,
 SELECT lives_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
  VALUES(pg_temp.k(335),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,0)$$,'zero is a valid versioned unit price');
 SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
- VALUES(pg_temp.k(336),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,2995)$$,'40001',NULL,'stale price updates are rejected');
+ VALUES(pg_temp.k(336),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,2995)$$,'PT409',NULL,'stale price updates are rejected');
 SELECT is((SELECT unit_price_ore FROM public.project_material_unit_prices WHERE id=pg_temp.k(334)),1995,
  'the initial unit price remains available after an update');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
@@ -234,7 +234,7 @@ $$;
 SELECT lives_ok($$SELECT pg_temp.material(320,320,37,1,2500)$$,'assigned field staff can record materials');
 SELECT throws_ok($$SELECT pg_temp.material(321,321,36,1,500)$$,'42501',NULL,'field cannot record materials on unassigned work');
 SELECT lives_ok($$SELECT pg_temp.material(322,320,37,2,1250)$$,'material correction is appended');
-SELECT throws_ok($$SELECT pg_temp.material(323,320,37,2,1000)$$,'40001',NULL,'a stale material correction is rejected');
+SELECT throws_ok($$SELECT pg_temp.material(323,320,37,2,1000)$$,'PT409',NULL,'a stale material correction is rejected');
 SELECT throws_ok($$SELECT pg_temp.material(324,320,37,3,500,'Andet materiale')$$,'22023',NULL,'a correction cannot change the material identity');
 SELECT is((SELECT count(*) FROM public.work_order_material_versions WHERE entry_id=pg_temp.k(320)),
  2::bigint,'original material version is preserved');
@@ -251,7 +251,7 @@ SELECT lives_ok($$INSERT INTO public.work_order_time_versions
 SELECT throws_ok($$INSERT INTO public.work_order_time_versions
  (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
  VALUES(pg_temp.k(302),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',2,60,'Stale correction')$$,
- '40001',NULL,'a stale time correction is rejected');
+ 'PT409',NULL,'a stale time correction is rejected');
 SELECT throws_ok($$INSERT INTO public.work_order_time_versions
  (id,action_id,organization_id,project_id,actor_id,work_date,version,minutes)
  VALUES(pg_temp.k(303),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),pg_temp.k(3),'2026-11-03',1,60)$$,
@@ -303,7 +303,7 @@ SELECT is((SELECT actor_id FROM public.list_work_order_material_usage(pg_temp.k(
 SELECT is((SELECT count(*) FROM public.list_work_order_material_usage(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))),
  0::bigint,'material list rejects mismatched scope');
 SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(300))$$,
- '40001',NULL,'an outdated time version cannot be approved');
+ 'PT409',NULL,'an outdated time version cannot be approved');
 SELECT lives_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(301))$$,
  'the manager approves the latest field time version');
 SELECT is((public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')->0->>'minutes')::integer,
@@ -329,7 +329,7 @@ SELECT is((SELECT material_snapshot FROM public.project_approved_time_drafts WHE
 SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
  (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids,material_refs)
  VALUES(pg_temp.k(341),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)],'[[null,null]]')$$,
- '40001',NULL,'a stale material preview cannot be saved');
+ 'PT409',NULL,'a stale material preview cannot be saved');
 SELECT ok((SELECT r.approved FROM public.list_work_order_time_for_review(
  pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'the review list shows the precise approval');
 SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
@@ -367,7 +367,7 @@ SELECT is((SELECT t.pending_date FROM public.list_project_work_order_time_review
 SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
  (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids)
  VALUES(pg_temp.k(308),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)])$$,
- '40001',NULL,'a saved draft cannot be created from superseded approval');
+ 'PT409',NULL,'a saved draft cannot be created from superseded approval');
 SELECT is((SELECT snapshot->0->>'time_id' FROM public.project_approved_time_drafts WHERE id=pg_temp.k(307)),
  pg_temp.k(301)::text,'the previously saved draft retains the precise time version');
 SELECT ok(NOT (SELECT r.approved FROM public.list_work_order_time_for_review(

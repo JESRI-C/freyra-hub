@@ -44,7 +44,7 @@ SELECT is((SELECT count(*)::integer FROM public.project_work_availability_versio
 SELECT throws_ok($$INSERT INTO public.project_work_availability_versions
  (id,organization_id,project_id,person_id,work_date,version,hours)
  VALUES(pg_temp.k(302),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',2,7)$$,
- '40001',NULL,'a concurrent stale availability change is refused');
+ 'PT409',NULL,'a concurrent stale availability change is refused');
 SELECT throws_ok($$INSERT INTO public.project_work_availability_versions
  (id,organization_id,project_id,person_id,work_date,version,hours)
  VALUES(pg_temp.k(302),pg_temp.k(11),pg_temp.k(21),pg_temp.k(6),'2026-11-12',1,7)$$,
@@ -120,10 +120,10 @@ RETURNS void LANGUAGE sql AS $$
 $$;
 SELECT lives_ok($$SELECT pg_temp.visit(350,55,1,3,'visited','')$$,'assigned external can register a planned visit');
 SELECT throws_ok($$SELECT pg_temp.visit(351,52,1,3,'visited','')$$,'22023',NULL,'a site outside the plan cannot be registered');
-SELECT throws_ok($$SELECT pg_temp.visit(351,51,1,2,'visited','')$$,'40001',NULL,'an older plan cannot receive a new visit result');
+SELECT throws_ok($$SELECT pg_temp.visit(351,51,1,2,'visited','')$$,'PT409',NULL,'an older plan cannot receive a new visit result');
 SELECT throws_ok($$SELECT pg_temp.visit(351,55,2,3,'skipped','')$$,'23514',NULL,'a skipped visit requires a reason');
 SELECT lives_ok($$SELECT pg_temp.visit(352,55,2,3,'skipped','No access to site')$$,'a correction appends a new visit version');
-SELECT throws_ok($$SELECT pg_temp.visit(353,55,2,3,'visited','Stale')$$,'40001',NULL,'a stale visit correction is rejected');
+SELECT throws_ok($$SELECT pg_temp.visit(353,55,2,3,'visited','Stale')$$,'PT409',NULL,'a stale visit correction is rejected');
 SELECT is((SELECT count(*) FROM public.work_order_visit_results),2::bigint,'visit history retains the original outcome');
 SELECT is((SELECT outcome FROM public.list_work_order_visit_results(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
  (SELECT id FROM pg_temp.history() WHERE version=3))),'skipped','the plan view reads the current outcome');

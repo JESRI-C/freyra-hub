@@ -44,33 +44,42 @@ jobs:
           npm --version
 
       - name: Install dependencies
+        id: dependencies
         run: npm ci --no-audit --no-fund
 
       - name: Reject known runtime dependency vulnerabilities
         run: npm run audit:runtime
 
       - name: Typecheck
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npm run typecheck
 
       - name: Typecheck isolated field photo worker
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npx tsc --project tsconfig.field-photos.json --noEmit
 
       - name: Bundle isolated field photo worker
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npx esbuild workers/field-photos/index.ts --bundle --format=esm --platform=neutral --main-fields=module,main --conditions=workerd,worker,browser --external:node:* --tsconfig=tsconfig.field-photos.json --outfile=tmp/field-photo-worker/index.js
 
       - name: Decode a synthetic image through the local Images binding
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: node scripts/test-field-photo-images.mjs
 
       - name: Lint
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npm run lint
 
       - name: Verify calculation sources
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npm run verify:faktorer
 
       - name: Test serially
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npm test -- --maxWorkers=1 --no-file-parallelism
 
       - name: Build
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npm run build
 
   database-gates:

@@ -36,7 +36,7 @@ SELECT ok(public.claim_field_photo_background() IS NULL,'leased job is not claim
 SELECT throws_ok($$SELECT pg_temp.preview()$$,'23514',NULL,'preview requires a verified original');
 SELECT lives_ok($$SELECT public.prepare_field_photo_verification('fe302000-0000-4000-8000-000000000001','fe304000-0000-4000-8000-000000000001','fe300000-0000-4000-8000-000000000001')$$,'automatic verification uses the existing original lease');
 SELECT lives_ok($$SELECT * FROM public.complete_field_photo_verification('fe302000-0000-4000-8000-000000000001','fe304000-0000-4000-8000-000000000001','fe300000-0000-4000-8000-000000000001',(SELECT lease_id FROM public.field_photo_processing_jobs),repeat('a',64),8)$$,'automatic verification commits a byte receipt');
-SELECT throws_ok($$SELECT public.advance_field_photo_background('fe304000-0000-4000-8000-000000000001',gen_random_uuid())$$,'40001',NULL,'stale worker cannot advance another lease');
+SELECT throws_ok($$SELECT public.advance_field_photo_background('fe304000-0000-4000-8000-000000000001',gen_random_uuid())$$,'PT409',NULL,'stale worker cannot advance another lease');
 SELECT lives_ok($$SELECT public.advance_field_photo_background('fe304000-0000-4000-8000-000000000001',(SELECT lease_id FROM public.field_photo_background_jobs))$$,'verified source advances to preview without rewriting original');
 SELECT is((SELECT attempts FROM public.field_photo_background_jobs),0,'each processing phase gets its own retry budget');
 SELECT is((public.claim_field_photo_background()->'job'->>'stage'),'preview','next claim performs preview processing');
