@@ -185,6 +185,31 @@ jobs:
           if-no-files-found: ignore
           retention-days: 35
 
+      - name: Install pinned npm for browser acceptance
+        run: npm install --global npm@11.6.0
+
+      - name: Install browser acceptance dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium for disposable browser acceptance
+        run: npx playwright install --with-deps chromium
+
+      - name: Test real weekly planning in the disposable local stack
+        env:
+          CI: "true"
+        run: node scripts/test-local-planning-browser.mjs --disposable-local
+
+      - name: Preserve synthetic planning browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: planning-browser-evidence
+          path: |
+            tmp/planning-e2e/result.json
+            tmp/planning-e2e/screens/*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Stop disposable local stack and retain cleanup evidence
         if: always()
         run: node scripts/database-concurrency/stop-disposable-stack.mjs --disposable-local
