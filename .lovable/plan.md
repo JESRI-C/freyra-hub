@@ -1,6 +1,6 @@
 # GoFreyra · Scrum og samlet udgivelse
 
-Opdateret 18. november 2026. Status: klargøring; den eksisterende side er endnu ikke erstattet.
+Opdateret 23. november 2026. Status: klargøring; den eksisterende side er endnu ikke erstattet.
 
 ## Sprintmål
 
@@ -14,7 +14,7 @@ Sager indeholder flere jobs. Jobkortet samler steder, billeder, timer og materia
 | --- | --- | --- | --- |
 | P0 | Saml eksisterende app og byggede moduler | Samlet udgivelsesforslag oprettet | Bevar eksisterende design, funktioner og kundedata. |
 | P0 | Klargør den samlede kodepakke | I gang | Obligatoriske kode-, sikkerheds- og byggekontroller skal være godkendt. |
-| P0 | Afstem produktionsdatabase og serveropsætning | Åben | Gennemgå opgradering, adgang, billedlager og mulighed for gendannelse før ændring. |
+| P0 | Afstem produktionsdatabase og serveropsætning | Database opgraderet; serverklargøring i gang | Gennemgå opgradering, adgang, billedlager og mulighed for gendannelse før ændring. |
 | P0 | Erstat den eksisterende GoFreyra-side | Afventer teknisk afklaring | Verificér den nye version på den eksisterende adresse, inklusive login og genindlæsning. |
 | P0 | Medarbejderens mobile jobforløb | Afventer accept på udgivet version | Åbn sag og job, find stedet på kortet, tag billeder og færdigmeld. |
 | P0 | Lederens godkendelse og dokumentation | Afventer accept på udgivet version | Se status og originaler, returnér eller godkend arbejdet og åbn rapporten. |

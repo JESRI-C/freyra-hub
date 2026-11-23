@@ -7,13 +7,16 @@ export default {
       console.log(JSON.stringify({ event: "field_photo_tick", enabled: false }));
       return;
     }
-    // This worker has a staging-only deployment contract. A copied config
-    // cannot accidentally direct its privileged sweeper at production.
-    if (
-      env.SUPABASE_URL !== "https://xdvqdzdpyceojbdknofi.supabase.co" &&
-      !/^http:\/\/127\.0\.0\.1:\d+$/.test(env.SUPABASE_URL)
-    )
-      throw new Error("Field photo worker environment mismatch");
+    // A deployment must explicitly select its database. Copying staging
+    // configuration cannot direct its privileged sweeper at production.
+    const matchesEnvironment =
+      (env.FIELD_PHOTO_ENVIRONMENT === "production" &&
+        env.SUPABASE_URL === "https://ikrmcetjutqcjtwfhzfv.supabase.co") ||
+      (env.FIELD_PHOTO_ENVIRONMENT === "staging" &&
+        env.SUPABASE_URL === "https://xdvqdzdpyceojbdknofi.supabase.co") ||
+      (env.FIELD_PHOTO_ENVIRONMENT === "local" &&
+        /^http:\/\/127\.0\.0\.1:\d+$/.test(env.SUPABASE_URL));
+    if (!matchesEnvironment) throw new Error("Field photo worker environment mismatch");
     const client = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       global: {
