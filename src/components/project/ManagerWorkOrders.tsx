@@ -48,6 +48,10 @@ import {
   type ManagerMapSelection,
   type ManagerMapViewport,
 } from "./ManagerWorkOrderMap";
+import { ManagerWorkOrderPlanning } from "./ManagerWorkOrderPlanning";
+import { currentPlanningDay, planningWeek } from "@/lib/manager-work-order-planning";
+
+export type ManagerWorkOrderView = "board" | "list" | "map" | "planning";
 
 const button =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50";
@@ -94,7 +98,8 @@ function overviewKey(actorId: string, organizationId: string) {
 function readOverview(actorId: string, organizationId: string) {
   const fallback = {
     filters: emptyManagerWorkOrderFilters(),
-    view: "board" as "board" | "list" | "map",
+    view: "board" as ManagerWorkOrderView,
+    planningDay: currentPlanningDay(),
     selection: null as ManagerMapSelection | null,
   };
   try {
@@ -102,7 +107,8 @@ function readOverview(actorId: string, organizationId: string) {
     if (!raw) return fallback;
     const saved = JSON.parse(raw);
     const filters = ManagerWorkOrderFiltersSchema.safeParse(saved?.filters);
-    if (!filters.success || !["board", "list", "map"].includes(saved.view)) return fallback;
+    if (!filters.success || !["board", "list", "map", "planning"].includes(saved.view))
+      return fallback;
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const selection =
       typeof saved.selection?.actionId === "string" &&
@@ -111,7 +117,15 @@ function readOverview(actorId: string, organizationId: string) {
       uuid.test(saved.selection.projectId)
         ? { actionId: saved.selection.actionId, projectId: saved.selection.projectId }
         : null;
-    return { filters: filters.data, view: saved.view as "board" | "list" | "map", selection };
+    return {
+      filters: filters.data,
+      view: saved.view as ManagerWorkOrderView,
+      planningDay:
+        typeof saved.planningDay === "string" && planningWeek(saved.planningDay)
+          ? saved.planningDay
+          : fallback.planningDay,
+      selection,
+    };
   } catch {
     return fallback;
   }
@@ -316,7 +330,13 @@ function OrderCard({
   );
 }
 
-export function ManagerWorkOrders() {
+export function ManagerWorkOrders({
+  view,
+  onViewChange,
+}: {
+  view?: ManagerWorkOrderView;
+  onViewChange?: (view: ManagerWorkOrderView) => void;
+} = {}) {
   const { user, orgId, loading, authError } = useAuth();
   if (loading) return <p role="status">Kontrollerer din adgang…</p>;
   if (authError) return <p role="alert">Din adgang kunne ikke kontrolleres. Log ind igen.</p>;
@@ -332,13 +352,37 @@ export function ManagerWorkOrders() {
         Vælg organisation
       </Link>
     );
-  return <ManagerOrders key={`${user.id}:${orgId}`} actorId={user.id} organizationId={orgId} />;
+  return (
+    <ManagerOrders
+      key={`${user.id}:${orgId}`}
+      actorId={user.id}
+      organizationId={orgId}
+      view={view}
+      onViewChange={onViewChange}
+    />
+  );
 }
 
-function ManagerOrders({ actorId, organizationId }: { actorId: string; organizationId: string }) {
+function ManagerOrders({
+  actorId,
+  organizationId,
+  view: requestedView,
+  onViewChange,
+}: {
+  actorId: string;
+  organizationId: string;
+  view?: ManagerWorkOrderView;
+  onViewChange?: (view: ManagerWorkOrderView) => void;
+}) {
   const load = useServerFn(listManagerWorkOrders);
   const [saved] = useState(() => readOverview(actorId, organizationId));
-  const [view, setView] = useState(saved.view);
+  const [localView, setLocalView] = useState(saved.view);
+  const view = requestedView ?? localView;
+  const [planningDay, setPlanningDay] = useState(saved.planningDay);
+  function setView(value: ManagerWorkOrderView) {
+    setLocalView(value);
+    onViewChange?.(value);
+  }
   const [selection, setSelection] = useState(saved.selection);
   const [mapViewport, setMapViewport] = useState<ManagerMapViewport | null>(null);
   const [selectionRevision, setSelectionRevision] = useState(0);
@@ -482,12 +526,12 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
     try {
       sessionStorage.setItem(
         overviewKey(actorId, organizationId),
-        JSON.stringify({ filters, view, selection }),
+        JSON.stringify({ filters, view, selection, planningDay }),
       );
     } catch {
       // The overview remains usable when browser storage is unavailable.
     }
-  }, [actorId, organizationId, filters, view, selection]);
+  }, [actorId, organizationId, filters, view, selection, planningDay]);
   function showThisWeek() {
     const today = new Date();
     const monday = new Date(today);
@@ -539,7 +583,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
           )}
           {hasMore && (
             <p className="mt-1 text-xs text-muted-foreground">
-              Der er flere resultater. Hent flere for at udvide kort, liste og Kanban.
+              Der er flere resultater. Hent flere for at udvide ugeplan, kort, liste og Kanban.
             </p>
           )}
         </div>
@@ -751,10 +795,11 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
         <div
           role="group"
           aria-label="Visning af arbejdsordrer"
-          className="flex rounded-xl border bg-card p-1"
+          className="flex flex-wrap gap-1 rounded-xl border bg-card p-1"
         >
           {(
             [
+              ["planning", "Ugeplan", CalendarDays],
               ["board", "Kanban", LayoutGrid],
               ["list", "Liste", List],
               ["map", "Kort", Map],
@@ -891,8 +936,17 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
           </p>
         </div>
       )}
-      {items.length > 0 &&
-        (view === "map" ? (
+      {(items.length > 0 || (view === "planning" && !tasks.isPending && !tasks.isError)) &&
+        (view === "planning" ? (
+          <ManagerWorkOrderPlanning
+            items={items}
+            day={planningDay}
+            onDayChange={setPlanningDay}
+            hasMore={!!hasMore}
+            renderOrder={(task) => <OrderCard task={task} compact />}
+            onRefresh={() => void tasks.refetch()}
+          />
+        ) : view === "map" ? (
           <ManagerWorkOrderMap
             items={items}
             selection={selection}

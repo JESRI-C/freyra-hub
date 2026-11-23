@@ -191,13 +191,26 @@ function DashboardPage() {
           Arbejdsflow
         </h2>
         <Link
+          to="/app/work-orders"
+          search={{ view: "planning" }}
+          className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-primary px-4 py-3 text-primary-foreground hover:bg-primary/90"
+        >
+          <span>
+            <span className="block font-semibold">Planlæg arbejde</span>
+            <span className="block text-sm opacity-90">
+              Åbn ugeplanen på tværs af sager, og sæt datoer og ansvar på arbejdet.
+            </span>
+          </span>
+          <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" />
+        </Link>
+        <Link
           to={projectManagementEntry.to}
           className="flex items-center justify-between gap-3 rounded-xl bg-leaf/15 px-4 py-3 hover:bg-leaf/25"
         >
           <span>
             <span className="block font-semibold">{projectManagementEntry.label}</span>
             <span className="block text-sm text-muted-foreground">
-              Se alle funktioner og værktøjerne fra Skyhost-kortlægningen.
+              Åbn sager, jobkort, dokumentation og de fælles værktøjer.
             </span>
           </span>
           <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" />
