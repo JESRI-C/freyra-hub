@@ -131,6 +131,13 @@ jobs:
             --database postgresql://postgres:postgres@127.0.0.1:54322/postgres \
             | tee tmp/database-concurrency/work-order-observation-drafts.json
 
+      - name: Match PostgreSQL client tools to the disposable server
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
       - name: Restore a real database dump to a disposable database
         env:
           CI: "true"
