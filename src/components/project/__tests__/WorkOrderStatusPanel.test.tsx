@@ -296,6 +296,62 @@ describe("mobile operation status and canonical logbook", () => {
     );
     expect(m.blocker.mock.calls.at(-1)?.[0].enableBeforeUnload).toBe(true);
   });
+  it("inserts the database snapshot time and retains its exact instant across a lost reply", async () => {
+    await render();
+    await click("Registrer start");
+    const serverTime = "2026-10-25T02:30:00.123456+01:00";
+    let resolveClock!: (value: typeof page) => void;
+    m.log.mockImplementationOnce(() => new Promise((resolve) => (resolveClock = resolve)));
+    await click("Indsæt tidspunkt nu");
+    expect(m.log.mock.calls.at(-1)?.[0].data).toEqual({
+      ...scope,
+      expectedActorId: actor,
+      cursor: null,
+      pageSize: 1,
+    });
+    expect(host.querySelector('input[type="datetime-local"]')?.matches(":disabled")).toBe(true);
+    expect(m.change).not.toHaveBeenCalled();
+    await act(async () => resolveClock({ ...page, as_of: serverTime }));
+    await flush();
+    expect(host.querySelector<HTMLInputElement>('input[type="datetime-local"]')?.value).not.toBe(
+      "",
+    );
+    await save();
+    expect(m.change.mock.calls[0][0].data.values).toMatchObject({
+      startedAt: serverTime,
+      startedSource: "Egenregistrering med serverens ur",
+    });
+    m.log.mockResolvedValue({ ...page, as_of: "2026-10-25T03:00:00Z" });
+    await save();
+    expect(m.change.mock.calls[1][0].data).toEqual(m.change.mock.calls[0][0].data);
+  });
+  it("preserves the manual time and source when a fresh server time cannot be read", async () => {
+    await render();
+    await click("Registrer start");
+    await fill("Faktisk start", "2026-10-08T08:00:00");
+    await fill("Kilde til starttidspunkt", "Synthetic actual paper log");
+    m.log.mockRejectedValueOnce(new Error("Synthetic access lost"));
+    await click("Indsæt tidspunkt nu");
+    expect(host.textContent).toContain("Starttidspunktet kunne ikke hentes");
+    expect(m.change).not.toHaveBeenCalled();
+    await save();
+    expect(m.change.mock.calls[0][0].data.values).toMatchObject({
+      startedAt: new Date("2026-10-08T08:00:00").toISOString(),
+      startedSource: "Synthetic actual paper log",
+    });
+  });
+  it("uses a manual correction instead of the previously inserted server instant", async () => {
+    await render();
+    await click("Registrer start");
+    await fill("Kilde til starttidspunkt", "Synthetic retained source");
+    await click("Indsæt tidspunkt nu");
+    await fill("Faktisk start", "2026-10-08T08:00:00");
+    await save();
+    expect(m.change.mock.calls[0][0].data.values).toMatchObject({
+      startedAt: new Date("2026-10-08T08:00:00").toISOString(),
+      startedSource: "Synthetic retained source",
+    });
+  });
   it("preserves a manual draft and reuses both note ID and request ID after a lost reply", async () => {
     await render();
     await click("Tilføj note");

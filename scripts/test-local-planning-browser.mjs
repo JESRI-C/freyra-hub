@@ -56,7 +56,7 @@ const manager = await user("Syntetisk planlægger");
 const field = await user("Syntetisk medarbejder");
 const organizationId = randomUUID();
 const projectIds = [randomUUID(), randomUUID(), randomUUID()];
-const actionIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+const actionIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
 const organization = "Syntetisk planprøve";
 await checked(
   await admin
@@ -106,6 +106,7 @@ await checked(
       due_date: "2026-11-24",
     },
     { id: actionIds[3], project_id: projectIds[2], title: "Skjult syntetisk opgave" },
+    { id: actionIds[4], project_id: projectIds[0], title: "Syntetisk jobstart" },
   ]),
   "create jobs",
 );
@@ -116,16 +117,17 @@ await checked(
   await actor.auth.signInWithPassword({ email: manager.email, password: manager.password }),
   "authenticate planner",
 );
-for (let index = 0; index < 2; index++) {
-  await checked(
+for (const index of [0, 1, 4]) {
+  const projectId = projectIds[index === 4 ? 0 : index];
+  const plans = await checked(
     await actor.rpc("save_work_order_plan", {
       p_action_id: actionIds[index],
       p_organization_id: organizationId,
-      p_project_id: projectIds[index],
+      p_project_id: projectId,
       p_expected_version: 0,
       p_plan: {
         schema: "freyra.work-order-plan/v1",
-        title: `Syntetisk opgave ${index === 0 ? "A" : "B"}`,
+        title: index === 4 ? "Syntetisk jobstart" : `Syntetisk opgave ${index === 0 ? "A" : "B"}`,
         description: "",
         instructions: "Syntetisk arbejdsinstruktion",
         profile: "general",
@@ -133,8 +135,8 @@ for (let index = 0; index < 2; index++) {
         siteId: null,
         watercourseVersionId: null,
         locationNote: "Fiktivt sted",
-        plannedStart: index === 0 ? "2026-11-23" : "2026-11-24",
-        plannedEnd: "2026-11-24",
+        plannedStart: index === 4 ? null : index === 0 ? "2026-11-23" : "2026-11-24",
+        plannedEnd: index === 4 ? null : "2026-11-24",
         priority: null,
         plannedMethod: null,
         watercourse: null,
@@ -144,11 +146,48 @@ for (let index = 0; index < 2; index++) {
     }),
     "save initial plan as the actual planner",
   );
+  if (index === 4) {
+    const planId = plans[0].id;
+    const assignments = await checked(
+      await actor.rpc("configure_work_order_assignment", {
+        p_action_id: actionIds[index],
+        p_organization_id: organizationId,
+        p_project_id: projectId,
+        p_expected_version: 0,
+        p_plan_version_id: planId,
+        p_mode: "person",
+        p_candidate_user_ids: [field.id],
+        p_source_group_version_id: null,
+        p_reason: "Syntetisk navngiven tildeling",
+        p_request_id: randomUUID(),
+      }),
+      "assign the disposable start task",
+    );
+    for (const [version, targetStatus] of ["draft", "planned", "assigned"].entries()) {
+      await checked(
+        await actor.rpc("mutate_work_order_lifecycle", {
+          p_action_id: actionIds[index],
+          p_organization_id: organizationId,
+          p_project_id: projectId,
+          p_expected_version: version,
+          p_values: {
+            operation: "transition",
+            targetStatus,
+            planVersionId: planId,
+            assignmentVersionId: assignments[0].id,
+            executionRevisionId: null,
+          },
+          p_request_id: randomUUID(),
+        }),
+        "prepare the assigned lifecycle through the real planner API",
+      );
+    }
+  }
 }
 await actor.auth.signOut();
 await writeFile(
   resolve(output, "fixture.private.json"),
-  JSON.stringify({ organization, manager, field }),
+  JSON.stringify({ organization, manager, field, startActionId: actionIds[4] }),
   { mode: 0o600 },
 );
 const log = await open(resolve(output, "server.private.log"), "a");
