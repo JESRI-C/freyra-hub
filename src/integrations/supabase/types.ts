@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -1343,11 +1337,7 @@ export type Database = {
           },
           {
             foreignKeyName: "image_answers_exact_inspection";
-            columns: [
-              "project_id",
-              "inspection_id",
-              "inspection_result_sha256",
-            ];
+            columns: ["project_id", "inspection_id", "inspection_result_sha256"];
             isOneToOne: false;
             referencedRelation: "drone_image_inspections";
             referencedColumns: ["project_id", "id", "result_sha256"];
@@ -1894,20 +1884,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "field_job_required_plan_scope";
-            columns: [
-              "required_plan_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["required_plan_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_plan_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "field_job_versions_action_id_fkey";
@@ -2437,20 +2417,11 @@ export type Database = {
             ];
             isOneToOne: false;
             referencedRelation: "work_order_plan_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "field_photo_capture_work_order";
-            columns: [
-              "captured_action_id",
-              "captured_organization_id",
-              "project_id",
-            ];
+            columns: ["captured_action_id", "captured_organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_orders";
             referencedColumns: ["action_id", "organization_id", "project_id"];
@@ -3645,13 +3616,7 @@ export type Database = {
           },
           {
             foreignKeyName: "municipal_report_plan";
-            columns: [
-              "project_id",
-              "plan_id",
-              "plan_sha256",
-              "baseline_id",
-              "baseline_sha256",
-            ];
+            columns: ["project_id", "plan_id", "plan_sha256", "baseline_id", "baseline_sha256"];
             isOneToOne: false;
             referencedRelation: "verification_plan_versions";
             referencedColumns: [
@@ -5525,13 +5490,7 @@ export type Database = {
           },
           {
             foreignKeyName: "survey_round_plan_baseline_binding";
-            columns: [
-              "project_id",
-              "plan_id",
-              "plan_sha256",
-              "baseline_id",
-              "baseline_sha256",
-            ];
+            columns: ["project_id", "plan_id", "plan_sha256", "baseline_id", "baseline_sha256"];
             isOneToOne: false;
             referencedRelation: "verification_plan_versions";
             referencedColumns: [
@@ -6093,20 +6052,10 @@ export type Database = {
           },
           {
             foreignKeyName: "work_order_assignment_version_plan_version_id_action_id_or_fkey";
-            columns: [
-              "plan_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["plan_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_plan_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_assignment_version_source_group_version_id_sour_fkey";
@@ -6118,12 +6067,7 @@ export type Database = {
             ];
             isOneToOne: false;
             referencedRelation: "work_order_group_versions";
-            referencedColumns: [
-              "id",
-              "group_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "group_id", "organization_id", "project_id"];
           },
         ];
       };
@@ -6395,37 +6339,17 @@ export type Database = {
           },
           {
             foreignKeyName: "work_order_evidence_versions_execution_revision_id_action__fkey";
-            columns: [
-              "execution_revision_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["execution_revision_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_execution_bindings";
-            referencedColumns: [
-              "workspace_entry_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["workspace_entry_id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_evidence_versions_observation_version_id_action_fkey";
-            columns: [
-              "observation_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["observation_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "field_job_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_evidence_versions_upload_id_project_id_fkey";
@@ -6503,37 +6427,17 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "work_order_execution_assignment_scope";
-            columns: [
-              "assignment_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["assignment_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_assignment_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_execution_bindings_plan_version_id_action_id_or_fkey";
-            columns: [
-              "plan_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["plan_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_plan_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_execution_bindings_workspace_entry_id_action_id_fkey";
@@ -6546,13 +6450,7 @@ export type Database = {
             ];
             isOneToOne: false;
             referencedRelation: "project_workspace_entries";
-            referencedColumns: [
-              "id",
-              "entry_id",
-              "organization_id",
-              "project_id",
-              "version",
-            ];
+            referencedColumns: ["id", "entry_id", "organization_id", "project_id", "version"];
           },
         ];
       };
@@ -6697,20 +6595,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "work_order_lifecycle_submission_scope";
-            columns: [
-              "submission_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["submission_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_submission_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_lifecycle_versions_action_id_organization_id_pr_fkey";
@@ -6721,54 +6609,24 @@ export type Database = {
           },
           {
             foreignKeyName: "work_order_lifecycle_versions_assignment_version_id_action_fkey";
-            columns: [
-              "assignment_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["assignment_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_assignment_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_lifecycle_versions_execution_revision_id_action_fkey";
-            columns: [
-              "execution_revision_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["execution_revision_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_execution_bindings";
-            referencedColumns: [
-              "workspace_entry_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["workspace_entry_id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_lifecycle_versions_plan_version_id_action_id_or_fkey";
-            columns: [
-              "plan_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["plan_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_plan_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
         ];
       };
@@ -6903,71 +6761,31 @@ export type Database = {
           },
           {
             foreignKeyName: "work_order_note_versions_assignment_version_id_action_id_o_fkey";
-            columns: [
-              "assignment_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["assignment_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_assignment_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_note_versions_execution_revision_id_action_id_o_fkey";
-            columns: [
-              "execution_revision_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["execution_revision_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_execution_bindings";
-            referencedColumns: [
-              "workspace_entry_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["workspace_entry_id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_note_versions_lifecycle_version_id_action_id_or_fkey";
-            columns: [
-              "lifecycle_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["lifecycle_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_lifecycle_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_note_versions_plan_version_id_action_id_organiz_fkey";
-            columns: [
-              "plan_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["plan_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_plan_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
         ];
       };
@@ -7223,71 +7041,31 @@ export type Database = {
           },
           {
             foreignKeyName: "work_order_submission_version_assignment_version_id_action_fkey";
-            columns: [
-              "assignment_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["assignment_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_assignment_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_submission_version_execution_revision_id_action_fkey";
-            columns: [
-              "execution_revision_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["execution_revision_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_execution_bindings";
-            referencedColumns: [
-              "workspace_entry_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["workspace_entry_id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_submission_version_lifecycle_version_id_action__fkey";
-            columns: [
-              "lifecycle_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["lifecycle_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_lifecycle_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
           {
             foreignKeyName: "work_order_submission_version_plan_version_id_action_id_or_fkey";
-            columns: [
-              "plan_version_id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            columns: ["plan_version_id", "action_id", "organization_id", "project_id"];
             isOneToOne: false;
             referencedRelation: "work_order_plan_versions";
-            referencedColumns: [
-              "id",
-              "action_id",
-              "organization_id",
-              "project_id",
-            ];
+            referencedColumns: ["id", "action_id", "organization_id", "project_id"];
           },
         ];
       };
@@ -7551,11 +7329,7 @@ export type Database = {
           },
           {
             foreignKeyName: "image_answers_exact_inspection";
-            columns: [
-              "project_id",
-              "inspection_id",
-              "inspection_result_sha256",
-            ];
+            columns: ["project_id", "inspection_id", "inspection_result_sha256"];
             isOneToOne: false;
             referencedRelation: "drone_image_inspections";
             referencedColumns: ["project_id", "id", "result_sha256"];
@@ -10633,13 +10407,7 @@ export type Database = {
       workflow_report_contract_version: { Args: never; Returns: string };
     };
     Enums: {
-      project_role:
-        | "admin"
-        | "project_manager"
-        | "editor"
-        | "field"
-        | "viewer"
-        | "external";
+      project_role: "admin" | "project_manager" | "editor" | "field" | "viewer" | "external";
     };
     CompositeTypes: {
       geometry_dump: {
@@ -10657,10 +10425,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<
-  keyof Database,
-  "public"
->];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -10681,10 +10446,8 @@ export type Tables<
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R;
       }
       ? R
@@ -10778,14 +10541,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      project_role: [
-        "admin",
-        "project_manager",
-        "editor",
-        "field",
-        "viewer",
-        "external",
-      ],
+      project_role: ["admin", "project_manager", "editor", "field", "viewer", "external"],
     },
   },
 } as const;
