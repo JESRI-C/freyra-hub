@@ -129,8 +129,8 @@ export function ManagerWorkOrderPlanning({
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        Opgaverne placeres efter planlagt start og slut. En frist er ikke en planlagt arbejdsdag.
-        Oversigten viser datoer, ikke ledig kapacitet eller aftalte klokkeslæt.
+        Opgaverne vises efter deres planlagte datoer. Eksporten følger filtrene ovenfor og medtager
+        også opgaver i andre uger.
       </p>
       {hasMore && (
         <p
