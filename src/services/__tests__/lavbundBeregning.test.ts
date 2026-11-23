@@ -125,8 +125,12 @@ describe("beregnOpnaaelse — lovet vs. målt", () => {
 });
 
 describe("baseline før/efter etablering (statens N/P-protokol-mønster)", () => {
-  const r = (t: string, d: number) =>
-    ({ maalepunktId: "MP", tidspunkt: t, dybdeM: d, kilde: "manuel_pejling" as const });
+  const r = (t: string, d: number) => ({
+    maalepunktId: "MP",
+    tidspunkt: t,
+    dybdeM: d,
+    kilde: "manuel_pejling" as const,
+  });
 
   it("splitVedEtablering deler korrekt og er bagudkompatibel uden dato", async () => {
     const { splitVedEtablering } = await import("@/services/lavbundBeregning");

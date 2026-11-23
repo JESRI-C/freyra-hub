@@ -1,13 +1,17 @@
 // Reports Service
-
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import { logAuditEvent } from "@/services/audit-service";
 import { updateReport } from "@/lib/supabase/queries";
-
 interface UntypedQueryBuilder {
   insert(values: Record<string, unknown>): UntypedQueryBuilder;
   select(columns?: string): UntypedQueryBuilder;
-  single(): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
+  single(): Promise<{
+    data: Record<string, unknown> | null;
+    error: {
+      message: string;
+    } | null;
+  }>;
 }
 interface UntypedDb {
   from(table: string): UntypedQueryBuilder;
@@ -18,7 +22,6 @@ function getDb(): UntypedDb | null {
 import { fetchReportsByProject, fetchAllReports } from "@/lib/supabase/queries";
 import { SEED_REPORTS } from "@/data/platform-seed";
 import type { Report } from "@/lib/supabase/types";
-
 export interface CreateReportInput {
   type: string;
   organization: string;
@@ -30,10 +33,12 @@ export interface CreateReportInput {
   detailLevel: string;
   formats: string[];
 }
-
-export async function createReport(input: CreateReportInput): Promise<{ id: string }> {
+export async function createReport(input: CreateReportInput): Promise<{
+  id: string;
+}> {
+  requireCustomerDatabase();
   const db = getDb();
-  if (isSupabaseConfigured && db) {
+  if (db) {
     const { data, error } = await db
       .from("reports")
       .insert({
@@ -49,8 +54,11 @@ export async function createReport(input: CreateReportInput): Promise<{ id: stri
       })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
-    const id = (data?.["id"] as string) ?? `report-${Date.now()}`;
+    if (error) throw error;
+    const id = data?.["id"];
+    if (typeof id !== "string" || !id.trim()) {
+      throw new Error("Databasen bekræftede ikke den oprettede rapport.");
+    }
     void logAuditEvent({
       event_type: "report_created",
       title: `Rapport oprettet: ${input.type} (${input.period})`,
@@ -60,9 +68,8 @@ export async function createReport(input: CreateReportInput): Promise<{ id: stri
     });
     return { id };
   }
-  return { id: `report-${Date.now()}` };
+  throw new Error("Database ikke konfigureret");
 }
-
 export async function approveReport(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await updateReport(id, { status: "approved" });
@@ -75,7 +82,6 @@ export async function approveReport(id: string, projectId?: string): Promise<voi
     source: "manual",
   });
 }
-
 export async function submitReportForReview(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await updateReport(id, { status: "review" });
@@ -88,7 +94,6 @@ export async function submitReportForReview(id: string, projectId?: string): Pro
     source: "manual",
   });
 }
-
 export async function exportReport(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await updateReport(id, { status: "exported" });
@@ -101,34 +106,16 @@ export async function exportReport(id: string, projectId?: string): Promise<void
     source: "manual",
   });
 }
-
-function isMissingTable(err: unknown): boolean {
-  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
-}
-
 export async function getReportsByProject(projectId: string): Promise<Report[]> {
   const fallback = () => SEED_REPORTS.filter((r) => r.project_id === projectId);
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchReportsByProject(projectId);
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  requireCustomerDatabase();
+  return fetchReportsByProject(projectId);
 }
-
 export async function getAllReports(): Promise<Report[]> {
-  const fallback = () =>
-    [...SEED_REPORTS].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchAllReports();
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  const fallback = () => [...SEED_REPORTS].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  requireCustomerDatabase();
+  return fetchAllReports();
 }
-
 // Returns a badge tone for a report status value.
 export function reportStatusTone(
   status: string | null,

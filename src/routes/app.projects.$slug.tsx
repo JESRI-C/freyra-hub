@@ -1,12 +1,53 @@
+import {
+  isWorkOrderListView,
+  isWorkOrderView,
+  type WorkOrderListView,
+} from "@/lib/work-order-navigation";
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
+import { getFieldJobAccess } from "@/lib/field-job-access.functions";
+import {
+  ProjectWorkOrdersWorkspace,
+  type WorkOrderView,
+} from "@/components/project/ProjectWorkOrdersWorkspace";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity, MapPin } from "lucide-react";
+import { isDemoDataEnabled } from "@/lib/data-mode";
+import {
+  ShieldCheck,
+  RefreshCw,
+  Eye,
+  FileText,
+  AlertTriangle,
+  Activity,
+  MapPin,
+  Images,
+  CheckCircle2,
+} from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
-import { ProjectHeader } from "@/components/project/ProjectHeader";
+import { ProjectHeader, EditProjectDialog } from "@/components/project/ProjectHeader";
+import { ProjectJourneyOverview } from "@/components/project/ProjectJourneyOverview";
+import { projectJourneySearch } from "@/lib/project-journey";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
+import { ProjectWorkspaceShell } from "@/components/project/ProjectWorkspaceShell";
+import {
+  PROJECT_TABS,
+  projectViewSearch,
+  resolveProjectView,
+  type ProjectTab,
+} from "@/lib/project-navigation";
+import { WorkflowReportPanel } from "@/components/reports/WorkflowReportPanel";
+import { WorkflowFollowupPanel } from "@/components/project/WorkflowFollowupPanel";
+import {
+  MunicipalCaseWorkspace,
+  MUNICIPAL_STEPS,
+  type MunicipalStep,
+} from "@/components/project/MunicipalCaseWorkspace";
+import { DroneSurveyWorkspace } from "@/components/project/DroneSurveyWorkspace";
+import { PublicBaselinePanel } from "@/components/project/PublicBaselinePanel";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
 import { IndicatorDetail } from "@/components/indicators/IndicatorDetail";
 import { SitesPanel } from "@/components/project/SitesPanel";
@@ -18,8 +59,10 @@ import { DocumentList } from "@/components/documents/DocumentList";
 import { GenerateReportDialog } from "@/components/documents/GenerateReportDialog";
 import { DocumentationScore } from "@/components/documents/DocumentationScore";
 import { computeDocumentationScore, listDocuments } from "@/services/documents-service";
-
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
+import { ProjectReportRecords } from "@/components/reports/ProjectReportRecords";
+import { MunicipalReportPanel } from "@/components/reports/MunicipalReportPanel";
+import { DroneImageInspectionPanel } from "@/components/project/DroneImageInspectionPanel";
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import { BiodiversityCard } from "@/components/project/BiodiversityCard";
@@ -29,7 +72,7 @@ import {
   getDataSourcesByProject,
 } from "@/services/projects-service";
 import { getIndicatorsByProject } from "@/services/indicators-service";
-import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
+import { getReportsByProject } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "@/components/project/ProjectMembersPanel";
@@ -48,11 +91,15 @@ import { getEvidenceFilesByProject } from "@/services/evidence-service";
 import { getObservationsByProject, observationTypeLabel } from "@/services/observations-service";
 import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/report-engine";
 import { listProjectMedia } from "@/services/project-media-service";
+import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
 import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
+import { ProjectMediaAvailabilityNotice } from "@/components/project-workspace/ProjectMediaAvailabilityNotice";
+import { ProjectPhotoAtlas } from "@/components/project-workspace/ProjectPhotoAtlas";
+import { ProjectSourcePhoto } from "@/components/project-workspace/ProjectSourcePhoto";
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
-import { getProjectSensors } from "@/services/iot-simulation-service";
+import { useProjectMapDevices } from "@/hooks/useProjectMapDevices";
 import { ProjectGeometryMap } from "@/components/data-foundation/ProjectGeometryMap";
 import {
   dataSourceStatusTone,
@@ -60,12 +107,10 @@ import {
   formatLastSync,
 } from "@/services/data-sources-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
-import { resolveProjectGeometry } from "@/services/geo-service";
+import { resolveProjectGeometry, validateProjectPolygon } from "@/services/geo-service";
 import { ProjectEnvironmentalDashboard } from "@/components/data-foundation/ProjectEnvironmentalDashboard";
 import type { Action } from "@/lib/supabase/types";
-
 // ─── Icon helper ──────────────────────────────────────────────────────────────
-
 function AuditIcon({ name }: { name: string }) {
   switch (name) {
     case "ShieldCheck":
@@ -82,9 +127,58 @@ function AuditIcon({ name }: { name: string }) {
       return <Activity className="h-4 w-4" />;
   }
 }
-
 export const Route = createFileRoute("/app/projects/$slug")({
-  head: () => ({ meta: [{ title: "Projekt — GoFreyra" }] }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
+    tab?: string;
+    round?: string;
+    step?: MunicipalStep;
+    task?: string;
+    work?: WorkOrderView;
+    taskList?: WorkOrderListView;
+    reviewOnly?: true;
+    submissionVersion?: number;
+    indicator?: string;
+    media?: string;
+  } => ({
+    ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
+      ? { step: search.step as MunicipalStep }
+      : {}),
+    ...(typeof search.tab === "string" && TABS.some((tab) => tab.id === search.tab)
+      ? { tab: search.tab }
+      : {}),
+    ...(typeof search.round === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.round)
+      ? { round: search.round.toLowerCase() }
+      : {}),
+    ...(typeof search.task === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.task)
+      ? { task: search.task.toLowerCase() }
+      : {}),
+    ...(isWorkOrderView(search.work) ? { work: search.work as WorkOrderView } : {}),
+    ...(typeof search.media === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.media)
+      ? { media: search.media.toLowerCase() }
+      : {}),
+    ...(isWorkOrderListView(search.taskList) ? { taskList: search.taskList } : {}),
+    ...(search.reviewOnly === true ? { reviewOnly: true as const } : {}),
+    ...(typeof search.indicator === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.indicator)
+      ? { indicator: search.indicator.toLowerCase() }
+      : {}),
+    ...(typeof search.submissionVersion === "number" &&
+    Number.isInteger(search.submissionVersion) &&
+    search.submissionVersion > 0 &&
+    search.submissionVersion <= 2147483647
+      ? { submissionVersion: search.submissionVersion }
+      : {}),
+  }),
+  head: () => ({ meta: [{ title: "Projekt — Freyra" }] }),
+  // Project reads depend on the browser-persisted Supabase session. Rendering
+  // this route on the server would execute all suspense queries without the
+  // user's JWT and can turn a valid deep-link into a false RLS 404.
+  ssr: false,
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     const project = await queryClient.ensureQueryData({
       queryKey: ["project-by-slug", slug],
@@ -93,40 +187,145 @@ export const Route = createFileRoute("/app/projects/$slug")({
     if (!project) throw notFound();
     return project;
   },
-  component: ProjectDetailPage,
+  component: ProjectPage,
   notFoundComponent: () => (
-    <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>
+    <div className="space-y-3 p-6 text-center text-muted-foreground">
+      <p>Sagen kunne ikke findes med din aktuelle adgang.</p>
+      <Link to="/app/projects" className="text-primary underline">
+        Gå til Sager, og vælg en sag, du har adgang til.
+      </Link>
+    </div>
   ),
 });
-
-const TABS = [
-  { id: "overblik", label: "Overblik" },
-  { id: "sites", label: "Sites" },
-  { id: "datakilder", label: "Datakilder" },
-  { id: "indikatorer", label: "Indikatorer" },
-  { id: "handlinger", label: "Handlinger" },
-  { id: "audit", label: "Audit trail" },
-  { id: "roller", label: "Roller" },
-  { id: "dokumentation", label: "Dokumentation" },
-  { id: "medier", label: "Medier" },
-  { id: "rapporter", label: "Rapporter" },
-  { id: "miljodata", label: "Miljødata" },
-  { id: "livekort", label: "Livekort" },
-];
-
+const TABS = PROJECT_TABS.map((tab) => ({ ...tab }));
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
-function ProjectDetailPage() {
+function ProjectPage() {
+  const { user } = useAuth();
   const { slug } = Route.useParams();
-
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const view = resolveProjectView(search);
+  const project = Route.useLoaderData();
+  if (search.media && view.kind === "tab" && view.id === "medier") {
+    return (
+      <ProjectSourcePhoto
+        projectId={project.id}
+        mediaId={search.media}
+        actorId={user?.id}
+        onClose={() =>
+          void navigate({
+            search: { ...search, tab: "medier", media: undefined },
+            replace: true,
+          })
+        }
+      />
+    );
+  }
+  return (
+    <ProjectWorkspaceShell
+      key={`${user?.id ?? "anonymous"}:${slug}`}
+      view={view}
+      taskFocused={view.kind === "tab" && view.id === "handlinger" && !!search.task}
+      onNavigate={(next) => void navigate({ search: projectViewSearch(search, next) })}
+      renderTab={(tab) => <ProjectDetailPage activeTab={tab} />}
+      renderStep={(step) => <MunicipalProjectPage step={step} />}
+    />
+  );
+}
+function MunicipalProjectPage({ step }: { step: MunicipalStep }) {
+  const initialProject = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const cache = useQueryClient();
+  const { data: project, isError } = useQuery({
+    queryKey: ["project-by-slug", slug],
+    queryFn: () => getProjectBySlug(slug),
+    initialData: initialProject,
+  });
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  if (isError || !project)
+    return <p className="p-6">Sagen kunne ikke åbnes. Kontrollér din adgang, og prøv igen.</p>;
+  return (
+    <MunicipalCaseWorkspace
+      embedded
+      project={project}
+      step={step}
+      selectedRoundId={search.round}
+      selectedActionId={search.task}
+      initialWorkOrderView={search.work}
+      initialTaskList={search.taskList}
+      reviewOnly={!!search.reviewOnly}
+      onReviewOnly={(value) =>
+        void navigate({ search: { ...search, reviewOnly: value || undefined }, replace: true })
+      }
+      submissionVersion={search.submissionVersion}
+      onTaskList={(taskList) => void navigate({ search: { ...search, taskList }, replace: true })}
+      onSelectAction={(task, view) =>
+        void navigate({
+          search: {
+            ...search,
+            task,
+            work: view ?? search.work,
+            submissionVersion: task === search.task ? search.submissionVersion : undefined,
+          },
+          replace: true,
+        })
+      }
+      onStep={(next) =>
+        void navigate({ search: projectViewSearch(search, { kind: "step", id: next }) })
+      }
+      onRound={(round) => {
+        void cache.invalidateQueries({ queryKey: ["project-by-slug", slug] });
+        void cache.invalidateQueries({ queryKey: ["public-baselines", project.id] });
+        void navigate({ search: { ...search, step, round } });
+      }}
+    />
+  );
+}
+function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
+  const [editingPurpose, setEditingPurpose] = useState(false);
+  const { slug } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { data: project } = useSuspenseQuery({
     queryKey: ["project-by-slug", slug],
     queryFn: () => getProjectBySlug(slug),
   });
-
+  const { user: accessUser, currentOrg } = useAuth();
+  const loadAccess = useServerFn(getSurveyRoundAccess);
+  const actualAccess = useQuery({
+    queryKey: ["municipal-case-access", accessUser?.id, project?.id],
+    queryFn: () => loadAccess({ data: { projectId: project!.id } }),
+    enabled: !!project && !!accessUser,
+    retry: false,
+  });
+  const canEdit =
+    actualAccess.data?.userId === accessUser?.id &&
+    !!actualAccess.data?.canPersist &&
+    !actualAccess.isError &&
+    !actualAccess.isFetching;
+  const loadFieldAccess = useServerFn(getFieldJobAccess);
+  const fieldAccess = useQuery({
+    queryKey: ["field-photo-upload-access", accessUser?.id, project?.id],
+    queryFn: () => loadFieldAccess({ data: { projectId: project!.id } }),
+    enabled: !!project && !!accessUser && activeTab === "medier",
+    retry: false,
+  });
+  // Keep an existing form mounted while a focus-triggered permission check runs.
+  // The upload action is disabled until that check settles; confirmed revocation removes it.
+  const hasPhotoEditorAccess =
+    actualAccess.data?.userId === accessUser?.id &&
+    !!actualAccess.data?.canPersist &&
+    !actualAccess.isError;
+  const canUploadFieldPhoto =
+    hasPhotoEditorAccess ||
+    (fieldAccess.data?.userId === accessUser?.id &&
+      fieldAccess.data?.projectId === project?.id &&
+      !!fieldAccess.data?.canContribute &&
+      !fieldAccess.isError);
   // projectId is always set when project exists; hooks below use it unconditionally
   const projectId = project?.id ?? "";
-
+  const mapDevices = useProjectMapDevices(projectId);
   // Sub-queries — all parallel via standard suspense
   const { data: indicators } = useSuspenseQuery({
     queryKey: ["indicators", projectId],
@@ -152,10 +351,22 @@ function ProjectDetailPage() {
     queryKey: ["observations", projectId],
     queryFn: () => getObservationsByProject(projectId, 10),
   });
-
-  // Environmental context query
-  const { data: environmentalCtx } = useSuspenseQuery({
-    queryKey: ["environmental-context", slug],
+  // Optional external sources must not delay opening tasks or a saved report.
+  const environmentalQuery = useQuery({
+    queryKey: [
+      "environmental-context",
+      accessUser?.id,
+      project?.organization_id,
+      projectId,
+      project?.geometry_polygon,
+      project?.geometry_centroid_lat,
+      project?.geometry_centroid_lng,
+      project?.municipality,
+      project?.name,
+      project?.location_name,
+    ],
+    enabled: !!project && !!accessUser && (activeTab === "miljodata" || activeTab === "livekort"),
+    retry: false,
     queryFn: () => {
       const geometry = resolveProjectGeometry(project);
       return buildProjectEnvironmentalContext(
@@ -167,7 +378,7 @@ function ProjectDetailPage() {
       );
     },
   });
-
+  const environmentalCtx = environmentalQuery.isError ? undefined : environmentalQuery.data;
   // Sites and data sources — DB-backed via suspense query
   const { data: sites } = useSuspenseQuery({
     queryKey: ["sites", projectId],
@@ -179,61 +390,77 @@ function ProjectDetailPage() {
   });
   // Geometri: DB-tegnet polygon vinder altid over seed-data. Kun hvis projektet
   // hverken har en gemt polygon eller centroid, falder vi tilbage til seed.
-  const geometry = resolveProjectGeometry(project);
-
+  const geometry = useMemo(() => resolveProjectGeometry(project), [project]);
   // A project has "real" geometry only when a polygon has been drawn or uploaded —
   // a centroid alone (from location name) is not enough to run area-based analyses.
-  const hasRealGeometry = project?.geometry_polygon != null;
-
-  // Async media state
-  const [mediaItems, setMediaItems] = useState<
-    import("@/lib/platform/media-types").ProjectMediaItem[]
-  >([]);
-  const [mediaLoading, setMediaLoading] = useState(true);
-
-  useEffect(() => {
-    if (!projectId) return;
-    let cancelled = false;
-    setMediaLoading(true);
-    listProjectMedia(projectId).then((result) => {
-      if (!cancelled) {
-        setMediaItems(result.data ?? []);
-        setMediaLoading(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId]);
-
+  const hasRealGeometry = validateProjectPolygon(project?.geometry_polygon).valid;
+  const mediaQuery = useQuery({
+    queryKey: ["project-media", projectId, accessUser?.id, project?.organization_id],
+    enabled: !!projectId,
+    retry: false,
+    throwOnError: false,
+    queryFn: async () => {
+      const result = await listProjectMedia(projectId);
+      if (result.error || result.data === null)
+        throw new Error("Projektets medier kunne ikke hentes. Prøv igen senere.");
+      return result.data;
+    },
+  });
+  const mediaItems = mediaQuery.data;
+  const mediaReady = mediaQuery.isSuccess && !mediaQuery.isError && !mediaQuery.isFetching;
+  const mediaNotice = (
+    <ProjectMediaAvailabilityNotice
+      failed={mediaQuery.isError}
+      fetching={mediaQuery.isFetching}
+      onRetry={() => void mediaQuery.refetch()}
+    />
+  );
+  const droneUploadsQuery = useQuery({
+    queryKey: ["drone-upload-map-overview", projectId],
+    queryFn: () => getDroneUploadMapOverview(projectId),
+    enabled: !!projectId,
+  });
+  const droneUploadOverview = droneUploadsQuery.data;
   // Local action state (optimistic UI)
   const [localActions, setLocalActions] = useState<Action[]>(actions);
   const queryClient = useQueryClient();
-
   // Keep localActions in sync if the underlying query refreshes
   useEffect(() => {
     setLocalActions(actions);
   }, [actions]);
-
+  const [selectedIndicatorId, setSelectedIndicatorId] = useState<string>();
+  const linkedIndicatorId = activeTab === "indikatorer" ? search.indicator : undefined;
+  const selectedIndicator =
+    indicators.find((item) => item.id === (linkedIndicatorId ?? selectedIndicatorId)) ?? null;
+  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
+  const [actionFilterSite, setActionFilterSite] = useState<string>("");
+  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
+  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
+  const filteredActions = localActions.filter((a) => {
+    if (actionFilterSite && a.site_id !== actionFilterSite) return false;
+    if (actionFilterStatus && a.status !== actionFilterStatus) return false;
+    if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
+    return true;
+  });
+  const openIndicator = (ind: (typeof indicators)[number]) => {
+    setSelectedIndicatorId(ind.id);
+    setIndicatorDetailOpen(true);
+  };
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
   }
-
   const activeDataSourcesCount = dataSources.filter(
     (d) => d.status === "online" || d.status === "partial",
   ).length;
-
   const syncActions = async (ids: string[], newStatus: string) => {
     // Optimistic UI
     setLocalActions((prev) =>
       prev.map((a) => (ids.includes(a.id) ? { ...a, status: newStatus } : a)),
     );
-
     if (!isSupabaseConfigured) {
       toast.info("Database ikke konfigureret — kun lokal opdatering");
       return;
     }
-
     try {
       await Promise.all(
         ids.map((id) =>
@@ -255,146 +482,233 @@ function ProjectDetailPage() {
       setLocalActions(actions);
     }
   };
-
-  // IoT sensors — generated deterministically from project id + centroid
-  const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
-
+  const sensors = mapDevices.devices ?? [];
   // Report preview
-  const reportPreview = generateProjectReportPreview({
-    project,
-    sites,
-    dataSources,
-    indicators,
-    observations,
-    actions: localActions,
-    auditEvents,
-    evidenceFiles,
-    mediaItems,
-    sensors,
-  });
-
-  const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors);
+  const reportPreview =
+    mediaReady && mediaItems !== undefined
+      ? generateProjectReportPreview({
+          project,
+          sites,
+          dataSources,
+          indicators,
+          observations,
+          actions: localActions,
+          auditEvents,
+          evidenceFiles,
+          mediaItems,
+          sensors,
+        })
+      : null;
+  const nextAction =
+    mediaReady && mediaItems !== undefined
+      ? getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors)
+      : null;
   const sensorActions = suggestSensorActions(sensors);
-
-  const [selectedIndicator, setSelectedIndicator] = useState<typeof indicators[number] | null>(null);
-  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
-  const [actionFilterSite, setActionFilterSite] = useState<string>("");
-  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
-  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
-  const filteredActions = localActions.filter((a) => {
-    if (actionFilterSite && a.site_id !== actionFilterSite) return false;
-    if (actionFilterStatus && a.status !== actionFilterStatus) return false;
-    if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
-    return true;
-  });
-  const openIndicator = (ind: typeof indicators[number]) => {
-    setSelectedIndicator(ind);
-    setIndicatorDetailOpen(true);
-  };
-
-
+  const taskFocused = activeTab === "handlinger" && !!search.task;
   return (
-    <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
+    <main
+      className={`min-w-0 px-3 pb-16 sm:px-6 max-w-[1200px] w-full mx-auto space-y-4 sm:space-y-5 ${taskFocused ? "pt-0" : "pt-3 sm:pt-6"}`}
+    >
       <ProjectHeader
+        compact={taskFocused}
+        showDescription={activeTab !== "overblik"}
+        canEdit={canEdit}
         project={project}
         sitesCount={sites.length}
         activeDataSourcesCount={activeDataSourcesCount}
-        openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
+        actionsCount={localActions.length}
       />
+      {editingPurpose && hasPhotoEditorAccess && (
+        <EditProjectDialog
+          project={project}
+          onClose={() => setEditingPurpose(false)}
+          onSaved={async () => {
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ["project-by-slug", slug] }),
+              queryClient.invalidateQueries({ queryKey: ["nature-project-summaries"] }),
+              queryClient.invalidateQueries({ queryKey: ["municipal-project-list"] }),
+              queryClient.invalidateQueries({ queryKey: ["audit", project.id] }),
+            ]);
+            setEditingPurpose(false);
+          }}
+        />
+      )}
 
-      <ProjectTabs tabs={TABS}>
+      <ProjectTabs tabs={TABS} activeTab={activeTab} showNavigation={false} retainVisitedPanels>
         {(active) => (
           <>
+            {active === "arbejde" && (
+              <DroneSurveyWorkspace
+                project={project}
+                selectedRoundId={search.round}
+                onSelectRound={(round) =>
+                  void navigate({
+                    search: { ...search, tab: "arbejde", round },
+                    replace: true,
+                  })
+                }
+                onOpenDelivery={() =>
+                  void navigate({
+                    search: { ...search, tab: "rapporter" },
+                    replace: true,
+                  })
+                }
+                photoCount={droneUploadOverview?.receivedDroneUploads}
+                onPhotosChanged={async () => {
+                  await Promise.all([
+                    droneUploadsQuery.refetch(),
+                    queryClient.invalidateQueries({ queryKey: ["project-media", projectId] }),
+                    queryClient.invalidateQueries({ queryKey: ["survey-round-media-candidates"] }),
+                  ]);
+                }}
+              />
+            )}
             {/* ── Overblik ─────────────────────────────────────────────────── */}
+            {active === "grundlag" && (
+              <PublicBaselinePanel key={project.id} project={project} canPersist={canEdit} />
+            )}
             {active === "overblik" && (
               <div className="space-y-5">
-                {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
-                {/* Recommended next action */}
-                <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
-                  <Activity className="h-5 w-5 text-primary shrink-0" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Anbefalet næste skridt</div>
-                    <div className="text-sm font-medium">{nextAction}</div>
-                  </div>
-                </Card>
-
-                {/* KPI cards */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {indicators.slice(0, 6).map((ind) => (
-                    <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
-                  ))}
-                </div>
-
-
-                {/* Recent observations */}
-                {observations.length > 0 && (
-                  <Card>
-                    <CardHeader
-                      title="Seneste observationer"
-                      subtitle={`${observations.length} observationer hentet`}
-                      action={<Pill tone="info">{observations.length}</Pill>}
+                <ProjectJourneyOverview
+                  description={project.description}
+                  onEditPurpose={canEdit ? () => setEditingPurpose(true) : undefined}
+                  onChoose={(id) => void navigate({ search: projectJourneySearch(id, search) })}
+                  onOpenReviewQueue={() =>
+                    void navigate({
+                      search: {
+                        tab: "handlinger",
+                        round: search.round,
+                        taskList: "schedule",
+                        reviewOnly: true,
+                      },
+                    })
+                  }
+                />
+                <details className="rounded-xl border bg-card p-4">
+                  <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                    Flere projektoplysninger, målinger og aktivitet
+                  </summary>
+                  <div className="mt-4 space-y-5">
+                    {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
+                    <DroneBeforeIntakeCard
+                      slug={slug}
+                      projectId={projectId}
+                      organizationId={project.organization_id}
+                      hasRealGeometry={hasRealGeometry}
                     />
-                    <div className="px-5 pb-4 divide-y">
-                      {observations.slice(0, 5).map((obs) => (
-                        <div key={obs.id} className="py-2.5 flex items-center gap-3 text-sm">
-                          <span className="text-xs bg-muted rounded px-1.5 py-0.5">
-                            {observationTypeLabel(obs.observation_type)}
-                          </span>
-                          <span className="font-medium">{obs.indicator_key}</span>
-                          <span className="tabular-nums">
-                            {obs.value !== null ? `${obs.value} ${obs.unit ?? ""}`.trim() : "—"}
-                          </span>
-                          <span className="text-muted-foreground ml-auto text-xs">
-                            {obs.observed_at
-                              ? new Date(obs.observed_at).toLocaleDateString("da-DK")
-                              : "—"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                )}
+                    {/* Recommended next action */}
+                    <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
+                      <Activity className="h-5 w-5 text-primary shrink-0" />
+                      <div>
+                        <div className="text-xs text-muted-foreground">Anbefalet næste skridt</div>
+                        <div className="text-sm font-medium">{nextAction ?? mediaNotice}</div>
+                      </div>
+                    </Card>
 
-                {/* Recent audit */}
-                {auditEvents.length > 0 && (
-                  <Card>
-                    <CardHeader title="Seneste hændelser" />
-                    <div className="px-5 pb-4 divide-y">
-                      {auditEvents.slice(0, 5).map((ev) => (
-                        <div key={ev.id} className="py-2.5 flex items-start gap-3 text-sm">
-                          <span className="text-muted-foreground mt-0.5">
-                            <AuditIcon name={auditEventIcon(ev.event_type)} />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">{ev.title}</div>
-                            {ev.actor && (
-                              <div className="text-xs text-muted-foreground">{ev.actor}</div>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {new Date(ev.created_at).toLocaleDateString("da-DK")}
-                          </span>
-                        </div>
+                    {/* KPI cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {indicators.slice(0, 6).map((ind) => (
+                        <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
                       ))}
                     </div>
-                  </Card>
-                )}
+
+                    {/* Recent observations */}
+                    {observations.length > 0 && (
+                      <Card>
+                        <CardHeader
+                          title="Seneste observationer"
+                          subtitle={`${observations.length} observationer hentet`}
+                          action={<Pill tone="info">{observations.length}</Pill>}
+                        />
+                        <div className="px-5 pb-4 divide-y">
+                          {observations.slice(0, 5).map((obs) => (
+                            <div key={obs.id} className="py-2.5 flex items-center gap-3 text-sm">
+                              <span className="text-xs bg-muted rounded px-1.5 py-0.5">
+                                {observationTypeLabel(obs.observation_type)}
+                              </span>
+                              <span className="font-medium">{obs.indicator_key}</span>
+                              <span className="tabular-nums">
+                                {obs.value !== null ? `${obs.value} ${obs.unit ?? ""}`.trim() : "—"}
+                              </span>
+                              <span className="text-muted-foreground ml-auto text-xs">
+                                {obs.observed_at
+                                  ? new Date(obs.observed_at).toLocaleDateString("da-DK")
+                                  : "—"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Recent audit */}
+                    {auditEvents.length > 0 && (
+                      <Card>
+                        <CardHeader title="Seneste hændelser" />
+                        <div className="px-5 pb-4 divide-y">
+                          {auditEvents.slice(0, 5).map((ev) => (
+                            <div key={ev.id} className="py-2.5 flex items-start gap-3 text-sm">
+                              <span className="text-muted-foreground mt-0.5">
+                                <AuditIcon name={auditEventIcon(ev.event_type)} />
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{ev.title}</div>
+                                {ev.actor && (
+                                  <div className="text-xs text-muted-foreground">{ev.actor}</div>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {new Date(ev.created_at).toLocaleDateString("da-DK")}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                </details>
               </div>
             )}
 
             {/* ── Sites ──────────────────────────────────────────────────── */}
             {active === "sites" && <SitesPanel projectId={projectId} sites={sites} />}
 
-
             {/* ── Datakilder ─────────────────────────────────────────────── */}
             {active === "datakilder" && (
               <DataSourcesPanel projectId={projectId} sites={sites} dataSources={dataSources} />
             )}
 
-
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
               <div className="space-y-4">
+                {search.task && (
+                  <Link
+                    to="/app/projects/$slug"
+                    params={{ slug }}
+                    search={{
+                      tab: "handlinger",
+                      task: search.task,
+                      work: "plan",
+                      round: search.round,
+                    }}
+                    className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4"
+                  >
+                    Tilbage til opgavens arbejdsgrundlag
+                  </Link>
+                )}
+                {linkedIndicatorId && !selectedIndicator && (
+                  <p role="status">
+                    Den valgte indikator findes ikke på sagen med din aktuelle adgang.
+                  </p>
+                )}
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug }}
+                  search={projectViewSearch(search, { kind: "step", id: "sammenligning" })}
+                  className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4"
+                >
+                  Åbn projektets før- og eftervurdering
+                </Link>
                 {!hasRealGeometry ? (
                   <GeometryRequiredBanner slug={slug} variant="detailed" />
                 ) : (
@@ -425,23 +739,52 @@ function ProjectDetailPage() {
             {/* ── Handlinger ─────────────────────────────────────────────── */}
             {active === "handlinger" && (
               <div className="space-y-4">
+                {project.organization_id && (
+                  <ProjectWorkOrdersWorkspace
+                    scope={{ projectId: project.id, organizationId: project.organization_id }}
+                    round={search.round}
+                    canEdit={canEdit}
+                    selectedActionId={search.task}
+                    initialView={search.work}
+                    initialListView={search.taskList}
+                    reviewOnly={!!search.reviewOnly}
+                    onReviewOnly={(value) =>
+                      void navigate({
+                        search: { ...search, reviewOnly: value || undefined },
+                        replace: true,
+                      })
+                    }
+                    submissionVersion={search.submissionVersion}
+                    onListView={(taskList) =>
+                      void navigate({ search: { ...search, taskList }, replace: true })
+                    }
+                    onSelectAction={(task, view) =>
+                      void navigate({
+                        search: {
+                          ...search,
+                          task,
+                          work: view ?? search.work,
+                          submissionVersion:
+                            task === search.task ? search.submissionVersion : undefined,
+                        },
+                        replace: true,
+                      })
+                    }
+                  />
+                )}
                 {/* Sensor-derived action suggestions */}
                 {sensorActions.length > 0 && (
                   <Card>
                     <CardHeader
                       title="Sensor-anbefalinger"
                       subtitle="Automatisk afledt fra IoT-feltdata"
-                      action={
-                        <Pill tone="warning">{sensorActions.length} forslag</Pill>
-                      }
+                      action={<Pill tone="warning">{sensorActions.length} forslag</Pill>}
                     />
                     <div className="px-5 pb-3 divide-y">
                       {sensorActions.map((sa, i) => (
                         <div key={i} className="py-3 flex items-start gap-3">
                           <AlertTriangle
-                            className={`h-4 w-4 shrink-0 mt-0.5 ${
-                              sa.priority === "Høj" ? "text-destructive" : "text-amber-500"
-                            }`}
+                            className={`h-4 w-4 shrink-0 mt-0.5 ${sa.priority === "Høj" ? "text-destructive" : "text-amber-500"}`}
                           />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium">{sa.label}</div>
@@ -465,111 +808,125 @@ function ProjectDetailPage() {
                 )}
 
                 {/* Project actions from Supabase / seed */}
-                <Card>
-                  <CardHeader
-                    title="Handlinger"
-                    subtitle="Åbne og igangværende handlinger"
-                    action={
-                      <Pill
-                        tone={
-                          localActions.filter((a) => a.status !== "Lukket").length > 0
-                            ? "warning"
-                            : "success"
-                        }
-                      >
-                        {localActions.filter((a) => a.status !== "Lukket").length} åbne
-                      </Pill>
-                    }
-                  />
-
-                  {/* Filters */}
-                  <div className="px-5 pb-3 flex flex-wrap gap-2 border-b">
-                    <select
-                      value={actionFilterSite}
-                      onChange={(e) => setActionFilterSite(e.target.value)}
-                      className="text-xs border rounded-lg px-2 py-1 bg-background"
-                    >
-                      <option value="">Alle sites</option>
-                      {sites.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={actionFilterStatus}
-                      onChange={(e) => setActionFilterStatus(e.target.value)}
-                      className="text-xs border rounded-lg px-2 py-1 bg-background"
-                    >
-                      <option value="">Alle statuser</option>
-                      <option value="Åben">Åben</option>
-                      <option value="I gang">I gang</option>
-                      <option value="Lukket">Lukket</option>
-                    </select>
-                    <select
-                      value={actionFilterPriority}
-                      onChange={(e) => setActionFilterPriority(e.target.value)}
-                      className="text-xs border rounded-lg px-2 py-1 bg-background"
-                    >
-                      <option value="">Alle prioriteter</option>
-                      <option value="Høj">Høj</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Lav">Lav</option>
-                    </select>
-                    {(actionFilterSite || actionFilterStatus || actionFilterPriority) && (
-                      <button
-                        onClick={() => {
-                          setActionFilterSite("");
-                          setActionFilterStatus("");
-                          setActionFilterPriority("");
-                        }}
-                        className="text-xs text-muted-foreground hover:text-foreground underline"
-                      >
-                        Nulstil
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="px-5 pb-3">
-                    {filteredActions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Ingen handlinger matcher filter</p>
-                    ) : (
-                      filteredActions.map((action) => (
-                        <ActionItem
-                          key={action.id}
-                          action={action}
-                          siteName={sites.find((s) => s.id === action.site_id)?.name}
-                          indicatorLabel={
-                            indicators.find((i) => i.id === action.linked_indicator_id)?.label
+                <details className="rounded-xl border bg-card p-4">
+                  <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
+                    Opgaveliste med filtre og status
+                  </summary>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    De samme projektopgaver i en liste med filtre og statusændringer.
+                  </p>
+                  <Card>
+                    <CardHeader
+                      title="Handlinger"
+                      subtitle="Åbne og igangværende handlinger"
+                      action={
+                        <Pill
+                          tone={
+                            localActions.filter((a) => a.status !== "Lukket").length > 0
+                              ? "warning"
+                              : "success"
                           }
-                          onStart={(id) => syncActions([id], "I gang")}
-                          onComplete={async (id, actualImpact) => {
-                            if (actualImpact) {
-                              try {
-                                await completeAction(id, projectId, actualImpact);
-                                await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
-                                toast.success("Handling afsluttet");
-                              } catch (e) {
-                                toast.error((e as Error).message);
-                              }
-                            } else {
-                              await syncActions([id], "Lukket");
-                            }
-                          }}
-                        />
-                      ))
-                    )}
-                  </div>
-                  <div className="px-5 pb-5 pt-2 border-t">
-                    <CreateActionForm
-                      projectId={projectId}
-                      sites={sites}
-                      indicators={indicators}
-                      onCreated={async () => {
-                        await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
-                        await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
-                      }}
+                        >
+                          {localActions.filter((a) => a.status !== "Lukket").length} åbne
+                        </Pill>
+                      }
                     />
-                  </div>
-                </Card>
+
+                    {/* Filters */}
+                    <div className="px-5 pb-3 flex flex-wrap gap-2 border-b">
+                      <select
+                        value={actionFilterSite}
+                        onChange={(e) => setActionFilterSite(e.target.value)}
+                        className="text-xs border rounded-lg px-2 py-1 bg-background"
+                      >
+                        <option value="">Alle sites</option>
+                        {sites.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={actionFilterStatus}
+                        onChange={(e) => setActionFilterStatus(e.target.value)}
+                        className="text-xs border rounded-lg px-2 py-1 bg-background"
+                      >
+                        <option value="">Alle statuser</option>
+                        <option value="Åben">Åben</option>
+                        <option value="I gang">I gang</option>
+                        <option value="Lukket">Lukket</option>
+                      </select>
+                      <select
+                        value={actionFilterPriority}
+                        onChange={(e) => setActionFilterPriority(e.target.value)}
+                        className="text-xs border rounded-lg px-2 py-1 bg-background"
+                      >
+                        <option value="">Alle prioriteter</option>
+                        <option value="Høj">Høj</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Lav">Lav</option>
+                      </select>
+                      {(actionFilterSite || actionFilterStatus || actionFilterPriority) && (
+                        <button
+                          onClick={() => {
+                            setActionFilterSite("");
+                            setActionFilterStatus("");
+                            setActionFilterPriority("");
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground underline"
+                        >
+                          Nulstil
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="px-5 pb-3">
+                      {filteredActions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4">
+                          Ingen handlinger matcher filter
+                        </p>
+                      ) : (
+                        filteredActions.map((action) => (
+                          <ActionItem
+                            key={action.id}
+                            action={action}
+                            siteName={sites.find((s) => s.id === action.site_id)?.name}
+                            indicatorLabel={
+                              indicators.find((i) => i.id === action.linked_indicator_id)?.label
+                            }
+                            onStart={(id) => syncActions([id], "I gang")}
+                            onComplete={async (id, actualImpact) => {
+                              if (actualImpact) {
+                                try {
+                                  await completeAction(id, projectId, actualImpact);
+                                  await queryClient.invalidateQueries({
+                                    queryKey: ["actions", projectId],
+                                  });
+                                  toast.success("Handling afsluttet");
+                                } catch (e) {
+                                  toast.error((e as Error).message);
+                                }
+                              } else {
+                                await syncActions([id], "Lukket");
+                              }
+                            }}
+                          />
+                        ))
+                      )}
+                    </div>
+                    <div className="px-5 pb-5 pt-2 border-t">
+                      <CreateActionForm
+                        projectId={projectId}
+                        sites={sites}
+                        indicators={indicators}
+                        onCreated={async () => {
+                          await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+                          await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
+                        }}
+                      />
+                    </div>
+                  </Card>
+                </details>
               </div>
             )}
 
@@ -577,7 +934,7 @@ function ProjectDetailPage() {
             {active === "audit" && (
               <Card>
                 <CardHeader
-                  title="Audit trail"
+                  title="Revisionsspor"
                   subtitle="Filtrer, søg og eksportér alle projekthændelser"
                   action={<Pill tone="info">{auditEvents.length}</Pill>}
                 />
@@ -614,67 +971,119 @@ function ProjectDetailPage() {
 
             {/* ── Medier ─────────────────────────────────────────────────── */}
             {active === "medier" && (
-              <div className="space-y-5">
-                {geometry.hasValidGeometry && (
-                  <div className="rounded-xl overflow-hidden border">
-                    <ProjectGeometryMap
-                      geometry={geometry}
-                      projectName={project.name}
-                      height={280}
-                      mediaItems={mediaItems.filter((m) => !!m.coordinates)}
-                    />
+              <>
+                {!mediaReady && mediaNotice}
+                <Link
+                  to="/felt"
+                  search={{ project: projectId, round: search.round, task: search.task }}
+                  className="inline-flex min-h-11 items-center rounded-lg border bg-card px-4 py-2 text-sm font-medium text-primary"
+                >
+                  Gem projektets feltarbejde på telefonen til offlinebrug
+                </Link>
+                <div
+                  className={`grid min-w-0 gap-5 ${canUploadFieldPhoto ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
+                >
+                  {canUploadFieldPhoto && (
+                    <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-3">
+                      <ProjectMediaUploadPanel
+                        projectId={projectId}
+                        fieldPhotosOnly={!hasPhotoEditorAccess}
+                        accessPending={actualAccess.isFetching || fieldAccess.isFetching}
+                        projectCentroid={geometry.centroid ?? undefined}
+                        onUploadComplete={() =>
+                          void queryClient.invalidateQueries({
+                            queryKey: ["project-media", projectId],
+                          })
+                        }
+                        onDroneBatchImported={() => void droneUploadsQuery.refetch()}
+                      />
+                    </div>
+                  )}
+                  <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+                    {project.organization_id ? (
+                      <ProjectPhotoAtlas
+                        key={projectId}
+                        scope={{ organizationId: project.organization_id, projectId }}
+                        projectName={project.name}
+                        organizationName={currentOrg?.name ?? "Organisation ikke valgt"}
+                        purpose={project.description ?? ""}
+                        canEdit={canEdit}
+                        media={mediaItems ?? []}
+                        mediaAvailable={mediaReady}
+                      />
+                    ) : (
+                      <p className="rounded-lg border p-4">
+                        Projektet skal tilknyttes en organisation, før fotoatlas kan indlæses og
+                        gemmes.
+                      </p>
+                    )}
                   </div>
-                )}
-                <div className="grid lg:grid-cols-[1fr_360px] gap-5 items-start">
-                  <ProjectMediaGallery items={mediaItems} isLoading={mediaLoading} />
-                  <ProjectMediaUploadPanel
-                    projectId={projectId}
-                    projectCentroid={geometry.centroid ?? undefined}
-                    onUploadComplete={(item) => setMediaItems((prev) => [item, ...prev])}
-                  />
+                  {geometry.hasValidGeometry && (
+                    <div className="min-w-0 rounded-xl overflow-hidden border lg:col-start-1">
+                      <ProjectGeometryMap
+                        geometry={geometry}
+                        projectName={project.name}
+                        height={280}
+                        mediaItems={
+                          mediaReady ? mediaItems?.filter((m) => !!m.coordinates) : undefined
+                        }
+                      />
+                    </div>
+                  )}
+                  <div className="min-w-0 lg:col-start-1">
+                    {mediaReady && mediaItems && <ProjectMediaGallery items={mediaItems} />}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* ── Rapporter ──────────────────────────────────────────────── */}
             {active === "rapporter" && (
               <div className="space-y-4">
-                {/* Existing reports */}
-                {reports.length > 0 && (
-                  <Card>
-                    <CardHeader
-                      title="Eksisterende rapporter"
-                      action={<Pill tone="info">{reports.length}</Pill>}
+                {project.organization_id && (
+                  <>
+                    <WorkflowReportPanel
+                      scope={{ projectId: project.id, organizationId: project.organization_id }}
+                      selectedRoundId={search.round}
+                      canEdit={canEdit}
                     />
-                    <div className="px-5 pb-4 divide-y">
-                      {reports.map((r) => {
-                        const tone = reportStatusTone(r.status);
-                        return (
-                          <div key={r.id} className="py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{r.title}</span>
-                              <Pill tone={tone === "neutral" ? "default" : tone}>
-                                {r.status ?? "Kladde"}
-                              </Pill>
-                            </div>
-                            {r.summary && (
-                              <p className="text-xs text-muted-foreground mt-1">{r.summary}</p>
-                            )}
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {r.period_start && r.period_end
-                                ? `${r.period_start} – ${r.period_end}`
-                                : ""}
-                              {r.report_type ? ` · ${r.report_type}` : ""}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card>
+                    <WorkflowFollowupPanel
+                      scope={{ projectId: project.id, organizationId: project.organization_id }}
+                      canEdit={canEdit}
+                    />
+                  </>
                 )}
-
-                {/* Report preview */}
-                <ReportPreviewCard preview={reportPreview} />
+                <MunicipalReportPanel
+                  projectId={projectId}
+                  selectedRoundId={search.round}
+                  onSelectRound={(round) =>
+                    void navigate({
+                      search: projectViewSearch(
+                        { ...search, round },
+                        { kind: "tab", id: "rapporter" },
+                      ),
+                    })
+                  }
+                />
+                <DroneImageInspectionPanel projectId={projectId} />
+                <details>
+                  <summary className="cursor-pointer text-sm text-muted-foreground">
+                    Øvrige projektoversigter og dokumenter
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <ProjectReportRecords projectId={projectId} reports={reports} />
+                    {reportPreview ? <ReportPreviewCard preview={reportPreview} /> : mediaNotice}
+                    <DokumentationTab
+                      projectId={projectId}
+                      project={project}
+                      sites={sites}
+                      actions={localActions}
+                      indicators={indicators}
+                      evidenceFiles={evidenceFiles}
+                      delivery
+                    />
+                  </div>
+                </details>
               </div>
             )}
 
@@ -687,7 +1096,21 @@ function ProjectDetailPage() {
                     subtitle="Åbne datakilder fra Danmark og EU — preview-analyse baseret på projektlokation"
                   />
                   <div className="px-5 pb-5">
-                    {environmentalCtx ? (
+                    {environmentalQuery.isError ? (
+                      <div role="alert" className="space-y-2">
+                        <p>Miljøkilderne kunne ikke hentes. Status er ukendt.</p>
+                        <button
+                          type="button"
+                          className="min-h-11 underline"
+                          disabled={environmentalQuery.isFetching}
+                          onClick={() => void environmentalQuery.refetch()}
+                        >
+                          Hent miljøkilder igen
+                        </button>
+                      </div>
+                    ) : environmentalQuery.isPending ? (
+                      <p role="status">Henter miljøkilder…</p>
+                    ) : environmentalCtx ? (
                       <ProjectEnvironmentalDashboard ctx={environmentalCtx} />
                     ) : (
                       <p className="text-sm text-muted-foreground py-4">
@@ -702,6 +1125,23 @@ function ProjectDetailPage() {
             {/* ── Livekort ────────────────────────────────────────────────── */}
             {active === "livekort" && (
               <div className="space-y-4">
+                {!mediaReady && mediaNotice}
+                {environmentalQuery.isError && (
+                  <div role="alert" className="space-y-2">
+                    <p>
+                      Miljøkilderne kunne ikke hentes. Kortets projekt- og fotopositioner vises uden
+                      nye miljømålinger.
+                    </p>
+                    <button
+                      type="button"
+                      className="min-h-11 underline"
+                      disabled={environmentalQuery.isFetching}
+                      onClick={() => void environmentalQuery.refetch()}
+                    >
+                      Hent miljøkilder igen
+                    </button>
+                  </div>
+                )}
                 <div className="flex justify-end">
                   <Link
                     to="/app/projects/map/$slug"
@@ -716,8 +1156,9 @@ function ProjectDetailPage() {
                   projectName={project.name}
                   projectId={projectId}
                   height={500}
-                  mediaItems={mediaItems}
-                  sensors={sensors}
+                  mediaItems={mediaReady ? mediaItems : undefined}
+                  droneUploadPoints={droneUploadOverview?.points ?? []}
+                  sensors={mapDevices.points}
                   dmiData={
                     environmentalCtx?.liveData?.weather
                       ? {
@@ -730,16 +1171,12 @@ function ProjectDetailPage() {
                       : undefined
                   }
                 />
-                {sensors.length > 0 ? (
-                  <FieldSensorPanel sensors={sensors} />
-                ) : (
-                  <Card className="py-10 text-center">
-                    <CardHeader
-                      title="Ingen sensorer"
-                      subtitle="Tilknyt en projektgeometri for at aktivere IoT-sensorlaget"
-                    />
-                  </Card>
-                )}
+                <FieldSensorPanel
+                  sensors={mapDevices.devices}
+                  status={mapDevices.status}
+                  refreshing={mapDevices.refreshing}
+                  onRefresh={mapDevices.refresh}
+                />
               </div>
             )}
           </>
@@ -747,16 +1184,21 @@ function ProjectDetailPage() {
       </ProjectTabs>
 
       <IndicatorDetail
+        key={selectedIndicator?.id}
         indicator={selectedIndicator}
-        open={indicatorDetailOpen}
-        onOpenChange={setIndicatorDetailOpen}
+        readOnly={!canEdit}
+        open={indicatorDetailOpen || !!linkedIndicatorId}
+        onOpenChange={(open) => {
+          setIndicatorDetailOpen(open);
+          if (!open && linkedIndicatorId) {
+            void navigate({ search: { ...search, indicator: undefined }, replace: true });
+          }
+        }}
       />
     </main>
   );
 }
-
 // ─── Create-action inline form ────────────────────────────────────────────────
-
 function CreateActionForm({
   projectId,
   sites,
@@ -764,8 +1206,14 @@ function CreateActionForm({
   onCreated,
 }: {
   projectId: string;
-  sites: Array<{ id: string; name: string }>;
-  indicators: Array<{ id: string; label: string }>;
+  sites: Array<{
+    id: string;
+    name: string;
+  }>;
+  indicators: Array<{
+    id: string;
+    label: string;
+  }>;
   onCreated: () => void | Promise<void>;
 }) {
   const [title, setTitle] = useState("");
@@ -779,7 +1227,6 @@ function CreateActionForm({
   const [requiresEvidence, setRequiresEvidence] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -819,7 +1266,6 @@ function CreateActionForm({
       setSubmitting(false);
     }
   };
-
   return (
     <form onSubmit={submit} className="space-y-2 pt-3">
       <div className="text-xs font-medium text-muted-foreground">Opret ny handling</div>
@@ -866,7 +1312,9 @@ function CreateActionForm({
             >
               <option value="">Intet site</option>
               {sites.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
               ))}
             </select>
             <input
@@ -884,7 +1332,9 @@ function CreateActionForm({
           >
             <option value="">Ingen tilknyttet indikator</option>
             {indicators.map((i) => (
-              <option key={i.id} value={i.id}>{i.label}</option>
+              <option key={i.id} value={i.id}>
+                {i.label}
+              </option>
             ))}
           </select>
           <input
@@ -924,11 +1374,9 @@ function CreateActionForm({
     </form>
   );
 }
-
 // ─── GeometryRequiredBanner ──────────────────────────────────────────────────
 // Shown when a project has no polygon defined. All area-based analyses
 // (NDVI, biodiversity, environmental) require this before running.
-
 function GeometryRequiredBanner({
   slug,
   variant = "compact",
@@ -938,9 +1386,7 @@ function GeometryRequiredBanner({
 }) {
   return (
     <Card
-      className={`border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/5 ${
-        variant === "detailed" ? "p-6" : "p-4"
-      }`}
+      className={`border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/5 ${variant === "detailed" ? "p-6" : "p-4"}`}
     >
       <div className="flex items-start gap-4">
         <div className="h-10 w-10 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -950,8 +1396,8 @@ function GeometryRequiredBanner({
           <div className="text-sm font-semibold">Projektområde mangler</div>
           <p className="text-sm text-muted-foreground mt-1">
             {variant === "detailed"
-              ? "For at beregne NDVI, biodiversitet og miljøpåvirkning skal projektets afgrænsning defineres. Tegn polygonen på kortet, eller upload en GeoJSON-fil — beregningerne aktiveres straks efter."
-              : "Definér projektets afgrænsning før beregninger kan køre."}
+              ? "Afgræns projektet på kortet eller med GeoJSON. Hent derefter offentlige data under Grundlag og kontrollér dækning og kvalitet før analyse."
+              : "Definér projektets afgrænsning som grundlag for kildehentning og verifikation."}
           </p>
           <div className="mt-3">
             <Link
@@ -968,9 +1414,76 @@ function GeometryRequiredBanner({
     </Card>
   );
 }
+function DroneBeforeIntakeCard({
+  slug,
+  projectId,
+  organizationId,
+  hasRealGeometry,
+}: {
+  slug: string;
+  projectId: string;
+  organizationId: string | null;
+  hasRealGeometry: boolean;
+}) {
+  const { orgId, selectOrg } = useAuth();
+  return (
+    <Card className="border-primary/25 bg-primary/5 p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <Images className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold">Start vandløbets FØR-dokumentation</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Bind projektområdet og de originale dronebilleder sammen, før grødeskæringen
+              dokumenteres.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${
+                  hasRealGeometry
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    : "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+                }`}
+              >
+                {hasRealGeometry && <CheckCircle2 className="h-3.5 w-3.5" />}
+                1. Projektområde {hasRealGeometry ? "gemt" : "mangler"}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-muted-foreground">
+                2. Upload FØR-dronefotos
+              </span>
+            </div>
+          </div>
+        </div>
 
+        {hasRealGeometry ? (
+          <Link
+            to="/app/connect/upload"
+            search={{ project: projectId } as never}
+            onClick={() => {
+              if (organizationId && organizationId !== orgId) selectOrg(organizationId);
+            }}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            <Images className="h-4 w-4" />
+            Upload FØR-dronefotos
+          </Link>
+        ) : (
+          <Link
+            to="/app/projects/geometry/$slug"
+            params={{ slug }}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-background px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10"
+          >
+            <MapPin className="h-4 w-4" />
+            Definér område først
+          </Link>
+        )}
+      </div>
+    </Card>
+  );
+}
 // ─── Dokumentation Tab ────────────────────────────────────────────────────────
-
 function DokumentationTab({
   projectId,
   project,
@@ -978,6 +1491,7 @@ function DokumentationTab({
   actions,
   indicators,
   evidenceFiles,
+  delivery = false,
 }: {
   projectId: string;
   project: import("@/lib/supabase/types").Project;
@@ -985,13 +1499,13 @@ function DokumentationTab({
   actions: Action[];
   indicators: import("@/lib/supabase/types").Indicator[];
   evidenceFiles: import("@/lib/supabase/types").EvidenceFile[];
+  delivery?: boolean;
 }) {
   const { data: documents = [] } = useQuery({
     queryKey: ["documents", projectId],
     queryFn: () => listDocuments(projectId),
     enabled: !!projectId,
   });
-
   // Evidence count per action (from linked evidence files via report_id? we use action_evidence via action id)
   // For lightweight scoring, we approximate: count evidenceFiles.length grouped none — use action.completed_at + evidenceFiles length.
   const evidenceCountByAction: Record<string, number> = {};
@@ -1004,7 +1518,6 @@ function DokumentationTab({
   for (const a of actions) {
     evidenceCountByAction[a.id] = hasAnyEvidence ? 1 : 0;
   }
-
   const score = computeDocumentationScore({
     project,
     sites,
@@ -1013,14 +1526,26 @@ function DokumentationTab({
     documents,
     evidenceCountByAction,
   });
-
   return (
     <div className="space-y-4">
-      <div className="grid lg:grid-cols-[1fr_360px] gap-4">
+      {delivery && (
+        <Card className="p-5">
+          <h3 className="font-semibold">Afleveringen er endnu ikke klar</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            PDF-knappen henter en foreløbig projektkladde. Den samlede rapport med daterede kilder,
+            fotonoter, faglig godkendelse og en låst rapportversion er stadig under udvikling.
+          </p>
+        </Card>
+      )}
+      <div className={delivery ? "space-y-4" : "grid lg:grid-cols-[1fr_360px] gap-4"}>
         <Card>
           <CardHeader
-            title="Genererede dokumenter"
-            subtitle="Rapporter, notater og eksporter til myndigheder og partnere"
+            title={delivery ? "Projektkladde og eksisterende dokumenter" : "Genererede dokumenter"}
+            subtitle={
+              delivery
+                ? "En kladde kræver fortsat kontrol før aflevering"
+                : "Rapporter, notater og eksporter til myndigheder og partnere"
+            }
             action={
               <div className="flex items-center gap-2">
                 <Pill tone="info">{documents.length}</Pill>
@@ -1037,12 +1562,17 @@ function DokumentationTab({
             <DocumentList projectId={projectId} />
           </div>
         </Card>
-        <Card>
-          <CardHeader title="Dokumentationsscore" subtitle="Hvor komplet er projektets dokumentation" />
-          <div className="px-5 pb-5">
-            <DocumentationScore score={score} />
-          </div>
-        </Card>
+        {!delivery && (
+          <Card>
+            <CardHeader
+              title="Dokumentationsscore"
+              subtitle="Hvor komplet er projektets dokumentation"
+            />
+            <div className="px-5 pb-5">
+              <DocumentationScore score={score} />
+            </div>
+          </Card>
+        )}
       </div>
 
       <Card>
@@ -1061,9 +1591,7 @@ function DokumentationTab({
     </div>
   );
 }
-
 // ─── Roller Tab ───────────────────────────────────────────────────────────────
-
 function RollerTab({ projectId }: { projectId: string }) {
   const { user } = useAuth();
   const userId = user?.id;
@@ -1074,10 +1602,6 @@ function RollerTab({ projectId }: { projectId: string }) {
   });
   const permissions = permissionsFor(role ?? null);
   return (
-    <ProjectMembersPanel
-      projectId={projectId}
-      currentUserId={userId}
-      permissions={permissions}
-    />
+    <ProjectMembersPanel projectId={projectId} currentUserId={userId} permissions={permissions} />
   );
 }

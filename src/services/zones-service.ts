@@ -10,41 +10,44 @@ import { logAuditEvent } from "@/services/audit-service";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ZoneType =
-  | "pilot_area"       // Pilotområde
-  | "buffer"           // Bufferzoner
-  | "nature"           // §3-naturareal
-  | "watercourse"      // Vandløb/sø
-  | "forest"           // Skov
-  | "grassland"        // Eng/overdrev
-  | "wetland"          // Mose/vådområde
-  | "exclusion"        // Eksklusionszone
-  | "reference"        // Referenceområde
-  | "sensor_zone";     // Sensorzone
+  | "pilot_area" // Pilotområde
+  | "buffer" // Bufferzoner
+  | "nature" // §3-naturareal
+  | "nature_survey"
+  | "watercourse" // Vandløb/sø
+  | "forest" // Skov
+  | "grassland" // Eng/overdrev
+  | "wetland" // Mose/vådområde
+  | "exclusion" // Eksklusionszone
+  | "reference" // Referenceområde
+  | "sensor_zone"; // Sensorzone
 
 export const ZONE_TYPE_LABELS: Record<ZoneType, string> = {
-  pilot_area:   "Pilotområde",
-  buffer:       "Bufferzone",
-  nature:       "§3-natur",
-  watercourse:  "Vandløb / Sø",
-  forest:       "Skov",
-  grassland:    "Eng / Overdrev",
-  wetland:      "Mose / Vådområde",
-  exclusion:    "Eksklusionszone",
-  reference:    "Referenceområde",
-  sensor_zone:  "Sensorzone",
+  pilot_area: "Pilotområde",
+  buffer: "Bufferzone",
+  nature: "§3-natur",
+  nature_survey: "Naturens undersøgelsesområde",
+  watercourse: "Vandløb / Sø",
+  forest: "Skov",
+  grassland: "Eng / Overdrev",
+  wetland: "Mose / Vådområde",
+  exclusion: "Eksklusionszone",
+  reference: "Referenceområde",
+  sensor_zone: "Sensorzone",
 };
 
 export const ZONE_TYPE_COLORS: Record<ZoneType, { fill: string; stroke: string }> = {
-  pilot_area:   { fill: "#2BC48A", stroke: "#1a9e70" },
-  buffer:       { fill: "#8B5CF6", stroke: "#6d40d4" },
-  nature:       { fill: "#22c55e", stroke: "#16a34a" },
-  watercourse:  { fill: "#3B82F6", stroke: "#2563eb" },
-  forest:       { fill: "#15803d", stroke: "#14532d" },
-  grassland:    { fill: "#84cc16", stroke: "#65a30d" },
-  wetland:      { fill: "#06b6d4", stroke: "#0891b2" },
-  exclusion:    { fill: "#ef4444", stroke: "#dc2626" },
-  reference:    { fill: "#f59e0b", stroke: "#d97706" },
-  sensor_zone:  { fill: "#6366f1", stroke: "#4f46e5" },
+  pilot_area: { fill: "#2BC48A", stroke: "#1a9e70" },
+  buffer: { fill: "#8B5CF6", stroke: "#6d40d4" },
+  nature: { fill: "#22c55e", stroke: "#16a34a" },
+  nature_survey: { fill: "#2BC48A", stroke: "#15803d" },
+  watercourse: { fill: "#3B82F6", stroke: "#2563eb" },
+  forest: { fill: "#15803d", stroke: "#14532d" },
+  grassland: { fill: "#84cc16", stroke: "#65a30d" },
+  wetland: { fill: "#06b6d4", stroke: "#0891b2" },
+  exclusion: { fill: "#ef4444", stroke: "#dc2626" },
+  reference: { fill: "#f59e0b", stroke: "#d97706" },
+  sensor_zone: { fill: "#6366f1", stroke: "#4f46e5" },
 };
 
 export interface Zone {
@@ -83,7 +86,15 @@ const SEED_ZONES: Zone[] = [
     created_at: new Date().toISOString(),
     geojson: {
       type: "Polygon",
-      coordinates: [[[9.4821, 55.2514], [9.4826, 55.2514], [9.4826, 55.2520], [9.4821, 55.2520], [9.4821, 55.2514]]],
+      coordinates: [
+        [
+          [9.4821, 55.2514],
+          [9.4826, 55.2514],
+          [9.4826, 55.252],
+          [9.4821, 55.252],
+          [9.4821, 55.2514],
+        ],
+      ],
     },
   },
   {
@@ -95,7 +106,15 @@ const SEED_ZONES: Zone[] = [
     created_at: new Date().toISOString(),
     geojson: {
       type: "Polygon",
-      coordinates: [[[9.4826, 55.2514], [9.4833, 55.2514], [9.4833, 55.2522], [9.4826, 55.2522], [9.4826, 55.2514]]],
+      coordinates: [
+        [
+          [9.4826, 55.2514],
+          [9.4833, 55.2514],
+          [9.4833, 55.2522],
+          [9.4826, 55.2522],
+          [9.4826, 55.2514],
+        ],
+      ],
     },
   },
   {
@@ -107,7 +126,15 @@ const SEED_ZONES: Zone[] = [
     created_at: new Date().toISOString(),
     geojson: {
       type: "Polygon",
-      coordinates: [[[9.4821, 55.2520], [9.4828, 55.2520], [9.4828, 55.2525], [9.4821, 55.2525], [9.4821, 55.2520]]],
+      coordinates: [
+        [
+          [9.4821, 55.252],
+          [9.4828, 55.252],
+          [9.4828, 55.2525],
+          [9.4821, 55.2525],
+          [9.4821, 55.252],
+        ],
+      ],
     },
   },
   {
@@ -119,7 +146,15 @@ const SEED_ZONES: Zone[] = [
     created_at: new Date().toISOString(),
     geojson: {
       type: "Polygon",
-      coordinates: [[[9.4828, 55.2520], [9.4835, 55.2520], [9.4835, 55.2525], [9.4828, 55.2525], [9.4828, 55.2520]]],
+      coordinates: [
+        [
+          [9.4828, 55.252],
+          [9.4835, 55.252],
+          [9.4835, 55.2525],
+          [9.4828, 55.2525],
+          [9.4828, 55.252],
+        ],
+      ],
     },
   },
 ];
@@ -165,8 +200,13 @@ export async function createZone(input: CreateZoneInput): Promise<Zone> {
   if (!areaHa && input.geojson) {
     try {
       const { area } = await import("@turf/turf");
-      areaHa = Math.round((area({ type: "Feature", geometry: input.geojson, properties: {} }) / 10_000) * 100) / 100;
-    } catch { /* turf fejl er ikke kritisk */ }
+      areaHa =
+        Math.round(
+          (area({ type: "Feature", geometry: input.geojson, properties: {} }) / 10_000) * 100,
+        ) / 100;
+    } catch {
+      /* turf fejl er ikke kritisk */
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -212,10 +252,7 @@ export async function updateZone(
   if (!isSupabaseConfigured || !supabase) throw new Error("Database ikke konfigureret");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from("project_areas")
-    .update(input)
-    .eq("id", id);
+  const { error } = await (supabase as any).from("project_areas").update(input).eq("id", id);
 
   if (error) throw error;
 
@@ -232,10 +269,7 @@ export async function deleteZone(id: string, projectId?: string): Promise<void> 
   if (!isSupabaseConfigured || !supabase) throw new Error("Database ikke konfigureret");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from("project_areas")
-    .delete()
-    .eq("id", id);
+  const { error } = await (supabase as any).from("project_areas").delete().eq("id", id);
 
   if (error) throw error;
 
@@ -252,5 +286,7 @@ export async function deleteZone(id: string, projectId?: string): Promise<void> 
 
 export async function calculatePolygonArea(geojson: GeoJsonPolygon): Promise<number> {
   const { area } = await import("@turf/turf");
-  return Math.round((area({ type: "Feature", geometry: geojson, properties: {} }) / 10_000) * 100) / 100;
+  return (
+    Math.round((area({ type: "Feature", geometry: geojson, properties: {} }) / 10_000) * 100) / 100
+  );
 }

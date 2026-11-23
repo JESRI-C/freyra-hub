@@ -1,0 +1,19 @@
+{
+  "name": "@gofreyra/picomatch-hardened",
+  "version": "4.0.7+gofreyra.1",
+  "description": "Locally hardened picomatch 4.0.7; conservative repeated-extglob safety",
+  "main": "index.js",
+  "license": "MIT",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "engines": {
+    "node": ">=12"
+  },
+  "sideEffects": false,
+  "files": [
+    "index.js",
+    "posix.js",
+    "lib",
+    "LICENSE",
+    "provenance.json"
+  ]
+}

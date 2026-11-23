@@ -81,7 +81,11 @@ async function safeJson<T>(res: Response | null): Promise<T | null> {
   if (!res || !res.ok) return null;
   const ct = res.headers.get("content-type") ?? "";
   if (!ct.includes("json")) return null;
-  try { return (await res.json()) as T; } catch { return null; }
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
 }
 
 function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -89,7 +93,9 @@ function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: numb
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
-  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
@@ -118,9 +124,14 @@ async function fetchParagraph3(lat: number, lng: number, areaHa: number) {
   const results = await Promise.all(
     P3_TYPES.map(async ({ code, label }) => {
       const params = new URLSearchParams({
-        service: "WFS", version: "2.0.0", request: "GetFeature",
-        typeNames: `mp:${code}`, outputFormat: "application/json",
-        bbox, srsName: "EPSG:4326", count: "50",
+        service: "WFS",
+        version: "2.0.0",
+        request: "GetFeature",
+        typeNames: `mp:${code}`,
+        outputFormat: "application/json",
+        bbox,
+        srsName: "EPSG:4326",
+        count: "50",
       });
       const fc = await safeJson<WfsFC>(await safeFetch(`${MP_WFS}?${params}`));
       const feats = fc?.features ?? [];
@@ -135,16 +146,25 @@ async function fetchParagraph3(lat: number, lng: number, areaHa: number) {
   const natureTypes = results.filter((r) => r.count > 0).map((r) => r.label);
   const overlapHa = Math.min(totalHa, areaHa * 0.9);
   const overlapPct = areaHa > 0 ? Math.round((overlapHa / areaHa) * 100) : 0;
-  return { paragraph3AreasHa: Math.round(overlapHa * 10) / 10, paragraph3Percent: overlapPct, natureTypes };
+  return {
+    paragraph3AreasHa: Math.round(overlapHa * 10) / 10,
+    paragraph3Percent: overlapPct,
+    natureTypes,
+  };
 }
 
 async function fetchWatercourses(lat: number, lng: number) {
   const delta = 0.02;
   const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta},EPSG:4326`;
   const params = new URLSearchParams({
-    service: "WFS", version: "2.0.0", request: "GetFeature",
-    typeNames: "mp:vandloeb", outputFormat: "application/json",
-    bbox, srsName: "EPSG:4326", count: "100",
+    service: "WFS",
+    version: "2.0.0",
+    request: "GetFeature",
+    typeNames: "mp:vandloeb",
+    outputFormat: "application/json",
+    bbox,
+    srsName: "EPSG:4326",
+    count: "100",
   });
   const fc = await safeJson<WfsFC>(await safeFetch(`${MP_WFS}?${params}`));
   const feats = fc?.features ?? [];
@@ -152,11 +172,12 @@ async function fetchWatercourses(lat: number, lng: number) {
   for (const f of feats) {
     const geom = f.geometry;
     if (!geom) continue;
-    const coords: number[][] = geom.type === "LineString"
-      ? (geom.coordinates as number[][])
-      : geom.type === "MultiLineString"
-        ? ((geom.coordinates as number[][][]).flat())
-        : [];
+    const coords: number[][] =
+      geom.type === "LineString"
+        ? (geom.coordinates as number[][])
+        : geom.type === "MultiLineString"
+          ? (geom.coordinates as number[][][]).flat()
+          : [];
     for (const c of coords) {
       const d = haversineM({ lat, lng }, { lat: c[1] ?? 0, lng: c[0] ?? 0 });
       if (nearest === null || d < nearest) nearest = Math.round(d);
@@ -171,9 +192,14 @@ async function fetchNatura2000(lat: number, lng: number) {
   const delta = 0.1; // ~11 km
   const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta},EPSG:4326`;
   const params = new URLSearchParams({
-    service: "WFS", version: "2.0.0", request: "GetFeature",
-    typeNames: "mp:habitatomraade", outputFormat: "application/json",
-    bbox, srsName: "EPSG:4326", count: "20",
+    service: "WFS",
+    version: "2.0.0",
+    request: "GetFeature",
+    typeNames: "mp:habitatomraade",
+    outputFormat: "application/json",
+    bbox,
+    srsName: "EPSG:4326",
+    count: "20",
   });
   const fc = await safeJson<WfsFC>(await safeFetch(`${MP_WFS}?${params}`));
   const feats = fc?.features ?? [];
@@ -184,13 +210,20 @@ async function fetchNatura2000(lat: number, lng: number) {
     if (!geom) continue;
     // Bruger centroid-estimat af ring
     const ring: number[][] =
-      geom.type === "Polygon" ? ((geom.coordinates as number[][][])[0] ?? [])
-      : geom.type === "MultiPolygon" ? ((geom.coordinates as number[][][][])[0]?.[0] ?? [])
-      : [];
+      geom.type === "Polygon"
+        ? ((geom.coordinates as number[][][])[0] ?? [])
+        : geom.type === "MultiPolygon"
+          ? ((geom.coordinates as number[][][][])[0]?.[0] ?? [])
+          : [];
     if (ring.length === 0) continue;
-    let cx = 0, cy = 0;
-    for (const c of ring) { cx += c[0] ?? 0; cy += c[1] ?? 0; }
-    cx /= ring.length; cy /= ring.length;
+    let cx = 0,
+      cy = 0;
+    for (const c of ring) {
+      cx += c[0] ?? 0;
+      cy += c[1] ?? 0;
+    }
+    cx /= ring.length;
+    cy /= ring.length;
     const d = Math.round(haversineM({ lat, lng }, { lat: cy, lng: cx }));
     if (nearest === null || d < nearest) {
       nearest = d;
@@ -223,14 +256,24 @@ async function fetchSoil(lat: number, lng: number) {
   const delta = 0.01;
   const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta},EPSG:4326`;
   const params = new URLSearchParams({
-    service: "WFS", version: "2.0.0", request: "GetFeature",
-    typeNames: "dkjord:jordart_25000", outputFormat: "application/json",
-    bbox, srsName: "EPSG:4326", count: "20",
+    service: "WFS",
+    version: "2.0.0",
+    request: "GetFeature",
+    typeNames: "dkjord:jordart_25000",
+    outputFormat: "application/json",
+    bbox,
+    srsName: "EPSG:4326",
+    count: "20",
   });
   const fc = await safeJson<WfsFC>(await safeFetch(`${GEUS_WFS}?${params}`));
   const feats = fc?.features ?? [];
   if (feats.length === 0) {
-    return { dominantType: "Ukendt", permeability: "unknown" as const, organicPct: 3, curveNumber: 70 };
+    return {
+      dominantType: "Ukendt",
+      permeability: "unknown" as const,
+      organicPct: 3,
+      curveNumber: 70,
+    };
   }
   const counts: Record<string, number> = {};
   for (const f of feats) {
@@ -239,7 +282,12 @@ async function fetchSoil(lat: number, lng: number) {
   }
   const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Ukendt";
   const info = SOIL_MAP[dominant] ?? { perm: "medium" as const, org: 3, cn: 70 };
-  return { dominantType: dominant, permeability: info.perm, organicPct: info.org, curveNumber: info.cn };
+  return {
+    dominantType: dominant,
+    permeability: info.perm,
+    organicPct: info.org,
+    curveNumber: info.cn,
+  };
 }
 
 // ─── Terræn (Dataforsyningen DHM) ─────────────────────────────────────────────
@@ -262,7 +310,10 @@ async function fetchTerrain(lat: number, lng: number) {
   if (c === null) {
     return { elevationM: null, slopePct: null, aspect: "unknown" as const };
   }
-  const nn = n ?? c, ss = s ?? c, ee = e ?? c, ww = w ?? c;
+  const nn = n ?? c,
+    ss = s ?? c,
+    ee = e ?? c,
+    ww = w ?? c;
   const dH = Math.max(Math.abs(nn - ss), Math.abs(ee - ww));
   const slope = Math.round((dH / 111) * 100 * 10) / 10;
   const aspect: "flat" | "gentle" | "moderate" | "steep" =
@@ -276,9 +327,14 @@ async function fetchGroundwater(lat: number, lng: number) {
   const delta = 0.008; // ~800 m radius
   const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta},EPSG:4326`;
   const params = new URLSearchParams({
-    service: "WFS", version: "2.0.0", request: "GetFeature",
-    typeNames: "jupiter:boring", outputFormat: "application/json",
-    bbox, srsName: "EPSG:4326", count: "50",
+    service: "WFS",
+    version: "2.0.0",
+    request: "GetFeature",
+    typeNames: "jupiter:boring",
+    outputFormat: "application/json",
+    bbox,
+    srsName: "EPSG:4326",
+    count: "50",
   });
   const fc = await safeJson<WfsFC>(await safeFetch(`${GEUS_WFS}?${params}`));
   const feats = fc?.features ?? [];
@@ -338,7 +394,9 @@ function rainfallFromClimateNorm(lat: number, lng: number) {
   const design10 = Math.round((13 + westness * 3) * 10) / 10;
   const design100 = Math.round((21 + westness * 5) * 10) / 10;
   return {
-    annualMm, designRain10yrMmHr: design10, designRain100yrMmHr: design100,
+    annualMm,
+    designRain10yrMmHr: design10,
+    designRain100yrMmHr: design100,
     source: "climate-norm" as const,
     _lat: lat, // eslint anchor
   };
@@ -350,50 +408,36 @@ function rainfallFromClimateNorm(lat: number, lng: number) {
 function previewBundle(lat: number, lng: number): EnvironmentalBundle {
   const rain = rainfallFromClimateNorm(lat, lng);
   return {
-    nature: { paragraph3AreasHa: 0, paragraph3Percent: 0, natureTypes: [], watercourseCount: 0, nearestWatercourseM: null },
+    nature: {
+      paragraph3AreasHa: 0,
+      paragraph3Percent: 0,
+      natureTypes: [],
+      watercourseCount: 0,
+      nearestWatercourseM: null,
+    },
     natura2000: { withinM: null, nearestName: null, sitesWithin5km: 0 },
-    soil: { dominantType: "Ukendt (preview)", permeability: "unknown", organicPct: 3, curveNumber: 70 },
+    soil: {
+      dominantType: "Ukendt (preview)",
+      permeability: "unknown",
+      organicPct: 3,
+      curveNumber: 70,
+    },
     terrain: { elevationM: null, slopePct: null, aspect: "unknown" },
     groundwater: { boreholesWithin500m: 0, nearestBoreholeM: null, depthM: null },
-    rainfall: { annualMm: rain.annualMm, designRain10yrMmHr: rain.designRain10yrMmHr, designRain100yrMmHr: rain.designRain100yrMmHr, source: rain.source },
+    rainfall: {
+      annualMm: rain.annualMm,
+      designRain10yrMmHr: rain.designRain10yrMmHr,
+      designRain100yrMmHr: rain.designRain100yrMmHr,
+      source: rain.source,
+    },
     fetchedAt: new Date().toISOString(),
   };
 }
 
 export const fetchEnvironmentalBundle = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => PointInput.parse(raw))
-  .handler(async ({ data }): Promise<EnvironmentalBundle> => {
-    // Respektér preview-mode: åbne kilder er live som standard, men slås fra
-    // hvis ENABLE_LIVE_DATA/VITE_ENABLE_LIVE_DATA er sat eksplicit falsk.
-    const { isOpenDataLiveEnabled } = await import("@/lib/nature-geo.functions");
-    if (!isOpenDataLiveEnabled()) return previewBundle(data.lat, data.lng);
-
-    const areaHa = data.areaHa ?? 1;
-    const [p3, water, n2k, soil, terrain, groundwater] = await Promise.all([
-      fetchParagraph3(data.lat, data.lng, areaHa).catch(() => ({ paragraph3AreasHa: 0, paragraph3Percent: 0, natureTypes: [] })),
-      fetchWatercourses(data.lat, data.lng).catch(() => ({ watercourseCount: 0, nearestWatercourseM: null })),
-      fetchNatura2000(data.lat, data.lng).catch(() => ({ withinM: null, nearestName: null, sitesWithin5km: 0 })),
-      fetchSoil(data.lat, data.lng).catch(() => ({ dominantType: "Ukendt", permeability: "unknown" as const, organicPct: 3, curveNumber: 70 })),
-      fetchTerrain(data.lat, data.lng).catch(() => ({ elevationM: null, slopePct: null, aspect: "unknown" as const })),
-      fetchGroundwater(data.lat, data.lng).catch(() => ({ boreholesWithin500m: 0, nearestBoreholeM: null, depthM: null })),
-    ]);
-    const norm = rainfallFromClimateNorm(data.lat, data.lng);
-    // Ægte DMI-måling når nøglen findes; designregn beholder norm-værdierne
-    // (dimensioneringsstørrelser), men årsnedbøren bliver målt i stedet for skønnet.
-    const dmiAnnual = await fetchDmiAnnualRainfall(data.lat, data.lng).catch(() => null);
-
-    return {
-      nature: { ...p3, ...water },
-      natura2000: n2k,
-      soil,
-      terrain,
-      groundwater,
-      rainfall: {
-        annualMm: dmiAnnual ?? norm.annualMm,
-        designRain10yrMmHr: norm.designRain10yrMmHr,
-        designRain100yrMmHr: norm.designRain100yrMmHr,
-        source: dmiAnnual != null ? "dmi-live" : norm.source,
-      },
-      fetchedAt: new Date().toISOString(),
-    };
+  .handler(async (): Promise<EnvironmentalBundle> => {
+    throw new Error(
+      "Miljødata kræver verificeret projektgeometri og kildegrundlag; ingen preview-tal anvendes.",
+    );
   });

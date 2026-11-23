@@ -9,118 +9,106 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as SelectRouteImport } from './routes/select'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppSystemTestRouteImport } from './routes/app.system-test'
-import { Route as AppSettingsRouteImport } from './routes/app.settings'
-import { Route as AppReportsRouteImport } from './routes/app.reports'
-import { Route as AppPublicImpactRouteImport } from './routes/app.public-impact'
-import { Route as AppOverviewRouteImport } from './routes/app.overview'
-import { Route as AppLedgerRouteImport } from './routes/app.ledger'
-import { Route as AppLavbundRouteImport } from './routes/app.lavbund'
-import { Route as AppImpactRouteImport } from './routes/app.impact'
-import { Route as AppDecisionsRouteImport } from './routes/app.decisions'
-import { Route as AppDataRouteImport } from './routes/app.data'
-import { Route as AppConnectRouteImport } from './routes/app.connect'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as FeltRouteImport } from './routes/felt'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as OpgaverRouteImport } from './routes/opgaver'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SelectRouteImport } from './routes/select'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as AppSettingsIndexRouteImport } from './routes/app.settings.index'
-import { Route as AppReportsIndexRouteImport } from './routes/app.reports.index'
-import { Route as AppProjectsIndexRouteImport } from './routes/app.projects.index'
-import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
-import { Route as AppLavbundIndexRouteImport } from './routes/app.lavbund.index'
-import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
-import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
-import { Route as AppConstructionIndexRouteImport } from './routes/app.construction.index'
-import { Route as AppConnectIndexRouteImport } from './routes/app.connect.index'
-import { Route as AppSettingsUsersRouteImport } from './routes/app.settings.users'
-import { Route as AppSettingsSecurityRouteImport } from './routes/app.settings.security'
-import { Route as AppSettingsProjectsRouteImport } from './routes/app.settings.projects'
-import { Route as AppSettingsNotificationsRouteImport } from './routes/app.settings.notifications'
-import { Route as AppSettingsModulesRouteImport } from './routes/app.settings.modules'
-import { Route as AppSettingsFrameworksRouteImport } from './routes/app.settings.frameworks'
-import { Route as AppSettingsBillingRouteImport } from './routes/app.settings.billing'
-import { Route as AppSettingsAccessRouteImport } from './routes/app.settings.access'
-import { Route as AppReportsTemplatesRouteImport } from './routes/app.reports.templates'
-import { Route as AppReportsReadinessRouteImport } from './routes/app.reports.readiness'
-import { Route as AppReportsPreviewRouteImport } from './routes/app.reports.preview'
-import { Route as AppReportsNewRouteImport } from './routes/app.reports.new'
-import { Route as AppReportsLibraryRouteImport } from './routes/app.reports.library'
-import { Route as AppReportsBuilderRouteImport } from './routes/app.reports.builder'
-import { Route as AppReportsApprovalRouteImport } from './routes/app.reports.approval'
-import { Route as AppProjectsSlugRouteImport } from './routes/app.projects.$slug'
-import { Route as AppLedgerSourcesRouteImport } from './routes/app.ledger.sources'
-import { Route as AppLedgerReportingRouteImport } from './routes/app.ledger.reporting'
-import { Route as AppLedgerMetricsRouteImport } from './routes/app.ledger.metrics'
-import { Route as AppLedgerDocumentsRouteImport } from './routes/app.ledger.documents'
-import { Route as AppLedgerCsrdRouteImport } from './routes/app.ledger.csrd'
-import { Route as AppLedgerCo2RouteImport } from './routes/app.ledger.co2'
-import { Route as AppLedgerAuditRouteImport } from './routes/app.ledger.audit'
-import { Route as AppLavbundProjektIdRouteImport } from './routes/app.lavbund.$projektId'
-import { Route as AppImpactVerificationRouteImport } from './routes/app.impact.verification'
-import { Route as AppImpactReportsRouteImport } from './routes/app.impact.reports'
-import { Route as AppImpactProjectsRouteImport } from './routes/app.impact.projects'
-import { Route as AppImpactProjectRouteImport } from './routes/app.impact.project'
-import { Route as AppImpactPortfolioRouteImport } from './routes/app.impact.portfolio'
-import { Route as AppImpactOrganizationsRouteImport } from './routes/app.impact.organizations'
-import { Route as AppImpactCreditsRouteImport } from './routes/app.impact.credits'
-import { Route as AppDecisionsScenariosRouteImport } from './routes/app.decisions.scenarios'
-import { Route as AppDecisionsRiskRouteImport } from './routes/app.decisions.risk'
-import { Route as AppDecisionsRecommendationsRouteImport } from './routes/app.decisions.recommendations'
-import { Route as AppDecisionsNotesRouteImport } from './routes/app.decisions.notes'
-import { Route as AppDecisionsDataQualityRouteImport } from './routes/app.decisions.data-quality'
-import { Route as AppDecisionsAssistantRouteImport } from './routes/app.decisions.assistant'
-import { Route as AppConnectUploadRouteImport } from './routes/app.connect.upload'
-import { Route as AppConnectSourcesRouteImport } from './routes/app.connect.sources'
-import { Route as AppConnectRegistryRouteImport } from './routes/app.connect.registry'
-import { Route as AppConnectQualityRouteImport } from './routes/app.connect.quality'
-import { Route as AppConnectMapRouteImport } from './routes/app.connect.map'
-import { Route as AppConnectLiveRouteImport } from './routes/app.connect.live'
-import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect.integrations'
-import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
-import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
-import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
-import { Route as ApiPublicObservationsRouteImport } from './routes/api/public/observations'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AppConnectRouteImport } from './routes/app.connect'
+import { Route as AppDataRouteImport } from './routes/app.data'
+import { Route as AppDecisionsRouteImport } from './routes/app.decisions'
+import { Route as AppDevelopmentRouteImport } from './routes/app.development'
+import { Route as AppImpactRouteImport } from './routes/app.impact'
+import { Route as AppLavbundRouteImport } from './routes/app.lavbund'
+import { Route as AppLedgerRouteImport } from './routes/app.ledger'
+import { Route as AppOverviewRouteImport } from './routes/app.overview'
+import { Route as AppProgramRouteImport } from './routes/app.program'
+import { Route as AppPublicImpactRouteImport } from './routes/app.public-impact'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppSourcesRouteImport } from './routes/app.sources'
+import { Route as AppSystemTestRouteImport } from './routes/app.system-test'
+import { Route as AppWorkOrdersRouteImport } from './routes/app.work-orders'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
-import { Route as AppProjectsGeometrySlugRouteImport } from './routes/app.projects.geometry.$slug'
-import { Route as AppLavbundProjektIdRevisionssporRouteImport } from './routes/app.lavbund.$projektId.revisionsspor'
-import { Route as AppLavbundProjektIdRapportRouteImport } from './routes/app.lavbund.$projektId.rapport'
-import { Route as AppLavbundProjektIdKortRouteImport } from './routes/app.lavbund.$projektId.kort'
-import { Route as AppLavbundProjektIdKlimaRouteImport } from './routes/app.lavbund.$projektId.klima'
-import { Route as AppLavbundProjektIdFosforRouteImport } from './routes/app.lavbund.$projektId.fosfor'
-import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as ApiPublicGpsPositionRouteImport } from './routes/api/public/gps-position'
+import { Route as ApiPublicObservationsRouteImport } from './routes/api/public/observations'
+import { Route as AppConnectIndexRouteImport } from './routes/app.connect.index'
+import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
+import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
+import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
+import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect.integrations'
+import { Route as AppConnectLiveRouteImport } from './routes/app.connect.live'
+import { Route as AppConnectMapRouteImport } from './routes/app.connect.map'
+import { Route as AppConnectQualityRouteImport } from './routes/app.connect.quality'
+import { Route as AppConnectRegistryRouteImport } from './routes/app.connect.registry'
+import { Route as AppConnectSourcesRouteImport } from './routes/app.connect.sources'
+import { Route as AppConnectUploadRouteImport } from './routes/app.connect.upload'
+import { Route as AppConstructionIndexRouteImport } from './routes/app.construction.index'
+import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
+import { Route as AppDecisionsAssistantRouteImport } from './routes/app.decisions.assistant'
+import { Route as AppDecisionsDataQualityRouteImport } from './routes/app.decisions.data-quality'
+import { Route as AppDecisionsNotesRouteImport } from './routes/app.decisions.notes'
+import { Route as AppDecisionsRecommendationsRouteImport } from './routes/app.decisions.recommendations'
+import { Route as AppDecisionsRiskRouteImport } from './routes/app.decisions.risk'
+import { Route as AppDecisionsScenariosRouteImport } from './routes/app.decisions.scenarios'
+import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
+import { Route as AppImpactCreditsRouteImport } from './routes/app.impact.credits'
+import { Route as AppImpactOrganizationsRouteImport } from './routes/app.impact.organizations'
+import { Route as AppImpactPortfolioRouteImport } from './routes/app.impact.portfolio'
+import { Route as AppImpactProjectRouteImport } from './routes/app.impact.project'
+import { Route as AppImpactProjectsRouteImport } from './routes/app.impact.projects'
+import { Route as AppImpactReportsRouteImport } from './routes/app.impact.reports'
+import { Route as AppImpactVerificationRouteImport } from './routes/app.impact.verification'
+import { Route as AppLavbundIndexRouteImport } from './routes/app.lavbund.index'
+import { Route as AppLavbundProjektIdRouteImport } from './routes/app.lavbund.$projektId'
+import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
+import { Route as AppLedgerAuditRouteImport } from './routes/app.ledger.audit'
+import { Route as AppLedgerCo2RouteImport } from './routes/app.ledger.co2'
+import { Route as AppLedgerCsrdRouteImport } from './routes/app.ledger.csrd'
+import { Route as AppLedgerDocumentsRouteImport } from './routes/app.ledger.documents'
+import { Route as AppLedgerMetricsRouteImport } from './routes/app.ledger.metrics'
+import { Route as AppLedgerReportingRouteImport } from './routes/app.ledger.reporting'
+import { Route as AppLedgerSourcesRouteImport } from './routes/app.ledger.sources'
+import { Route as AppProjectsIndexRouteImport } from './routes/app.projects.index'
+import { Route as AppProjectsSlugRouteImport } from './routes/app.projects.$slug'
+import { Route as AppReportsIndexRouteImport } from './routes/app.reports.index'
+import { Route as AppReportsApprovalRouteImport } from './routes/app.reports.approval'
+import { Route as AppReportsBuilderRouteImport } from './routes/app.reports.builder'
+import { Route as AppReportsLibraryRouteImport } from './routes/app.reports.library'
+import { Route as AppReportsNewRouteImport } from './routes/app.reports.new'
+import { Route as AppReportsPreviewRouteImport } from './routes/app.reports.preview'
+import { Route as AppReportsReadinessRouteImport } from './routes/app.reports.readiness'
+import { Route as AppReportsTemplatesRouteImport } from './routes/app.reports.templates'
+import { Route as AppSettingsIndexRouteImport } from './routes/app.settings.index'
+import { Route as AppSettingsAccessRouteImport } from './routes/app.settings.access'
+import { Route as AppSettingsBillingRouteImport } from './routes/app.settings.billing'
+import { Route as AppSettingsFrameworksRouteImport } from './routes/app.settings.frameworks'
+import { Route as AppSettingsModulesRouteImport } from './routes/app.settings.modules'
+import { Route as AppSettingsNotificationsRouteImport } from './routes/app.settings.notifications'
+import { Route as AppSettingsProjectsRouteImport } from './routes/app.settings.projects'
+import { Route as AppSettingsSecurityRouteImport } from './routes/app.settings.security'
+import { Route as AppSettingsUsersRouteImport } from './routes/app.settings.users'
 import { Route as ApiPublicMonitoringEvaluateRouteImport } from './routes/api/public/monitoring.evaluate'
+import { Route as ApiPublicMonitoringReconcileUploadsRouteImport } from './routes/api/public/monitoring.reconcile-uploads'
+import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
+import { Route as AppLavbundProjektIdFosforRouteImport } from './routes/app.lavbund.$projektId.fosfor'
+import { Route as AppLavbundProjektIdKlimaRouteImport } from './routes/app.lavbund.$projektId.klima'
+import { Route as AppLavbundProjektIdKortRouteImport } from './routes/app.lavbund.$projektId.kort'
+import { Route as AppLavbundProjektIdRapportRouteImport } from './routes/app.lavbund.$projektId.rapport'
+import { Route as AppLavbundProjektIdRevisionssporRouteImport } from './routes/app.lavbund.$projektId.revisionsspor'
+import { Route as AppProjectsGeometrySlugRouteImport } from './routes/app.projects.geometry.$slug'
+import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
 
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SelectRoute = SelectRouteImport.update({
-  id: '/select',
-  path: '/select',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -128,54 +116,56 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const FeltRoute = FeltRouteImport.update({
+  id: '/felt',
+  path: '/felt',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppSystemTestRoute = AppSystemTestRouteImport.update({
-  id: '/system-test',
-  path: '/system-test',
-  getParentRoute: () => AppRoute,
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppReportsRoute = AppReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRoute,
+const OpgaverRoute = OpgaverRouteImport.update({
+  id: '/opgaver',
+  path: '/opgaver',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppPublicImpactRoute = AppPublicImpactRouteImport.update({
-  id: '/public-impact',
-  path: '/public-impact',
-  getParentRoute: () => AppRoute,
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppOverviewRoute = AppOverviewRouteImport.update({
-  id: '/overview',
-  path: '/overview',
-  getParentRoute: () => AppRoute,
+const SelectRoute = SelectRouteImport.update({
+  id: '/select',
+  path: '/select',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppLedgerRoute = AppLedgerRouteImport.update({
-  id: '/ledger',
-  path: '/ledger',
-  getParentRoute: () => AppRoute,
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppLavbundRoute = AppLavbundRouteImport.update({
-  id: '/lavbund',
-  path: '/lavbund',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppImpactRoute = AppImpactRouteImport.update({
-  id: '/impact',
-  path: '/impact',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDecisionsRoute = AppDecisionsRouteImport.update({
-  id: '/decisions',
-  path: '/decisions',
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AppConnectRoute = AppConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDataRoute = AppDataRouteImport.update({
@@ -183,308 +173,74 @@ const AppDataRoute = AppDataRouteImport.update({
   path: '/data',
   getParentRoute: () => AppRoute,
 } as any)
-const AppConnectRoute = AppConnectRouteImport.update({
-  id: '/connect',
-  path: '/connect',
+const AppDecisionsRoute = AppDecisionsRouteImport.update({
+  id: '/decisions',
+  path: '/decisions',
   getParentRoute: () => AppRoute,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
-const AppReportsIndexRoute = AppReportsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppReportsRoute,
-} as any)
-const AppProjectsIndexRoute = AppProjectsIndexRouteImport.update({
-  id: '/projects/',
-  path: '/projects/',
+const AppDevelopmentRoute = AppDevelopmentRouteImport.update({
+  id: '/development',
+  path: '/development',
   getParentRoute: () => AppRoute,
 } as any)
-const AppLedgerIndexRoute = AppLedgerIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppLedgerRoute,
-} as any)
-const AppLavbundIndexRoute = AppLavbundIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppLavbundRoute,
-} as any)
-const AppImpactIndexRoute = AppImpactIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppImpactRoute,
-} as any)
-const AppDecisionsIndexRoute = AppDecisionsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppDecisionsRoute,
-} as any)
-const AppConstructionIndexRoute = AppConstructionIndexRouteImport.update({
-  id: '/construction/',
-  path: '/construction/',
+const AppImpactRoute = AppImpactRouteImport.update({
+  id: '/impact',
+  path: '/impact',
   getParentRoute: () => AppRoute,
 } as any)
-const AppConnectIndexRoute = AppConnectIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppConnectRoute,
-} as any)
-const AppSettingsUsersRoute = AppSettingsUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
-const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
-const AppSettingsProjectsRoute = AppSettingsProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
-const AppSettingsNotificationsRoute =
-  AppSettingsNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => AppSettingsRoute,
-  } as any)
-const AppSettingsModulesRoute = AppSettingsModulesRouteImport.update({
-  id: '/modules',
-  path: '/modules',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
-const AppSettingsFrameworksRoute = AppSettingsFrameworksRouteImport.update({
-  id: '/frameworks',
-  path: '/frameworks',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
-const AppSettingsBillingRoute = AppSettingsBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
-const AppSettingsAccessRoute = AppSettingsAccessRouteImport.update({
-  id: '/access',
-  path: '/access',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
-const AppReportsTemplatesRoute = AppReportsTemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
-  getParentRoute: () => AppReportsRoute,
-} as any)
-const AppReportsReadinessRoute = AppReportsReadinessRouteImport.update({
-  id: '/readiness',
-  path: '/readiness',
-  getParentRoute: () => AppReportsRoute,
-} as any)
-const AppReportsPreviewRoute = AppReportsPreviewRouteImport.update({
-  id: '/preview',
-  path: '/preview',
-  getParentRoute: () => AppReportsRoute,
-} as any)
-const AppReportsNewRoute = AppReportsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AppReportsRoute,
-} as any)
-const AppReportsLibraryRoute = AppReportsLibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
-  getParentRoute: () => AppReportsRoute,
-} as any)
-const AppReportsBuilderRoute = AppReportsBuilderRouteImport.update({
-  id: '/builder',
-  path: '/builder',
-  getParentRoute: () => AppReportsRoute,
-} as any)
-const AppReportsApprovalRoute = AppReportsApprovalRouteImport.update({
-  id: '/approval',
-  path: '/approval',
-  getParentRoute: () => AppReportsRoute,
-} as any)
-const AppProjectsSlugRoute = AppProjectsSlugRouteImport.update({
-  id: '/projects/$slug',
-  path: '/projects/$slug',
+const AppLavbundRoute = AppLavbundRouteImport.update({
+  id: '/lavbund',
+  path: '/lavbund',
   getParentRoute: () => AppRoute,
 } as any)
-const AppLedgerSourcesRoute = AppLedgerSourcesRouteImport.update({
-  id: '/sources',
-  path: '/sources',
-  getParentRoute: () => AppLedgerRoute,
+const AppLedgerRoute = AppLedgerRouteImport.update({
+  id: '/ledger',
+  path: '/ledger',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppLedgerReportingRoute = AppLedgerReportingRouteImport.update({
-  id: '/reporting',
-  path: '/reporting',
-  getParentRoute: () => AppLedgerRoute,
+const AppOverviewRoute = AppOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppLedgerMetricsRoute = AppLedgerMetricsRouteImport.update({
-  id: '/metrics',
-  path: '/metrics',
-  getParentRoute: () => AppLedgerRoute,
+const AppProgramRoute = AppProgramRouteImport.update({
+  id: '/program',
+  path: '/program',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppLedgerDocumentsRoute = AppLedgerDocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
-  getParentRoute: () => AppLedgerRoute,
+const AppPublicImpactRoute = AppPublicImpactRouteImport.update({
+  id: '/public-impact',
+  path: '/public-impact',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppLedgerCsrdRoute = AppLedgerCsrdRouteImport.update({
-  id: '/csrd',
-  path: '/csrd',
-  getParentRoute: () => AppLedgerRoute,
-} as any)
-const AppLedgerCo2Route = AppLedgerCo2RouteImport.update({
-  id: '/co2',
-  path: '/co2',
-  getParentRoute: () => AppLedgerRoute,
-} as any)
-const AppLedgerAuditRoute = AppLedgerAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => AppLedgerRoute,
-} as any)
-const AppLavbundProjektIdRoute = AppLavbundProjektIdRouteImport.update({
-  id: '/$projektId',
-  path: '/$projektId',
-  getParentRoute: () => AppLavbundRoute,
-} as any)
-const AppImpactVerificationRoute = AppImpactVerificationRouteImport.update({
-  id: '/verification',
-  path: '/verification',
-  getParentRoute: () => AppImpactRoute,
-} as any)
-const AppImpactReportsRoute = AppImpactReportsRouteImport.update({
+const AppReportsRoute = AppReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
-  getParentRoute: () => AppImpactRoute,
+  getParentRoute: () => AppRoute,
 } as any)
-const AppImpactProjectsRoute = AppImpactProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => AppImpactRoute,
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppImpactProjectRoute = AppImpactProjectRouteImport.update({
-  id: '/project',
-  path: '/project',
-  getParentRoute: () => AppImpactRoute,
-} as any)
-const AppImpactPortfolioRoute = AppImpactPortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
-  getParentRoute: () => AppImpactRoute,
-} as any)
-const AppImpactOrganizationsRoute = AppImpactOrganizationsRouteImport.update({
-  id: '/organizations',
-  path: '/organizations',
-  getParentRoute: () => AppImpactRoute,
-} as any)
-const AppImpactCreditsRoute = AppImpactCreditsRouteImport.update({
-  id: '/credits',
-  path: '/credits',
-  getParentRoute: () => AppImpactRoute,
-} as any)
-const AppDecisionsScenariosRoute = AppDecisionsScenariosRouteImport.update({
-  id: '/scenarios',
-  path: '/scenarios',
-  getParentRoute: () => AppDecisionsRoute,
-} as any)
-const AppDecisionsRiskRoute = AppDecisionsRiskRouteImport.update({
-  id: '/risk',
-  path: '/risk',
-  getParentRoute: () => AppDecisionsRoute,
-} as any)
-const AppDecisionsRecommendationsRoute =
-  AppDecisionsRecommendationsRouteImport.update({
-    id: '/recommendations',
-    path: '/recommendations',
-    getParentRoute: () => AppDecisionsRoute,
-  } as any)
-const AppDecisionsNotesRoute = AppDecisionsNotesRouteImport.update({
-  id: '/notes',
-  path: '/notes',
-  getParentRoute: () => AppDecisionsRoute,
-} as any)
-const AppDecisionsDataQualityRoute = AppDecisionsDataQualityRouteImport.update({
-  id: '/data-quality',
-  path: '/data-quality',
-  getParentRoute: () => AppDecisionsRoute,
-} as any)
-const AppDecisionsAssistantRoute = AppDecisionsAssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
-  getParentRoute: () => AppDecisionsRoute,
-} as any)
-const AppConnectUploadRoute = AppConnectUploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
-  getParentRoute: () => AppConnectRoute,
-} as any)
-const AppConnectSourcesRoute = AppConnectSourcesRouteImport.update({
+const AppSourcesRoute = AppSourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
-  getParentRoute: () => AppConnectRoute,
+  getParentRoute: () => AppRoute,
 } as any)
-const AppConnectRegistryRoute = AppConnectRegistryRouteImport.update({
-  id: '/registry',
-  path: '/registry',
-  getParentRoute: () => AppConnectRoute,
+const AppSystemTestRoute = AppSystemTestRouteImport.update({
+  id: '/system-test',
+  path: '/system-test',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppConnectQualityRoute = AppConnectQualityRouteImport.update({
-  id: '/quality',
-  path: '/quality',
-  getParentRoute: () => AppConnectRoute,
+const AppWorkOrdersRoute = AppWorkOrdersRouteImport.update({
+  id: '/work-orders',
+  path: '/work-orders',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppConnectMapRoute = AppConnectMapRouteImport.update({
-  id: '/map',
-  path: '/map',
-  getParentRoute: () => AppConnectRoute,
-} as any)
-const AppConnectLiveRoute = AppConnectLiveRouteImport.update({
-  id: '/live',
-  path: '/live',
-  getParentRoute: () => AppConnectRoute,
-} as any)
-const AppConnectIntegrationsRoute = AppConnectIntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
-  getParentRoute: () => AppConnectRoute,
-} as any)
-const AppConnectDevicesRoute = AppConnectDevicesRouteImport.update({
-  id: '/devices',
-  path: '/devices',
-  getParentRoute: () => AppConnectRoute,
-} as any)
-const AppConnectAlertsRoute = AppConnectAlertsRouteImport.update({
-  id: '/alerts',
-  path: '/alerts',
-  getParentRoute: () => AppConnectRoute,
-} as any)
-const AppConnectAddRoute = AppConnectAddRouteImport.update({
-  id: '/add',
-  path: '/add',
-  getParentRoute: () => AppConnectRoute,
-} as any)
-const ApiPublicObservationsRoute = ApiPublicObservationsRouteImport.update({
-  id: '/api/public/observations',
-  path: '/api/public/observations',
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
@@ -493,49 +249,309 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
+const ApiPublicGpsPositionRoute = ApiPublicGpsPositionRouteImport.update({
+  id: '/api/public/gps-position',
+  path: '/api/public/gps-position',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppProjectsMapSlugRoute = AppProjectsMapSlugRouteImport.update({
-  id: '/projects/map/$slug',
-  path: '/projects/map/$slug',
+const ApiPublicObservationsRoute = ApiPublicObservationsRouteImport.update({
+  id: '/api/public/observations',
+  path: '/api/public/observations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppConnectIndexRoute = AppConnectIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectAddRoute = AppConnectAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectAlertsRoute = AppConnectAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectDevicesRoute = AppConnectDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectIntegrationsRoute = AppConnectIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectLiveRoute = AppConnectLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectMapRoute = AppConnectMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectQualityRoute = AppConnectQualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectRegistryRoute = AppConnectRegistryRouteImport.update({
+  id: '/registry',
+  path: '/registry',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectSourcesRoute = AppConnectSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectUploadRoute = AppConnectUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConstructionIndexRoute = AppConstructionIndexRouteImport.update({
+  id: '/construction/',
+  path: '/construction/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppProjectsGeometrySlugRoute = AppProjectsGeometrySlugRouteImport.update({
-  id: '/projects/geometry/$slug',
-  path: '/projects/geometry/$slug',
+const AppDecisionsIndexRoute = AppDecisionsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsAssistantRoute = AppDecisionsAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsDataQualityRoute = AppDecisionsDataQualityRouteImport.update({
+  id: '/data-quality',
+  path: '/data-quality',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsNotesRoute = AppDecisionsNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsRecommendationsRoute =
+  AppDecisionsRecommendationsRouteImport.update({
+    id: '/recommendations',
+    path: '/recommendations',
+    getParentRoute: () => AppDecisionsRoute,
+  } as any)
+const AppDecisionsRiskRoute = AppDecisionsRiskRouteImport.update({
+  id: '/risk',
+  path: '/risk',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsScenariosRoute = AppDecisionsScenariosRouteImport.update({
+  id: '/scenarios',
+  path: '/scenarios',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppImpactIndexRoute = AppImpactIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactCreditsRoute = AppImpactCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactOrganizationsRoute = AppImpactOrganizationsRouteImport.update({
+  id: '/organizations',
+  path: '/organizations',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactPortfolioRoute = AppImpactPortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactProjectRoute = AppImpactProjectRouteImport.update({
+  id: '/project',
+  path: '/project',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactProjectsRoute = AppImpactProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactReportsRoute = AppImpactReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactVerificationRoute = AppImpactVerificationRouteImport.update({
+  id: '/verification',
+  path: '/verification',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppLavbundIndexRoute = AppLavbundIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppLavbundRoute,
+} as any)
+const AppLavbundProjektIdRoute = AppLavbundProjektIdRouteImport.update({
+  id: '/$projektId',
+  path: '/$projektId',
+  getParentRoute: () => AppLavbundRoute,
+} as any)
+const AppLedgerIndexRoute = AppLedgerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLedgerAuditRoute = AppLedgerAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLedgerCo2Route = AppLedgerCo2RouteImport.update({
+  id: '/co2',
+  path: '/co2',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLedgerCsrdRoute = AppLedgerCsrdRouteImport.update({
+  id: '/csrd',
+  path: '/csrd',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLedgerDocumentsRoute = AppLedgerDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLedgerMetricsRoute = AppLedgerMetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLedgerReportingRoute = AppLedgerReportingRouteImport.update({
+  id: '/reporting',
+  path: '/reporting',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLedgerSourcesRoute = AppLedgerSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppProjectsIndexRoute = AppProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppLavbundProjektIdRevisionssporRoute =
-  AppLavbundProjektIdRevisionssporRouteImport.update({
-    id: '/revisionsspor',
-    path: '/revisionsspor',
-    getParentRoute: () => AppLavbundProjektIdRoute,
-  } as any)
-const AppLavbundProjektIdRapportRoute =
-  AppLavbundProjektIdRapportRouteImport.update({
-    id: '/rapport',
-    path: '/rapport',
-    getParentRoute: () => AppLavbundProjektIdRoute,
-  } as any)
-const AppLavbundProjektIdKortRoute = AppLavbundProjektIdKortRouteImport.update({
-  id: '/kort',
-  path: '/kort',
-  getParentRoute: () => AppLavbundProjektIdRoute,
+const AppProjectsSlugRoute = AppProjectsSlugRouteImport.update({
+  id: '/projects/$slug',
+  path: '/projects/$slug',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppLavbundProjektIdKlimaRoute =
-  AppLavbundProjektIdKlimaRouteImport.update({
-    id: '/klima',
-    path: '/klima',
-    getParentRoute: () => AppLavbundProjektIdRoute,
+const AppReportsIndexRoute = AppReportsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsApprovalRoute = AppReportsApprovalRouteImport.update({
+  id: '/approval',
+  path: '/approval',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsBuilderRoute = AppReportsBuilderRouteImport.update({
+  id: '/builder',
+  path: '/builder',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsLibraryRoute = AppReportsLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsNewRoute = AppReportsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsPreviewRoute = AppReportsPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsReadinessRoute = AppReportsReadinessRouteImport.update({
+  id: '/readiness',
+  path: '/readiness',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsTemplatesRoute = AppReportsTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsAccessRoute = AppSettingsAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsBillingRoute = AppSettingsBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsFrameworksRoute = AppSettingsFrameworksRouteImport.update({
+  id: '/frameworks',
+  path: '/frameworks',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsModulesRoute = AppSettingsModulesRouteImport.update({
+  id: '/modules',
+  path: '/modules',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AppSettingsRoute,
   } as any)
-const AppLavbundProjektIdFosforRoute =
-  AppLavbundProjektIdFosforRouteImport.update({
-    id: '/fosfor',
-    path: '/fosfor',
-    getParentRoute: () => AppLavbundProjektIdRoute,
+const AppSettingsProjectsRoute = AppSettingsProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsUsersRoute = AppSettingsUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const ApiPublicMonitoringEvaluateRoute =
+  ApiPublicMonitoringEvaluateRouteImport.update({
+    id: '/api/public/monitoring/evaluate',
+    path: '/api/public/monitoring/evaluate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMonitoringReconcileUploadsRoute =
+  ApiPublicMonitoringReconcileUploadsRouteImport.update({
+    id: '/api/public/monitoring/reconcile-uploads',
+    path: '/api/public/monitoring/reconcile-uploads',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AppConstructionProjectsSlugRoute =
   AppConstructionProjectsSlugRouteImport.update({
@@ -543,18 +559,53 @@ const AppConstructionProjectsSlugRoute =
     path: '/construction/projects/$slug',
     getParentRoute: () => AppRoute,
   } as any)
-const ApiPublicMonitoringEvaluateRoute =
-  ApiPublicMonitoringEvaluateRouteImport.update({
-    id: '/api/public/monitoring/evaluate',
-    path: '/api/public/monitoring/evaluate',
-    getParentRoute: () => rootRouteImport,
+const AppLavbundProjektIdFosforRoute =
+  AppLavbundProjektIdFosforRouteImport.update({
+    id: '/fosfor',
+    path: '/fosfor',
+    getParentRoute: () => AppLavbundProjektIdRoute,
   } as any)
+const AppLavbundProjektIdKlimaRoute =
+  AppLavbundProjektIdKlimaRouteImport.update({
+    id: '/klima',
+    path: '/klima',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
+const AppLavbundProjektIdKortRoute = AppLavbundProjektIdKortRouteImport.update({
+  id: '/kort',
+  path: '/kort',
+  getParentRoute: () => AppLavbundProjektIdRoute,
+} as any)
+const AppLavbundProjektIdRapportRoute =
+  AppLavbundProjektIdRapportRouteImport.update({
+    id: '/rapport',
+    path: '/rapport',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
+const AppLavbundProjektIdRevisionssporRoute =
+  AppLavbundProjektIdRevisionssporRouteImport.update({
+    id: '/revisionsspor',
+    path: '/revisionsspor',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
+const AppProjectsGeometrySlugRoute = AppProjectsGeometrySlugRouteImport.update({
+  id: '/projects/geometry/$slug',
+  path: '/projects/geometry/$slug',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectsMapSlugRoute = AppProjectsMapSlugRouteImport.update({
+  id: '/projects/map/$slug',
+  path: '/projects/map/$slug',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/opgaver': typeof OpgaverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select': typeof SelectRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -563,16 +614,21 @@ export interface FileRoutesByFullPath {
   '/app/connect': typeof AppConnectRouteWithChildren
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
+  '/app/development': typeof AppDevelopmentRoute
   '/app/impact': typeof AppImpactRouteWithChildren
   '/app/lavbund': typeof AppLavbundRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
+  '/app/program': typeof AppProgramRoute
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
+  '/app/work-orders': typeof AppWorkOrdersRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/gps-position': typeof ApiPublicGpsPositionRoute
   '/api/public/observations': typeof ApiPublicObservationsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -631,6 +687,7 @@ export interface FileRoutesByFullPath {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
+  '/api/public/monitoring/reconcile-uploads': typeof ApiPublicMonitoringReconcileUploadsRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
@@ -643,19 +700,26 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/opgaver': typeof OpgaverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select': typeof SelectRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/app/data': typeof AppDataRoute
+  '/app/development': typeof AppDevelopmentRoute
   '/app/overview': typeof AppOverviewRoute
+  '/app/program': typeof AppProgramRoute
   '/app/public-impact': typeof AppPublicImpactRoute
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
+  '/app/work-orders': typeof AppWorkOrdersRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/gps-position': typeof ApiPublicGpsPositionRoute
   '/api/public/observations': typeof ApiPublicObservationsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -714,6 +778,7 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
+  '/api/public/monitoring/reconcile-uploads': typeof ApiPublicMonitoringReconcileUploadsRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
@@ -727,8 +792,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/opgaver': typeof OpgaverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select': typeof SelectRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -737,16 +804,21 @@ export interface FileRoutesById {
   '/app/connect': typeof AppConnectRouteWithChildren
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
+  '/app/development': typeof AppDevelopmentRoute
   '/app/impact': typeof AppImpactRouteWithChildren
   '/app/lavbund': typeof AppLavbundRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
+  '/app/program': typeof AppProgramRoute
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
+  '/app/work-orders': typeof AppWorkOrdersRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/gps-position': typeof ApiPublicGpsPositionRoute
   '/api/public/observations': typeof ApiPublicObservationsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -805,6 +877,7 @@ export interface FileRoutesById {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
+  '/api/public/monitoring/reconcile-uploads': typeof ApiPublicMonitoringReconcileUploadsRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
@@ -819,8 +892,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/felt'
     | '/login'
     | '/mcp'
+    | '/opgaver'
     | '/reset-password'
     | '/select'
     | '/sitemap.xml'
@@ -829,16 +904,21 @@ export interface FileRouteTypes {
     | '/app/connect'
     | '/app/data'
     | '/app/decisions'
+    | '/app/development'
     | '/app/impact'
     | '/app/lavbund'
     | '/app/ledger'
     | '/app/overview'
+    | '/app/program'
     | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
+    | '/app/sources'
     | '/app/system-test'
+    | '/app/work-orders'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/gps-position'
     | '/api/public/observations'
     | '/app/connect/add'
     | '/app/connect/alerts'
@@ -897,6 +977,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/api/public/monitoring/evaluate'
+    | '/api/public/monitoring/reconcile-uploads'
     | '/app/construction/projects/$slug'
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
@@ -909,19 +990,26 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/felt'
     | '/login'
     | '/mcp'
+    | '/opgaver'
     | '/reset-password'
     | '/select'
     | '/sitemap.xml'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/app/data'
+    | '/app/development'
     | '/app/overview'
+    | '/app/program'
     | '/app/public-impact'
+    | '/app/sources'
     | '/app/system-test'
+    | '/app/work-orders'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/gps-position'
     | '/api/public/observations'
     | '/app/connect/add'
     | '/app/connect/alerts'
@@ -980,6 +1068,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/api/public/monitoring/evaluate'
+    | '/api/public/monitoring/reconcile-uploads'
     | '/app/construction/projects/$slug'
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
@@ -992,8 +1081,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/felt'
     | '/login'
     | '/mcp'
+    | '/opgaver'
     | '/reset-password'
     | '/select'
     | '/sitemap.xml'
@@ -1002,16 +1093,21 @@ export interface FileRouteTypes {
     | '/app/connect'
     | '/app/data'
     | '/app/decisions'
+    | '/app/development'
     | '/app/impact'
     | '/app/lavbund'
     | '/app/ledger'
     | '/app/overview'
+    | '/app/program'
     | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
+    | '/app/sources'
     | '/app/system-test'
+    | '/app/work-orders'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/gps-position'
     | '/api/public/observations'
     | '/app/connect/add'
     | '/app/connect/alerts'
@@ -1070,6 +1166,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/api/public/monitoring/evaluate'
+    | '/api/public/monitoring/reconcile-uploads'
     | '/app/construction/projects/$slug'
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
@@ -1083,8 +1180,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  FeltRoute: typeof FeltRoute
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
+  OpgaverRoute: typeof OpgaverRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SelectRoute: typeof SelectRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -1092,45 +1191,19 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiPublicGpsPositionRoute: typeof ApiPublicGpsPositionRoute
   ApiPublicObservationsRoute: typeof ApiPublicObservationsRoute
   ApiPublicMonitoringEvaluateRoute: typeof ApiPublicMonitoringEvaluateRoute
+  ApiPublicMonitoringReconcileUploadsRoute: typeof ApiPublicMonitoringReconcileUploadsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/select': {
-      id: '/select'
-      path: '/select'
-      fullPath: '/select'
-      preLoaderRoute: typeof SelectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -1140,95 +1213,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/felt': {
+      id: '/felt'
+      path: '/felt'
+      fullPath: '/felt'
+      preLoaderRoute: typeof FeltRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/system-test': {
-      id: '/app/system-test'
-      path: '/system-test'
-      fullPath: '/app/system-test'
-      preLoaderRoute: typeof AppSystemTestRouteImport
-      parentRoute: typeof AppRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/settings': {
-      id: '/app/settings'
-      path: '/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/reports': {
-      id: '/app/reports'
-      path: '/reports'
-      fullPath: '/app/reports'
-      preLoaderRoute: typeof AppReportsRouteImport
-      parentRoute: typeof AppRoute
+    '/opgaver': {
+      id: '/opgaver'
+      path: '/opgaver'
+      fullPath: '/opgaver'
+      preLoaderRoute: typeof OpgaverRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/public-impact': {
-      id: '/app/public-impact'
-      path: '/public-impact'
-      fullPath: '/app/public-impact'
-      preLoaderRoute: typeof AppPublicImpactRouteImport
-      parentRoute: typeof AppRoute
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/overview': {
-      id: '/app/overview'
-      path: '/overview'
-      fullPath: '/app/overview'
-      preLoaderRoute: typeof AppOverviewRouteImport
-      parentRoute: typeof AppRoute
+    '/select': {
+      id: '/select'
+      path: '/select'
+      fullPath: '/select'
+      preLoaderRoute: typeof SelectRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/ledger': {
-      id: '/app/ledger'
-      path: '/ledger'
-      fullPath: '/app/ledger'
-      preLoaderRoute: typeof AppLedgerRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/lavbund': {
-      id: '/app/lavbund'
-      path: '/lavbund'
-      fullPath: '/app/lavbund'
-      preLoaderRoute: typeof AppLavbundRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/impact': {
-      id: '/app/impact'
-      path: '/impact'
-      fullPath: '/app/impact'
-      preLoaderRoute: typeof AppImpactRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/decisions': {
-      id: '/app/decisions'
-      path: '/decisions'
-      fullPath: '/app/decisions'
-      preLoaderRoute: typeof AppDecisionsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/data': {
-      id: '/app/data'
-      path: '/data'
-      fullPath: '/app/data'
-      preLoaderRoute: typeof AppDataRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/connect': {
-      id: '/app/connect'
-      path: '/connect'
-      fullPath: '/app/connect'
-      preLoaderRoute: typeof AppConnectRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/list-tools': {
@@ -1238,403 +1269,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/settings/': {
-      id: '/app/settings/'
-      path: '/'
-      fullPath: '/app/settings/'
-      preLoaderRoute: typeof AppSettingsIndexRouteImport
-      parentRoute: typeof AppSettingsRoute
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/reports/': {
-      id: '/app/reports/'
-      path: '/'
-      fullPath: '/app/reports/'
-      preLoaderRoute: typeof AppReportsIndexRouteImport
-      parentRoute: typeof AppReportsRoute
-    }
-    '/app/projects/': {
-      id: '/app/projects/'
-      path: '/projects'
-      fullPath: '/app/projects/'
-      preLoaderRoute: typeof AppProjectsIndexRouteImport
+    '/app/connect': {
+      id: '/app/connect'
+      path: '/connect'
+      fullPath: '/app/connect'
+      preLoaderRoute: typeof AppConnectRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/ledger/': {
-      id: '/app/ledger/'
-      path: '/'
-      fullPath: '/app/ledger/'
-      preLoaderRoute: typeof AppLedgerIndexRouteImport
-      parentRoute: typeof AppLedgerRoute
-    }
-    '/app/lavbund/': {
-      id: '/app/lavbund/'
-      path: '/'
-      fullPath: '/app/lavbund/'
-      preLoaderRoute: typeof AppLavbundIndexRouteImport
-      parentRoute: typeof AppLavbundRoute
-    }
-    '/app/impact/': {
-      id: '/app/impact/'
-      path: '/'
-      fullPath: '/app/impact/'
-      preLoaderRoute: typeof AppImpactIndexRouteImport
-      parentRoute: typeof AppImpactRoute
-    }
-    '/app/decisions/': {
-      id: '/app/decisions/'
-      path: '/'
-      fullPath: '/app/decisions/'
-      preLoaderRoute: typeof AppDecisionsIndexRouteImport
-      parentRoute: typeof AppDecisionsRoute
-    }
-    '/app/construction/': {
-      id: '/app/construction/'
-      path: '/construction'
-      fullPath: '/app/construction/'
-      preLoaderRoute: typeof AppConstructionIndexRouteImport
+    '/app/data': {
+      id: '/app/data'
+      path: '/data'
+      fullPath: '/app/data'
+      preLoaderRoute: typeof AppDataRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/connect/': {
-      id: '/app/connect/'
-      path: '/'
-      fullPath: '/app/connect/'
-      preLoaderRoute: typeof AppConnectIndexRouteImport
-      parentRoute: typeof AppConnectRoute
-    }
-    '/app/settings/users': {
-      id: '/app/settings/users'
-      path: '/users'
-      fullPath: '/app/settings/users'
-      preLoaderRoute: typeof AppSettingsUsersRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
-    '/app/settings/security': {
-      id: '/app/settings/security'
-      path: '/security'
-      fullPath: '/app/settings/security'
-      preLoaderRoute: typeof AppSettingsSecurityRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
-    '/app/settings/projects': {
-      id: '/app/settings/projects'
-      path: '/projects'
-      fullPath: '/app/settings/projects'
-      preLoaderRoute: typeof AppSettingsProjectsRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
-    '/app/settings/notifications': {
-      id: '/app/settings/notifications'
-      path: '/notifications'
-      fullPath: '/app/settings/notifications'
-      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
-    '/app/settings/modules': {
-      id: '/app/settings/modules'
-      path: '/modules'
-      fullPath: '/app/settings/modules'
-      preLoaderRoute: typeof AppSettingsModulesRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
-    '/app/settings/frameworks': {
-      id: '/app/settings/frameworks'
-      path: '/frameworks'
-      fullPath: '/app/settings/frameworks'
-      preLoaderRoute: typeof AppSettingsFrameworksRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
-    '/app/settings/billing': {
-      id: '/app/settings/billing'
-      path: '/billing'
-      fullPath: '/app/settings/billing'
-      preLoaderRoute: typeof AppSettingsBillingRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
-    '/app/settings/access': {
-      id: '/app/settings/access'
-      path: '/access'
-      fullPath: '/app/settings/access'
-      preLoaderRoute: typeof AppSettingsAccessRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
-    '/app/reports/templates': {
-      id: '/app/reports/templates'
-      path: '/templates'
-      fullPath: '/app/reports/templates'
-      preLoaderRoute: typeof AppReportsTemplatesRouteImport
-      parentRoute: typeof AppReportsRoute
-    }
-    '/app/reports/readiness': {
-      id: '/app/reports/readiness'
-      path: '/readiness'
-      fullPath: '/app/reports/readiness'
-      preLoaderRoute: typeof AppReportsReadinessRouteImport
-      parentRoute: typeof AppReportsRoute
-    }
-    '/app/reports/preview': {
-      id: '/app/reports/preview'
-      path: '/preview'
-      fullPath: '/app/reports/preview'
-      preLoaderRoute: typeof AppReportsPreviewRouteImport
-      parentRoute: typeof AppReportsRoute
-    }
-    '/app/reports/new': {
-      id: '/app/reports/new'
-      path: '/new'
-      fullPath: '/app/reports/new'
-      preLoaderRoute: typeof AppReportsNewRouteImport
-      parentRoute: typeof AppReportsRoute
-    }
-    '/app/reports/library': {
-      id: '/app/reports/library'
-      path: '/library'
-      fullPath: '/app/reports/library'
-      preLoaderRoute: typeof AppReportsLibraryRouteImport
-      parentRoute: typeof AppReportsRoute
-    }
-    '/app/reports/builder': {
-      id: '/app/reports/builder'
-      path: '/builder'
-      fullPath: '/app/reports/builder'
-      preLoaderRoute: typeof AppReportsBuilderRouteImport
-      parentRoute: typeof AppReportsRoute
-    }
-    '/app/reports/approval': {
-      id: '/app/reports/approval'
-      path: '/approval'
-      fullPath: '/app/reports/approval'
-      preLoaderRoute: typeof AppReportsApprovalRouteImport
-      parentRoute: typeof AppReportsRoute
-    }
-    '/app/projects/$slug': {
-      id: '/app/projects/$slug'
-      path: '/projects/$slug'
-      fullPath: '/app/projects/$slug'
-      preLoaderRoute: typeof AppProjectsSlugRouteImport
+    '/app/decisions': {
+      id: '/app/decisions'
+      path: '/decisions'
+      fullPath: '/app/decisions'
+      preLoaderRoute: typeof AppDecisionsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/ledger/sources': {
-      id: '/app/ledger/sources'
-      path: '/sources'
-      fullPath: '/app/ledger/sources'
-      preLoaderRoute: typeof AppLedgerSourcesRouteImport
-      parentRoute: typeof AppLedgerRoute
+    '/app/development': {
+      id: '/app/development'
+      path: '/development'
+      fullPath: '/app/development'
+      preLoaderRoute: typeof AppDevelopmentRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/ledger/reporting': {
-      id: '/app/ledger/reporting'
-      path: '/reporting'
-      fullPath: '/app/ledger/reporting'
-      preLoaderRoute: typeof AppLedgerReportingRouteImport
-      parentRoute: typeof AppLedgerRoute
+    '/app/impact': {
+      id: '/app/impact'
+      path: '/impact'
+      fullPath: '/app/impact'
+      preLoaderRoute: typeof AppImpactRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/ledger/metrics': {
-      id: '/app/ledger/metrics'
-      path: '/metrics'
-      fullPath: '/app/ledger/metrics'
-      preLoaderRoute: typeof AppLedgerMetricsRouteImport
-      parentRoute: typeof AppLedgerRoute
+    '/app/lavbund': {
+      id: '/app/lavbund'
+      path: '/lavbund'
+      fullPath: '/app/lavbund'
+      preLoaderRoute: typeof AppLavbundRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/ledger/documents': {
-      id: '/app/ledger/documents'
-      path: '/documents'
-      fullPath: '/app/ledger/documents'
-      preLoaderRoute: typeof AppLedgerDocumentsRouteImport
-      parentRoute: typeof AppLedgerRoute
+    '/app/ledger': {
+      id: '/app/ledger'
+      path: '/ledger'
+      fullPath: '/app/ledger'
+      preLoaderRoute: typeof AppLedgerRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/ledger/csrd': {
-      id: '/app/ledger/csrd'
-      path: '/csrd'
-      fullPath: '/app/ledger/csrd'
-      preLoaderRoute: typeof AppLedgerCsrdRouteImport
-      parentRoute: typeof AppLedgerRoute
+    '/app/overview': {
+      id: '/app/overview'
+      path: '/overview'
+      fullPath: '/app/overview'
+      preLoaderRoute: typeof AppOverviewRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/ledger/co2': {
-      id: '/app/ledger/co2'
-      path: '/co2'
-      fullPath: '/app/ledger/co2'
-      preLoaderRoute: typeof AppLedgerCo2RouteImport
-      parentRoute: typeof AppLedgerRoute
+    '/app/program': {
+      id: '/app/program'
+      path: '/program'
+      fullPath: '/app/program'
+      preLoaderRoute: typeof AppProgramRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/ledger/audit': {
-      id: '/app/ledger/audit'
-      path: '/audit'
-      fullPath: '/app/ledger/audit'
-      preLoaderRoute: typeof AppLedgerAuditRouteImport
-      parentRoute: typeof AppLedgerRoute
+    '/app/public-impact': {
+      id: '/app/public-impact'
+      path: '/public-impact'
+      fullPath: '/app/public-impact'
+      preLoaderRoute: typeof AppPublicImpactRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/lavbund/$projektId': {
-      id: '/app/lavbund/$projektId'
-      path: '/$projektId'
-      fullPath: '/app/lavbund/$projektId'
-      preLoaderRoute: typeof AppLavbundProjektIdRouteImport
-      parentRoute: typeof AppLavbundRoute
-    }
-    '/app/impact/verification': {
-      id: '/app/impact/verification'
-      path: '/verification'
-      fullPath: '/app/impact/verification'
-      preLoaderRoute: typeof AppImpactVerificationRouteImport
-      parentRoute: typeof AppImpactRoute
-    }
-    '/app/impact/reports': {
-      id: '/app/impact/reports'
+    '/app/reports': {
+      id: '/app/reports'
       path: '/reports'
-      fullPath: '/app/impact/reports'
-      preLoaderRoute: typeof AppImpactReportsRouteImport
-      parentRoute: typeof AppImpactRoute
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/impact/projects': {
-      id: '/app/impact/projects'
-      path: '/projects'
-      fullPath: '/app/impact/projects'
-      preLoaderRoute: typeof AppImpactProjectsRouteImport
-      parentRoute: typeof AppImpactRoute
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/impact/project': {
-      id: '/app/impact/project'
-      path: '/project'
-      fullPath: '/app/impact/project'
-      preLoaderRoute: typeof AppImpactProjectRouteImport
-      parentRoute: typeof AppImpactRoute
-    }
-    '/app/impact/portfolio': {
-      id: '/app/impact/portfolio'
-      path: '/portfolio'
-      fullPath: '/app/impact/portfolio'
-      preLoaderRoute: typeof AppImpactPortfolioRouteImport
-      parentRoute: typeof AppImpactRoute
-    }
-    '/app/impact/organizations': {
-      id: '/app/impact/organizations'
-      path: '/organizations'
-      fullPath: '/app/impact/organizations'
-      preLoaderRoute: typeof AppImpactOrganizationsRouteImport
-      parentRoute: typeof AppImpactRoute
-    }
-    '/app/impact/credits': {
-      id: '/app/impact/credits'
-      path: '/credits'
-      fullPath: '/app/impact/credits'
-      preLoaderRoute: typeof AppImpactCreditsRouteImport
-      parentRoute: typeof AppImpactRoute
-    }
-    '/app/decisions/scenarios': {
-      id: '/app/decisions/scenarios'
-      path: '/scenarios'
-      fullPath: '/app/decisions/scenarios'
-      preLoaderRoute: typeof AppDecisionsScenariosRouteImport
-      parentRoute: typeof AppDecisionsRoute
-    }
-    '/app/decisions/risk': {
-      id: '/app/decisions/risk'
-      path: '/risk'
-      fullPath: '/app/decisions/risk'
-      preLoaderRoute: typeof AppDecisionsRiskRouteImport
-      parentRoute: typeof AppDecisionsRoute
-    }
-    '/app/decisions/recommendations': {
-      id: '/app/decisions/recommendations'
-      path: '/recommendations'
-      fullPath: '/app/decisions/recommendations'
-      preLoaderRoute: typeof AppDecisionsRecommendationsRouteImport
-      parentRoute: typeof AppDecisionsRoute
-    }
-    '/app/decisions/notes': {
-      id: '/app/decisions/notes'
-      path: '/notes'
-      fullPath: '/app/decisions/notes'
-      preLoaderRoute: typeof AppDecisionsNotesRouteImport
-      parentRoute: typeof AppDecisionsRoute
-    }
-    '/app/decisions/data-quality': {
-      id: '/app/decisions/data-quality'
-      path: '/data-quality'
-      fullPath: '/app/decisions/data-quality'
-      preLoaderRoute: typeof AppDecisionsDataQualityRouteImport
-      parentRoute: typeof AppDecisionsRoute
-    }
-    '/app/decisions/assistant': {
-      id: '/app/decisions/assistant'
-      path: '/assistant'
-      fullPath: '/app/decisions/assistant'
-      preLoaderRoute: typeof AppDecisionsAssistantRouteImport
-      parentRoute: typeof AppDecisionsRoute
-    }
-    '/app/connect/upload': {
-      id: '/app/connect/upload'
-      path: '/upload'
-      fullPath: '/app/connect/upload'
-      preLoaderRoute: typeof AppConnectUploadRouteImport
-      parentRoute: typeof AppConnectRoute
-    }
-    '/app/connect/sources': {
-      id: '/app/connect/sources'
+    '/app/sources': {
+      id: '/app/sources'
       path: '/sources'
-      fullPath: '/app/connect/sources'
-      preLoaderRoute: typeof AppConnectSourcesRouteImport
-      parentRoute: typeof AppConnectRoute
+      fullPath: '/app/sources'
+      preLoaderRoute: typeof AppSourcesRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/connect/registry': {
-      id: '/app/connect/registry'
-      path: '/registry'
-      fullPath: '/app/connect/registry'
-      preLoaderRoute: typeof AppConnectRegistryRouteImport
-      parentRoute: typeof AppConnectRoute
+    '/app/system-test': {
+      id: '/app/system-test'
+      path: '/system-test'
+      fullPath: '/app/system-test'
+      preLoaderRoute: typeof AppSystemTestRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/connect/quality': {
-      id: '/app/connect/quality'
-      path: '/quality'
-      fullPath: '/app/connect/quality'
-      preLoaderRoute: typeof AppConnectQualityRouteImport
-      parentRoute: typeof AppConnectRoute
+    '/app/work-orders': {
+      id: '/app/work-orders'
+      path: '/work-orders'
+      fullPath: '/app/work-orders'
+      preLoaderRoute: typeof AppWorkOrdersRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/connect/map': {
-      id: '/app/connect/map'
-      path: '/map'
-      fullPath: '/app/connect/map'
-      preLoaderRoute: typeof AppConnectMapRouteImport
-      parentRoute: typeof AppConnectRoute
-    }
-    '/app/connect/live': {
-      id: '/app/connect/live'
-      path: '/live'
-      fullPath: '/app/connect/live'
-      preLoaderRoute: typeof AppConnectLiveRouteImport
-      parentRoute: typeof AppConnectRoute
-    }
-    '/app/connect/integrations': {
-      id: '/app/connect/integrations'
-      path: '/integrations'
-      fullPath: '/app/connect/integrations'
-      preLoaderRoute: typeof AppConnectIntegrationsRouteImport
-      parentRoute: typeof AppConnectRoute
-    }
-    '/app/connect/devices': {
-      id: '/app/connect/devices'
-      path: '/devices'
-      fullPath: '/app/connect/devices'
-      preLoaderRoute: typeof AppConnectDevicesRouteImport
-      parentRoute: typeof AppConnectRoute
-    }
-    '/app/connect/alerts': {
-      id: '/app/connect/alerts'
-      path: '/alerts'
-      fullPath: '/app/connect/alerts'
-      preLoaderRoute: typeof AppConnectAlertsRouteImport
-      parentRoute: typeof AppConnectRoute
-    }
-    '/app/connect/add': {
-      id: '/app/connect/add'
-      path: '/add'
-      fullPath: '/app/connect/add'
-      preLoaderRoute: typeof AppConnectAddRouteImport
-      parentRoute: typeof AppConnectRoute
-    }
-    '/api/public/observations': {
-      id: '/api/public/observations'
-      path: '/api/public/observations'
-      fullPath: '/api/public/observations'
-      preLoaderRoute: typeof ApiPublicObservationsRouteImport
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/invoke-tool/$tool': {
@@ -1644,46 +1395,438 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+    '/api/public/gps-position': {
+      id: '/api/public/gps-position'
+      path: '/api/public/gps-position'
+      fullPath: '/api/public/gps-position'
+      preLoaderRoute: typeof ApiPublicGpsPositionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/projects/map/$slug': {
-      id: '/app/projects/map/$slug'
-      path: '/projects/map/$slug'
-      fullPath: '/app/projects/map/$slug'
-      preLoaderRoute: typeof AppProjectsMapSlugRouteImport
+    '/api/public/observations': {
+      id: '/api/public/observations'
+      path: '/api/public/observations'
+      fullPath: '/api/public/observations'
+      preLoaderRoute: typeof ApiPublicObservationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/connect/': {
+      id: '/app/connect/'
+      path: '/'
+      fullPath: '/app/connect/'
+      preLoaderRoute: typeof AppConnectIndexRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/add': {
+      id: '/app/connect/add'
+      path: '/add'
+      fullPath: '/app/connect/add'
+      preLoaderRoute: typeof AppConnectAddRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/alerts': {
+      id: '/app/connect/alerts'
+      path: '/alerts'
+      fullPath: '/app/connect/alerts'
+      preLoaderRoute: typeof AppConnectAlertsRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/devices': {
+      id: '/app/connect/devices'
+      path: '/devices'
+      fullPath: '/app/connect/devices'
+      preLoaderRoute: typeof AppConnectDevicesRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/integrations': {
+      id: '/app/connect/integrations'
+      path: '/integrations'
+      fullPath: '/app/connect/integrations'
+      preLoaderRoute: typeof AppConnectIntegrationsRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/live': {
+      id: '/app/connect/live'
+      path: '/live'
+      fullPath: '/app/connect/live'
+      preLoaderRoute: typeof AppConnectLiveRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/map': {
+      id: '/app/connect/map'
+      path: '/map'
+      fullPath: '/app/connect/map'
+      preLoaderRoute: typeof AppConnectMapRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/quality': {
+      id: '/app/connect/quality'
+      path: '/quality'
+      fullPath: '/app/connect/quality'
+      preLoaderRoute: typeof AppConnectQualityRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/registry': {
+      id: '/app/connect/registry'
+      path: '/registry'
+      fullPath: '/app/connect/registry'
+      preLoaderRoute: typeof AppConnectRegistryRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/sources': {
+      id: '/app/connect/sources'
+      path: '/sources'
+      fullPath: '/app/connect/sources'
+      preLoaderRoute: typeof AppConnectSourcesRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/upload': {
+      id: '/app/connect/upload'
+      path: '/upload'
+      fullPath: '/app/connect/upload'
+      preLoaderRoute: typeof AppConnectUploadRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/construction/': {
+      id: '/app/construction/'
+      path: '/construction'
+      fullPath: '/app/construction/'
+      preLoaderRoute: typeof AppConstructionIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/projects/geometry/$slug': {
-      id: '/app/projects/geometry/$slug'
-      path: '/projects/geometry/$slug'
-      fullPath: '/app/projects/geometry/$slug'
-      preLoaderRoute: typeof AppProjectsGeometrySlugRouteImport
+    '/app/decisions/': {
+      id: '/app/decisions/'
+      path: '/'
+      fullPath: '/app/decisions/'
+      preLoaderRoute: typeof AppDecisionsIndexRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/assistant': {
+      id: '/app/decisions/assistant'
+      path: '/assistant'
+      fullPath: '/app/decisions/assistant'
+      preLoaderRoute: typeof AppDecisionsAssistantRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/data-quality': {
+      id: '/app/decisions/data-quality'
+      path: '/data-quality'
+      fullPath: '/app/decisions/data-quality'
+      preLoaderRoute: typeof AppDecisionsDataQualityRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/notes': {
+      id: '/app/decisions/notes'
+      path: '/notes'
+      fullPath: '/app/decisions/notes'
+      preLoaderRoute: typeof AppDecisionsNotesRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/recommendations': {
+      id: '/app/decisions/recommendations'
+      path: '/recommendations'
+      fullPath: '/app/decisions/recommendations'
+      preLoaderRoute: typeof AppDecisionsRecommendationsRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/risk': {
+      id: '/app/decisions/risk'
+      path: '/risk'
+      fullPath: '/app/decisions/risk'
+      preLoaderRoute: typeof AppDecisionsRiskRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/scenarios': {
+      id: '/app/decisions/scenarios'
+      path: '/scenarios'
+      fullPath: '/app/decisions/scenarios'
+      preLoaderRoute: typeof AppDecisionsScenariosRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/impact/': {
+      id: '/app/impact/'
+      path: '/'
+      fullPath: '/app/impact/'
+      preLoaderRoute: typeof AppImpactIndexRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/credits': {
+      id: '/app/impact/credits'
+      path: '/credits'
+      fullPath: '/app/impact/credits'
+      preLoaderRoute: typeof AppImpactCreditsRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/organizations': {
+      id: '/app/impact/organizations'
+      path: '/organizations'
+      fullPath: '/app/impact/organizations'
+      preLoaderRoute: typeof AppImpactOrganizationsRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/portfolio': {
+      id: '/app/impact/portfolio'
+      path: '/portfolio'
+      fullPath: '/app/impact/portfolio'
+      preLoaderRoute: typeof AppImpactPortfolioRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/project': {
+      id: '/app/impact/project'
+      path: '/project'
+      fullPath: '/app/impact/project'
+      preLoaderRoute: typeof AppImpactProjectRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/projects': {
+      id: '/app/impact/projects'
+      path: '/projects'
+      fullPath: '/app/impact/projects'
+      preLoaderRoute: typeof AppImpactProjectsRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/reports': {
+      id: '/app/impact/reports'
+      path: '/reports'
+      fullPath: '/app/impact/reports'
+      preLoaderRoute: typeof AppImpactReportsRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/verification': {
+      id: '/app/impact/verification'
+      path: '/verification'
+      fullPath: '/app/impact/verification'
+      preLoaderRoute: typeof AppImpactVerificationRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/lavbund/': {
+      id: '/app/lavbund/'
+      path: '/'
+      fullPath: '/app/lavbund/'
+      preLoaderRoute: typeof AppLavbundIndexRouteImport
+      parentRoute: typeof AppLavbundRoute
+    }
+    '/app/lavbund/$projektId': {
+      id: '/app/lavbund/$projektId'
+      path: '/$projektId'
+      fullPath: '/app/lavbund/$projektId'
+      preLoaderRoute: typeof AppLavbundProjektIdRouteImport
+      parentRoute: typeof AppLavbundRoute
+    }
+    '/app/ledger/': {
+      id: '/app/ledger/'
+      path: '/'
+      fullPath: '/app/ledger/'
+      preLoaderRoute: typeof AppLedgerIndexRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/ledger/audit': {
+      id: '/app/ledger/audit'
+      path: '/audit'
+      fullPath: '/app/ledger/audit'
+      preLoaderRoute: typeof AppLedgerAuditRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/ledger/co2': {
+      id: '/app/ledger/co2'
+      path: '/co2'
+      fullPath: '/app/ledger/co2'
+      preLoaderRoute: typeof AppLedgerCo2RouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/ledger/csrd': {
+      id: '/app/ledger/csrd'
+      path: '/csrd'
+      fullPath: '/app/ledger/csrd'
+      preLoaderRoute: typeof AppLedgerCsrdRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/ledger/documents': {
+      id: '/app/ledger/documents'
+      path: '/documents'
+      fullPath: '/app/ledger/documents'
+      preLoaderRoute: typeof AppLedgerDocumentsRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/ledger/metrics': {
+      id: '/app/ledger/metrics'
+      path: '/metrics'
+      fullPath: '/app/ledger/metrics'
+      preLoaderRoute: typeof AppLedgerMetricsRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/ledger/reporting': {
+      id: '/app/ledger/reporting'
+      path: '/reporting'
+      fullPath: '/app/ledger/reporting'
+      preLoaderRoute: typeof AppLedgerReportingRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/ledger/sources': {
+      id: '/app/ledger/sources'
+      path: '/sources'
+      fullPath: '/app/ledger/sources'
+      preLoaderRoute: typeof AppLedgerSourcesRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/projects/': {
+      id: '/app/projects/'
+      path: '/projects'
+      fullPath: '/app/projects/'
+      preLoaderRoute: typeof AppProjectsIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/lavbund/$projektId/revisionsspor': {
-      id: '/app/lavbund/$projektId/revisionsspor'
-      path: '/revisionsspor'
-      fullPath: '/app/lavbund/$projektId/revisionsspor'
-      preLoaderRoute: typeof AppLavbundProjektIdRevisionssporRouteImport
-      parentRoute: typeof AppLavbundProjektIdRoute
+    '/app/projects/$slug': {
+      id: '/app/projects/$slug'
+      path: '/projects/$slug'
+      fullPath: '/app/projects/$slug'
+      preLoaderRoute: typeof AppProjectsSlugRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/app/lavbund/$projektId/rapport': {
-      id: '/app/lavbund/$projektId/rapport'
-      path: '/rapport'
-      fullPath: '/app/lavbund/$projektId/rapport'
-      preLoaderRoute: typeof AppLavbundProjektIdRapportRouteImport
-      parentRoute: typeof AppLavbundProjektIdRoute
+    '/app/reports/': {
+      id: '/app/reports/'
+      path: '/'
+      fullPath: '/app/reports/'
+      preLoaderRoute: typeof AppReportsIndexRouteImport
+      parentRoute: typeof AppReportsRoute
     }
-    '/app/lavbund/$projektId/kort': {
-      id: '/app/lavbund/$projektId/kort'
-      path: '/kort'
-      fullPath: '/app/lavbund/$projektId/kort'
-      preLoaderRoute: typeof AppLavbundProjektIdKortRouteImport
+    '/app/reports/approval': {
+      id: '/app/reports/approval'
+      path: '/approval'
+      fullPath: '/app/reports/approval'
+      preLoaderRoute: typeof AppReportsApprovalRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/builder': {
+      id: '/app/reports/builder'
+      path: '/builder'
+      fullPath: '/app/reports/builder'
+      preLoaderRoute: typeof AppReportsBuilderRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/library': {
+      id: '/app/reports/library'
+      path: '/library'
+      fullPath: '/app/reports/library'
+      preLoaderRoute: typeof AppReportsLibraryRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/new': {
+      id: '/app/reports/new'
+      path: '/new'
+      fullPath: '/app/reports/new'
+      preLoaderRoute: typeof AppReportsNewRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/preview': {
+      id: '/app/reports/preview'
+      path: '/preview'
+      fullPath: '/app/reports/preview'
+      preLoaderRoute: typeof AppReportsPreviewRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/readiness': {
+      id: '/app/reports/readiness'
+      path: '/readiness'
+      fullPath: '/app/reports/readiness'
+      preLoaderRoute: typeof AppReportsReadinessRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/templates': {
+      id: '/app/reports/templates'
+      path: '/templates'
+      fullPath: '/app/reports/templates'
+      preLoaderRoute: typeof AppReportsTemplatesRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/settings/': {
+      id: '/app/settings/'
+      path: '/'
+      fullPath: '/app/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/access': {
+      id: '/app/settings/access'
+      path: '/access'
+      fullPath: '/app/settings/access'
+      preLoaderRoute: typeof AppSettingsAccessRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/billing': {
+      id: '/app/settings/billing'
+      path: '/billing'
+      fullPath: '/app/settings/billing'
+      preLoaderRoute: typeof AppSettingsBillingRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/frameworks': {
+      id: '/app/settings/frameworks'
+      path: '/frameworks'
+      fullPath: '/app/settings/frameworks'
+      preLoaderRoute: typeof AppSettingsFrameworksRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/modules': {
+      id: '/app/settings/modules'
+      path: '/modules'
+      fullPath: '/app/settings/modules'
+      preLoaderRoute: typeof AppSettingsModulesRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/notifications': {
+      id: '/app/settings/notifications'
+      path: '/notifications'
+      fullPath: '/app/settings/notifications'
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/projects': {
+      id: '/app/settings/projects'
+      path: '/projects'
+      fullPath: '/app/settings/projects'
+      preLoaderRoute: typeof AppSettingsProjectsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/security': {
+      id: '/app/settings/security'
+      path: '/security'
+      fullPath: '/app/settings/security'
+      preLoaderRoute: typeof AppSettingsSecurityRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/users': {
+      id: '/app/settings/users'
+      path: '/users'
+      fullPath: '/app/settings/users'
+      preLoaderRoute: typeof AppSettingsUsersRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/api/public/monitoring/evaluate': {
+      id: '/api/public/monitoring/evaluate'
+      path: '/api/public/monitoring/evaluate'
+      fullPath: '/api/public/monitoring/evaluate'
+      preLoaderRoute: typeof ApiPublicMonitoringEvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/monitoring/reconcile-uploads': {
+      id: '/api/public/monitoring/reconcile-uploads'
+      path: '/api/public/monitoring/reconcile-uploads'
+      fullPath: '/api/public/monitoring/reconcile-uploads'
+      preLoaderRoute: typeof ApiPublicMonitoringReconcileUploadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/construction/projects/$slug': {
+      id: '/app/construction/projects/$slug'
+      path: '/construction/projects/$slug'
+      fullPath: '/app/construction/projects/$slug'
+      preLoaderRoute: typeof AppConstructionProjectsSlugRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/lavbund/$projektId/fosfor': {
+      id: '/app/lavbund/$projektId/fosfor'
+      path: '/fosfor'
+      fullPath: '/app/lavbund/$projektId/fosfor'
+      preLoaderRoute: typeof AppLavbundProjektIdFosforRouteImport
       parentRoute: typeof AppLavbundProjektIdRoute
     }
     '/app/lavbund/$projektId/klima': {
@@ -1693,26 +1836,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLavbundProjektIdKlimaRouteImport
       parentRoute: typeof AppLavbundProjektIdRoute
     }
-    '/app/lavbund/$projektId/fosfor': {
-      id: '/app/lavbund/$projektId/fosfor'
-      path: '/fosfor'
-      fullPath: '/app/lavbund/$projektId/fosfor'
-      preLoaderRoute: typeof AppLavbundProjektIdFosforRouteImport
+    '/app/lavbund/$projektId/kort': {
+      id: '/app/lavbund/$projektId/kort'
+      path: '/kort'
+      fullPath: '/app/lavbund/$projektId/kort'
+      preLoaderRoute: typeof AppLavbundProjektIdKortRouteImport
       parentRoute: typeof AppLavbundProjektIdRoute
     }
-    '/app/construction/projects/$slug': {
-      id: '/app/construction/projects/$slug'
-      path: '/construction/projects/$slug'
-      fullPath: '/app/construction/projects/$slug'
-      preLoaderRoute: typeof AppConstructionProjectsSlugRouteImport
+    '/app/lavbund/$projektId/rapport': {
+      id: '/app/lavbund/$projektId/rapport'
+      path: '/rapport'
+      fullPath: '/app/lavbund/$projektId/rapport'
+      preLoaderRoute: typeof AppLavbundProjektIdRapportRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
+    '/app/lavbund/$projektId/revisionsspor': {
+      id: '/app/lavbund/$projektId/revisionsspor'
+      path: '/revisionsspor'
+      fullPath: '/app/lavbund/$projektId/revisionsspor'
+      preLoaderRoute: typeof AppLavbundProjektIdRevisionssporRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
+    '/app/projects/geometry/$slug': {
+      id: '/app/projects/geometry/$slug'
+      path: '/projects/geometry/$slug'
+      fullPath: '/app/projects/geometry/$slug'
+      preLoaderRoute: typeof AppProjectsGeometrySlugRouteImport
       parentRoute: typeof AppRoute
     }
-    '/api/public/monitoring/evaluate': {
-      id: '/api/public/monitoring/evaluate'
-      path: '/api/public/monitoring/evaluate'
-      fullPath: '/api/public/monitoring/evaluate'
-      preLoaderRoute: typeof ApiPublicMonitoringEvaluateRouteImport
-      parentRoute: typeof rootRouteImport
+    '/app/projects/map/$slug': {
+      id: '/app/projects/map/$slug'
+      path: '/projects/map/$slug'
+      fullPath: '/app/projects/map/$slug'
+      preLoaderRoute: typeof AppProjectsMapSlugRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
@@ -1916,14 +2073,18 @@ interface AppRouteChildren {
   AppConnectRoute: typeof AppConnectRouteWithChildren
   AppDataRoute: typeof AppDataRoute
   AppDecisionsRoute: typeof AppDecisionsRouteWithChildren
+  AppDevelopmentRoute: typeof AppDevelopmentRoute
   AppImpactRoute: typeof AppImpactRouteWithChildren
   AppLavbundRoute: typeof AppLavbundRouteWithChildren
   AppLedgerRoute: typeof AppLedgerRouteWithChildren
   AppOverviewRoute: typeof AppOverviewRoute
+  AppProgramRoute: typeof AppProgramRoute
   AppPublicImpactRoute: typeof AppPublicImpactRoute
   AppReportsRoute: typeof AppReportsRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppSourcesRoute: typeof AppSourcesRoute
   AppSystemTestRoute: typeof AppSystemTestRoute
+  AppWorkOrdersRoute: typeof AppWorkOrdersRoute
   AppProjectsSlugRoute: typeof AppProjectsSlugRoute
   AppConstructionIndexRoute: typeof AppConstructionIndexRoute
   AppProjectsIndexRoute: typeof AppProjectsIndexRoute
@@ -1936,14 +2097,18 @@ const AppRouteChildren: AppRouteChildren = {
   AppConnectRoute: AppConnectRouteWithChildren,
   AppDataRoute: AppDataRoute,
   AppDecisionsRoute: AppDecisionsRouteWithChildren,
+  AppDevelopmentRoute: AppDevelopmentRoute,
   AppImpactRoute: AppImpactRouteWithChildren,
   AppLavbundRoute: AppLavbundRouteWithChildren,
   AppLedgerRoute: AppLedgerRouteWithChildren,
   AppOverviewRoute: AppOverviewRoute,
+  AppProgramRoute: AppProgramRoute,
   AppPublicImpactRoute: AppPublicImpactRoute,
   AppReportsRoute: AppReportsRouteWithChildren,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppSourcesRoute: AppSourcesRoute,
   AppSystemTestRoute: AppSystemTestRoute,
+  AppWorkOrdersRoute: AppWorkOrdersRoute,
   AppProjectsSlugRoute: AppProjectsSlugRoute,
   AppConstructionIndexRoute: AppConstructionIndexRoute,
   AppProjectsIndexRoute: AppProjectsIndexRoute,
@@ -1957,8 +2122,10 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  FeltRoute: FeltRoute,
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
+  OpgaverRoute: OpgaverRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SelectRoute: SelectRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -1967,8 +2134,11 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiPublicGpsPositionRoute: ApiPublicGpsPositionRoute,
   ApiPublicObservationsRoute: ApiPublicObservationsRoute,
   ApiPublicMonitoringEvaluateRoute: ApiPublicMonitoringEvaluateRoute,
+  ApiPublicMonitoringReconcileUploadsRoute:
+    ApiPublicMonitoringReconcileUploadsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

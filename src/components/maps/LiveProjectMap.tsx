@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { useMapContainerResize } from "@/hooks/use-map-container-resize";
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { ProjectGeometry } from "@/lib/supabase/types";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
+import type { DroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 import type { BufferZonesGeoJSON } from "@/services/geo-service";
-import type { IoTSensor } from "@/services/iot-simulation-service";
-import { SENSOR_TYPE_LABELS } from "@/services/iot-simulation-service";
+import type { MapDevice } from "@/services/monitoring/map-devices-service";
+import { mapDevicePopup } from "./map-device-popup";
 import { MapPin, AlertTriangle, Thermometer, Wind, CloudRain, Leaf } from "lucide-react";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -48,7 +50,9 @@ export interface LiveProjectMapProps {
   projectId: string;
   height?: number;
   mediaItems?: ProjectMediaItem[];
-  sensors?: IoTSensor[];
+  droneUploadPoints?: DroneUploadMapPoint[];
+  sensors?: MapDevice[];
+  showDeviceLayer?: boolean;
   dmiData?: DmiData;
   miljoeportalData?: MiljoeportalData;
   copernicusData?: CopernicusData;
@@ -68,15 +72,17 @@ const BUFFER_STYLES: Record<Exclude<ActiveBuffer, "none">, PathOptions> = {
   "1000m": { color: "#8B5CF6", weight: 1.5, fillOpacity: 0.04, dashArray: "4 4" },
 };
 
-const STATUS_COLORS: Record<IoTSensor["status"], string> = {
+const STATUS_COLORS: Record<MapDevice["status"], string> = {
   online: "#2BC48A",
-  warning: "#F59E0B",
+  partial: "#F59E0B",
+  attention: "#F59E0B",
   offline: "#EF4444",
+  not_activated: "#64748b",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function sensorDivIconHtml(status: IoTSensor["status"]): string {
+function sensorDivIconHtml(status: MapDevice["status"]): string {
   const color = STATUS_COLORS[status];
   return `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.35);"></div>`;
 }
@@ -88,6 +94,29 @@ function formatLastSeen(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/** Leaflet accepts a DOM node, which keeps database-controlled text out of HTML strings. */
+function popupContent(title: string, rows: string[], note?: string): HTMLDivElement {
+  const container = document.createElement("div");
+  const heading = document.createElement("strong");
+  heading.textContent = title;
+  container.append(heading);
+
+  for (const row of rows) {
+    const lineBreak = document.createElement("br");
+    const line = document.createElement("span");
+    line.textContent = row;
+    container.append(lineBreak, line);
+  }
+
+  if (note) {
+    const lineBreak = document.createElement("br");
+    const detail = document.createElement("small");
+    detail.textContent = note;
+    container.append(lineBreak, detail);
+  }
+  return container;
 }
 
 // ─── DMI overlay ─────────────────────────────────────────────────────────────
@@ -171,7 +200,9 @@ export function LiveProjectMap({
   projectId,
   height = 480,
   mediaItems,
+  droneUploadPoints,
   sensors,
+  showDeviceLayer,
   dmiData,
   miljoeportalData: _miljoeportalData,
   copernicusData,
@@ -180,9 +211,10 @@ export function LiveProjectMap({
 }: LiveProjectMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<LeafletMap | null>(null);
+  useMapContainerResize(mapRef, mapInstance);
   const bufferDataRef = useRef<BufferZonesGeoJSON | null>(null);
   const bufferLayerRef = useRef<LeafletGeoJSON | null>(null);
-  const mediaLayerRef = useRef<LeafletGeoJSON | null>(null);
+  const mediaLayerRef = useRef<import("leaflet").LayerGroup | null>(null);
   // Sensor markers are stored as individual marker refs — we just store the
   // marker layer group instance here.
   const sensorGroupRef = useRef<import("leaflet").LayerGroup | null>(null);
@@ -195,11 +227,13 @@ export function LiveProjectMap({
   const [showDmi, setShowDmi] = useState(true);
   // Async Leaflet-init: natur-lags-effekten må først køre når kortet findes.
   const [mapReady, setMapReady] = useState(false);
+  const firstPosition = sensors?.find((sensor) => sensor.coordinates)?.coordinates ?? null;
+  const canShowMap = geometry.hasValidGeometry || !!geometry.centroid || !!firstPosition;
 
   // ── Initial map setup ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
-    if (!geometry.hasValidGeometry && !geometry.centroid) return;
+    if (!canShowMap) return;
 
     let cancelled = false;
 
@@ -236,67 +270,25 @@ export function LiveProjectMap({
         if (geometry.centroid) {
           L.marker([geometry.centroid.lat, geometry.centroid.lng])
             .addTo(map)
-            .bindPopup(`<strong>${projectName}</strong>`);
+            .bindPopup(popupContent(projectName, []));
         }
 
         map.fitBounds(poly.getBounds(), { padding: [32, 32] });
         mapInstance.current = map;
-      } else if (geometry.centroid) {
+      } else if (geometry.centroid || firstPosition) {
+        const center = geometry.centroid ?? firstPosition!;
         const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false });
         L.tileLayer(tileUrl, { attribution: tileAttrib }).addTo(map);
-        map.setView([geometry.centroid.lat, geometry.centroid.lng], 14);
-        L.marker([geometry.centroid.lat, geometry.centroid.lng])
-          .addTo(map)
-          .bindPopup(`<strong>${projectName}</strong><br/>Estimeret position`)
-          .openPopup();
+        map.setView([center.lat, center.lng], 16);
+        if (geometry.centroid)
+          L.marker([geometry.centroid.lat, geometry.centroid.lng])
+            .addTo(map)
+            .bindPopup(popupContent(projectName, ["Projektets registrerede centroid"]));
         mapInstance.current = map;
       }
 
       if (!mapInstance.current || cancelled) return;
       const map = mapInstance.current;
-
-      // ── Media markers ──────────────────────────────────────────────────────
-      if (mediaItems && mediaItems.length > 0) {
-        const group = L.layerGroup().addTo(map);
-        mediaLayerRef.current = group as unknown as LeafletGeoJSON;
-        const geoItems = mediaItems.filter((m) => !!m.coordinates);
-        for (const item of geoItems) {
-          if (!item.coordinates) continue;
-          const icon = L.divIcon({
-            html: `<div style="width:16px;height:16px;border-radius:50%;background:#F59E0B;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:8px;">📷</div>`,
-            className: "",
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
-          });
-          L.marker([item.coordinates.lat, item.coordinates.lng], { icon })
-            .addTo(group)
-            .bindPopup(
-              `<strong>${item.title}</strong><br/>${MEDIA_CATEGORY_LABELS[item.category]}<br/><small>${new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK")}</small>`,
-            );
-        }
-      }
-
-      // ── IoT sensor markers ────────────────────────────────────────────────
-      if (sensors && sensors.length > 0) {
-        const group = L.layerGroup().addTo(map);
-        sensorGroupRef.current = group;
-        for (const sensor of sensors) {
-          const icon = L.divIcon({
-            html: sensorDivIconHtml(sensor.status),
-            className: "",
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
-          });
-          L.marker([sensor.coordinates.lat, sensor.coordinates.lng], { icon })
-            .addTo(group)
-            .bindPopup(
-              `<strong>${sensor.label}</strong><br/>` +
-                `${SENSOR_TYPE_LABELS[sensor.type]}: ${sensor.latestValue} ${sensor.unit}<br/>` +
-                `🔋 ${sensor.batteryPercent}%<br/>` +
-                `📡 Sidst set: ${formatLastSeen(sensor.lastSeen)}`,
-            );
-        }
-      }
 
       // ── Buffer zones pre-calculation ─────────────────────────────────────
       const { buildBufferZonesGeoJSON } = await import("@/services/geo-service");
@@ -315,7 +307,7 @@ export function LiveProjectMap({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geometry, projectName, projectId]);
+  }, [geometry, projectName, projectId, canShowMap]);
 
   // ── Buffer zone toggle ────────────────────────────────────────────────────
   useEffect(() => {
@@ -347,6 +339,79 @@ export function LiveProjectMap({
     })();
   }, [activeBuffer]);
 
+  // ── Media + provisional drone camera points — synced after async queries ──
+  useEffect(() => {
+    if (!mapReady || !mapInstance.current) return;
+    const map = mapInstance.current;
+    let cancelled = false;
+
+    (async () => {
+      const L = await import("leaflet");
+      if (cancelled || !mapInstance.current) return;
+
+      if (mediaLayerRef.current) {
+        map.removeLayer(mediaLayerRef.current);
+        mediaLayerRef.current = null;
+      }
+
+      const geoItems = (mediaItems ?? []).filter((item) => Boolean(item.coordinates));
+      const uploadPoints = droneUploadPoints ?? [];
+      if (!showMedia || (geoItems.length === 0 && uploadPoints.length === 0)) return;
+
+      const group = L.layerGroup().addTo(map);
+      mediaLayerRef.current = group;
+
+      for (const item of geoItems) {
+        if (!item.coordinates) continue;
+        const icon = L.divIcon({
+          html: '<div style="width:16px;height:16px;border-radius:50%;background:#F59E0B;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:8px;">📷</div>',
+          className: "",
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        });
+        L.marker([item.coordinates.lat, item.coordinates.lng], { icon })
+          .addTo(group)
+          .bindPopup(
+            popupContent(
+              item.title,
+              [MEDIA_CATEGORY_LABELS[item.category]],
+              new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK"),
+            ),
+          );
+      }
+
+      for (const point of uploadPoints) {
+        const icon = L.divIcon({
+          html: '<div style="width:18px;height:18px;border-radius:50%;background:#7C3AED;border:2px dashed white;box-shadow:0 1px 5px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:9px;">📷</div>',
+          className: "",
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+        });
+        const details = [
+          point.intakeMode === "before"
+            ? "FØR · ubekræftet kameraposition"
+            : "Ubekræftet kameraposition",
+          point.capturedAtLabel ?? new Date(point.capturedAt).toLocaleString("da-DK"),
+        ];
+        if (point.cameraLabel) details.push(point.cameraLabel);
+        if (point.altitudeM != null) details.push(`Højde: ${point.altitudeM.toFixed(1)} m`);
+        L.marker([point.coordinates.lat, point.coordinates.lng], { icon })
+          .addTo(group)
+          .bindPopup(
+            popupContent(
+              point.fileName,
+              details,
+              "Browseraflæst GPS, som behandles som ubekræftet i dette kortlag. Punktet er ikke et billed-footprint eller rapportbevis.",
+            ),
+          );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapReady, mediaItems, droneUploadPoints, showMedia]);
+
   // ── Natur-lag (§3 + vandløb) — synces med props ───────────────────────────
   useEffect(() => {
     if (!mapReady || !mapInstance.current) return;
@@ -366,7 +431,14 @@ export function LiveProjectMap({
           style: { color: "#16A34A", weight: 1.5, fillColor: "#22C55E", fillOpacity: 0.25 },
           onEachFeature: (feature, layer) => {
             const t = (feature.properties as Record<string, unknown>)["natureType"];
-            layer.bindPopup(`<strong>§3 beskyttet natur</strong><br/>${t ?? "Naturareal"}`);
+            const status = (feature.properties as Record<string, unknown>)["registryStatus"];
+            layer.bindPopup(
+              popupContent("§3-naturregistrering (kandidat)", [
+                String(t ?? "Naturareal"),
+                `Registreringsstatus: ${String(status ?? "Ukendt")}`,
+                "Juridisk projektbeskyttelse er ikke vurderet.",
+              ]),
+            );
           },
         }).addTo(map);
       }
@@ -380,7 +452,12 @@ export function LiveProjectMap({
           style: { color: "#0EA5E9", weight: 2, opacity: 0.85 },
           onEachFeature: (feature, layer) => {
             const navn = (feature.properties as Record<string, unknown>)["navn"];
-            layer.bindPopup(`<strong>Vandløb</strong>${navn ? `<br/>${navn}` : ""}`);
+            layer.bindPopup(
+              popupContent("Vandløbsregistrering (kandidat)", [
+                ...(navn ? [String(navn)] : []),
+                "Den kommunale delstrækning er ikke fastlagt her.",
+              ]),
+            );
           },
         }).addTo(map);
       }
@@ -391,31 +468,45 @@ export function LiveProjectMap({
     };
   }, [mapReady, paragraph3GeoJSON, watercoursesGeoJSON]);
 
-  // ── Show/hide media layer ─────────────────────────────────────────────────
+  // Replace markers when the scoped query changes; initialization can precede data.
   useEffect(() => {
-    if (!mapInstance.current || !mediaLayerRef.current) return;
+    if (!mapReady || !mapInstance.current) return;
     const map = mapInstance.current;
-    const layer = mediaLayerRef.current as unknown as import("leaflet").LayerGroup;
-    if (showMedia) {
-      map.addLayer(layer);
-    } else {
-      map.removeLayer(layer);
-    }
-  }, [showMedia]);
-
-  // ── Show/hide sensor layer ────────────────────────────────────────────────
-  useEffect(() => {
-    if (!mapInstance.current || !sensorGroupRef.current) return;
-    const map = mapInstance.current;
-    if (showSensors) {
-      map.addLayer(sensorGroupRef.current);
-    } else {
-      map.removeLayer(sensorGroupRef.current);
-    }
-  }, [showSensors]);
+    let cancelled = false;
+    let group: import("leaflet").LayerGroup | null = null;
+    if (sensorGroupRef.current) map.removeLayer(sensorGroupRef.current);
+    sensorGroupRef.current = null;
+    if (showSensors && showDeviceLayer !== false)
+      void import("leaflet").then((L) => {
+        if (cancelled || mapInstance.current !== map) return;
+        group = L.layerGroup().addTo(map);
+        sensorGroupRef.current = group;
+        for (const sensor of sensors ?? []) {
+          if (!sensor.coordinates) continue;
+          const icon = L.divIcon({
+            html: sensorDivIconHtml(sensor.status),
+            className: "",
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+          });
+          L.marker([sensor.coordinates.lat, sensor.coordinates.lng], { icon, title: sensor.label })
+            .addTo(group)
+            .bindPopup(mapDevicePopup(sensor), {
+              maxWidth: 250,
+              autoPanPaddingTopLeft: [45, 65],
+              autoPanPaddingBottomRight: [15, 75],
+            });
+        }
+      });
+    return () => {
+      cancelled = true;
+      if (group && mapInstance.current === map && map.hasLayer(group)) map.removeLayer(group);
+      if (sensorGroupRef.current === group) sensorGroupRef.current = null;
+    };
+  }, [showSensors, showDeviceLayer, sensors, mapReady]);
 
   // ─── No geometry fallback ─────────────────────────────────────────────────
-  if (!geometry.hasValidGeometry && !geometry.centroid) {
+  if (!canShowMap) {
     return (
       <div
         style={{ height }}
@@ -428,7 +519,10 @@ export function LiveProjectMap({
     );
   }
 
-  const hasMedia = (mediaItems ?? []).filter((m) => !!m.coordinates).length > 0;
+  const mediaCount =
+    (mediaItems ?? []).filter((item) => Boolean(item.coordinates)).length +
+    (droneUploadPoints?.length ?? 0);
+  const hasMedia = mediaCount > 0;
   const hasSensors = (sensors ?? []).length > 0;
 
   return (
@@ -447,7 +541,9 @@ export function LiveProjectMap({
           <MapPin className="h-3 w-3" />
           {geometry.hasValidGeometry
             ? `Polygon · ${geometry.areaHa != null ? `${geometry.areaHa} ha` : "areal ukendt"}`
-            : "Kun centroid"}
+            : geometry.centroid
+              ? "Kun centroid"
+              : "Gemte enhedspositioner"}
         </span>
       </div>
 
@@ -492,14 +588,14 @@ export function LiveProjectMap({
         {/* Media toggle */}
         {hasMedia && (
           <PillBtn active={showMedia} onClick={() => setShowMedia((v) => !v)}>
-            Feltfotos
+            Fotos · {mediaCount}
           </PillBtn>
         )}
 
         {/* IoT sensor toggle */}
-        {hasSensors && (
+        {hasSensors && showDeviceLayer === undefined && (
           <PillBtn active={showSensors} onClick={() => setShowSensors((v) => !v)}>
-            IoT-sensorer
+            Registrerede enheder
           </PillBtn>
         )}
 

@@ -11,7 +11,7 @@ type Props = {
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  missing_key: "Lovable AI er ikke aktiveret i workspacet.",
+  missing_key: "Billedvurdering er ikke aktiveret i arbejdspladsen.",
   rate_limit: "For mange forespørgsler. Prøv igen om lidt.",
   credits: "AI-credits er opbrugt. Tilføj credits under Settings → Workspace → Usage.",
   unknown: "Kunne ikke generere udkast lige nu.",
@@ -71,8 +71,8 @@ export function AiReportDraft({ reportType, projectName, audience, context }: Pr
               </span>
             </div>
             <div className="text-xs text-muted-foreground">
-              Generér struktureret udkast — resumé, nøglefund, risici og anbefalinger — direkte fra
-              projektets data.
+              Generér et udkast med resumé, nøglefund, risici og anbefalinger. Udkastet bygger på
+              det indsendte grundlag og kræver faglig gennemgang.
             </div>
           </div>
         </div>
@@ -147,8 +147,7 @@ function Section({
   tone?: "success" | "warning";
   children: React.ReactNode;
 }) {
-  const dot =
-    tone === "success" ? "bg-success" : tone === "warning" ? "bg-warning" : "bg-primary";
+  const dot = tone === "success" ? "bg-success" : tone === "warning" ? "bg-warning" : "bg-primary";
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="flex items-center gap-2 mb-2">

@@ -49,10 +49,9 @@ for (const k of [referencer.co2, referencer.fosfor, ...referencer.superseded]) {
 // ─── 2) CO2-faktorer fra arket ────────────────────────────────────────────────
 console.log("CO2 v12 (Beregningsark-fanen, rækker 25-48):");
 {
-  const wb = XLSX.read(
-    readFileSync(join(root, "docs/kilder/lavbund", referencer.co2.kilde)),
-    { type: "buffer" },
-  );
+  const wb = XLSX.read(readFileSync(join(root, "docs/kilder/lavbund", referencer.co2.kilde)), {
+    type: "buffer",
+  });
   const rows = XLSX.utils.sheet_to_json(wb.Sheets["Beregningsark"], { header: 1, defval: null });
   // Effekt-kolonnen (index 4), blokke a 4 rækker: >12, 6-12, <6 — uden buffer
   // fra række 25, med buffer fra række 37. Arealanvendelses-rækkefølgen i arket:
@@ -89,10 +88,9 @@ console.log("CO2 v12 (Beregningsark-fanen, rækker 25-48):");
 // ─── 3) Fosfor-tabeller fra arket ─────────────────────────────────────────────
 console.log("Fosfor maj 2024 (FØR-fanens tabeller, kolonne AH/AI):");
 {
-  const wb = XLSX.read(
-    readFileSync(join(root, "docs/kilder/lavbund", referencer.fosfor.kilde)),
-    { type: "buffer" },
-  );
+  const wb = XLSX.read(readFileSync(join(root, "docs/kilder/lavbund", referencer.fosfor.kilde)), {
+    type: "buffer",
+  });
   const rows = XLSX.utils.sheet_to_json(wb.Sheets["FØR"], { header: 1, defval: null });
   const val = (r, c) => Number(rows[r]?.[c] ?? NaN);
 
@@ -119,7 +117,8 @@ console.log("Fosfor maj 2024 (FØR-fanens tabeller, kolonne AH/AI):");
   anlaeg.forEach((a, i) => {
     const hede = val(20 + i, 36);
     const mor = val(26 + i, 36);
-    if (!naer(hede, t3.hedeslette[a])) fail(`Tabel 3 hedeslette/${a}: ark=${hede} ≠ ${t3.hedeslette[a]}`);
+    if (!naer(hede, t3.hedeslette[a]))
+      fail(`Tabel 3 hedeslette/${a}: ark=${hede} ≠ ${t3.hedeslette[a]}`);
     else ok(`Tabel 3 hedeslette/${a}: ${hede}`);
     if (!naer(mor, t3.moraene[a])) fail(`Tabel 3 moræne/${a}: ark=${mor} ≠ ${t3.moraene[a]}`);
   });
@@ -129,7 +128,8 @@ console.log("Fosfor maj 2024 (FØR-fanens tabeller, kolonne AH/AI):");
   [1, 2, 3].forEach((type, i) => {
     const hede = val(36 + i, 36);
     const mor = val(39 + i, 36);
-    if (!naer(hede, t4.hedeslette[String(type)])) fail(`Tabel 4 hedeslette/type${type}: ark=${hede}`);
+    if (!naer(hede, t4.hedeslette[String(type)]))
+      fail(`Tabel 4 hedeslette/type${type}: ark=${hede}`);
     else ok(`Tabel 4 hedeslette/type${type}: ${hede}`);
     if (!naer(mor, t4.moraene[String(type)])) fail(`Tabel 4 moræne/type${type}: ark=${mor}`);
   });
@@ -146,7 +146,11 @@ console.log("Fosfor maj 2024 (FØR-fanens tabeller, kolonne AH/AI):");
 
 console.log("");
 if (fejl > 0) {
-  console.error(`FEJL: ${fejl} afvigelse(r) mellem officielle ark og referencer. Kør IKKE beregninger før dette er afklaret.`);
+  console.error(
+    `FEJL: ${fejl} afvigelse(r) mellem officielle ark og referencer. Kør IKKE beregninger før dette er afklaret.`,
+  );
   process.exit(1);
 }
-console.log("✅ Faktorgrundlag verificeret: officielle ark == referencer (og unit-testen sikrer referencer == kode).");
+console.log(
+  "✅ Faktorgrundlag verificeret: officielle ark == referencer (og unit-testen sikrer referencer == kode).",
+);

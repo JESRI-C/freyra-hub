@@ -27,6 +27,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 
 const STATUS_DOT: Record<string, string> = {
   live: "bg-emerald-500",
+  stored: "bg-blue-500",
   preview: "bg-amber-400",
   unavailable: "bg-red-400",
 };
@@ -48,10 +49,7 @@ export function LayerControlPanel({
         {layers.map((layer) => {
           const visible = visibleSlugs.has(layer.slug);
           return (
-            <div
-              key={layer.slug}
-              className="py-3 flex items-center gap-3"
-            >
+            <div key={layer.slug} className="py-3 flex items-center gap-3">
               {/* Category icon */}
               <span
                 className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${CATEGORY_COLOR[layer.category] ?? "bg-muted text-muted-foreground"}`}

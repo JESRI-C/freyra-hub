@@ -58,11 +58,13 @@ export function ProjectMediaGallery({ items, isLoading }: ProjectMediaGalleryPro
 }
 
 function MediaCard({ item, onOpen }: { item: ProjectMediaItem; onOpen: () => void }) {
-  const dateLabel = new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const dateLabel = item.capturedAt
+    ? new Date(item.capturedAt).toLocaleDateString("da-DK", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "Optagedato mangler";
 
   return (
     <button
@@ -99,7 +101,7 @@ function MediaCard({ item, onOpen }: { item: ProjectMediaItem; onOpen: () => voi
           {item.coordinates && (
             <span className="flex items-center gap-1 text-emerald-600">
               <MapPin className="h-3 w-3" />
-              Georef.
+              Position
             </span>
           )}
         </div>

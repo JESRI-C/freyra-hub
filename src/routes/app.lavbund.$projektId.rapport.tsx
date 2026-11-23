@@ -67,7 +67,10 @@ function RapportPage() {
       { queryKey: ["lavbund", "readings", projektId], queryFn: () => getReadings(projektId) },
       { queryKey: ["lavbund", "transekter", projektId], queryFn: () => getTransekter(projektId) },
       { queryKey: ["lavbund", "groefter", projektId], queryFn: () => getGroefter(projektId) },
-      { queryKey: ["lavbund", "ledger", projektId], queryFn: () => ledgerList("lavbund", projektId) },
+      {
+        queryKey: ["lavbund", "ledger", projektId],
+        queryFn: () => ledgerList("lavbund", projektId),
+      },
       {
         queryKey: ["lavbund", "ledger-verify", projektId],
         queryFn: () => ledgerVerify("lavbund", projektId),
@@ -98,8 +101,7 @@ function RapportPage() {
     [readings.data, projekt.data?.etableringsdato],
   );
   const fordeling = useMemo(
-    () =>
-      AFVANDINGSKLASSER.map((k) => ({ navn: k.navn, andel: ver.fordeling[k.navn] ?? 0 })),
+    () => AFVANDINGSKLASSER.map((k) => ({ navn: k.navn, andel: ver.fordeling[k.navn] ?? 0 })),
     [ver],
   );
 
@@ -148,14 +150,8 @@ function RapportPage() {
     snap.fosfor.groefterEfterKgAar,
     1,
   );
-  const dybdeMax = Math.max(
-    metode.baseline.middelDybdeM ?? 0,
-    metode.efter.middelDybdeM ?? 0,
-    0.5,
-  );
-  const aktiveTiltag = (Object.keys(TILTAG_LABEL) as (keyof Tiltag)[]).filter(
-    (k) => p.tiltag[k],
-  );
+  const dybdeMax = Math.max(metode.baseline.middelDybdeM ?? 0, metode.efter.middelDybdeM ?? 0, 0.5);
+  const aktiveTiltag = (Object.keys(TILTAG_LABEL) as (keyof Tiltag)[]).filter((k) => p.tiltag[k]);
 
   return (
     <main className="p-6 max-w-[880px] w-full mx-auto space-y-4">
@@ -203,9 +199,7 @@ function RapportPage() {
         />
 
         {/* Konklusion — det revisor/myndighed skal se på ét blik. */}
-        <ReportSection
-          title="Konklusion — målt verifikation af krediteret effekt"
-        >
+        <ReportSection title="Konklusion — målt verifikation af krediteret effekt">
           <div className="grid md:grid-cols-[1.2fr_1fr] gap-6 items-start">
             <div>
               <ReportHero
@@ -350,9 +344,9 @@ function RapportPage() {
           />
           {metode.baseline.antal > 0 && (
             <p className="mt-2.5 text-[11px] text-muted-foreground">
-              Opgjort på {metode.efter.antal} målinger efter etableringsdatoen — samme grundlag
-              som verifikationsgraden. Baseline-målinger ({metode.baseline.antal}) er opgjort
-              separat i metodeafsnittet.
+              Opgjort på {metode.efter.antal} målinger efter etableringsdatoen — samme grundlag som
+              verifikationsgraden. Baseline-målinger ({metode.baseline.antal}) er opgjort separat i
+              metodeafsnittet.
             </p>
           )}
         </ReportSection>
@@ -507,15 +501,14 @@ function RapportPage() {
 
           <p className="mt-4 text-xs text-muted-foreground">
             <strong>Interpolation:</strong> Arealfordelingen pr. afvandingsklasse beregnes ud fra
-            punktmålingernes seneste dybde til vandspejl; hvert målepunkt repræsenterer sit
-            opland (nærmeste-punkt-princip). Vandstandsdybden (WTD) er den bærende
-            MRV-parameter, jf. IPCC 2013 Wetlands Supplement og GEST/VM0036, hvor WTD-klasser
-            anvendes som fallback-proxy for drivhusgasflux. Metoden er parallel til DCE's
-            W01-overvågningsdesign med før/efter-måling. Sammenhængen mellem vandstand og
-            emission er empirisk kvantificeret af Evans m.fl. (2021, <em>Nature</em> 593):
-            ~3 t CO₂e/ha/år pr. 10 cm ændring i vandstandsdybde — og Klimarådets analyse af
-            kulstofrige lavbundsjorder understreger behovet for måling frem for
-            standardantagelser om dræningstilstand.
+            punktmålingernes seneste dybde til vandspejl; hvert målepunkt repræsenterer sit opland
+            (nærmeste-punkt-princip). Vandstandsdybden (WTD) er den bærende MRV-parameter, jf. IPCC
+            2013 Wetlands Supplement og GEST/VM0036, hvor WTD-klasser anvendes som fallback-proxy
+            for drivhusgasflux. Metoden er parallel til DCE's W01-overvågningsdesign med
+            før/efter-måling. Sammenhængen mellem vandstand og emission er empirisk kvantificeret af
+            Evans m.fl. (2021, <em>Nature</em> 593): ~3 t CO₂e/ha/år pr. 10 cm ændring i
+            vandstandsdybde — og Klimarådets analyse af kulstofrige lavbundsjorder understreger
+            behovet for måling frem for standardantagelser om dræningstilstand.
           </p>
         </ReportSection>
 
@@ -534,7 +527,11 @@ function RapportPage() {
                 <li key={a.id} className="rounded-xl border px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="text-sm font-medium">{a.beskrivelse}</div>
-                    {a.aaben ? <Pill tone="warning">Åben</Pill> : <Pill tone="success">Lukket</Pill>}
+                    {a.aaben ? (
+                      <Pill tone="warning">Åben</Pill>
+                    ) : (
+                      <Pill tone="success">Lukket</Pill>
+                    )}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     Korrigerende handling: {a.korrigerendeHandling}
@@ -546,16 +543,15 @@ function RapportPage() {
         </ReportSection>
 
         <ReportNote title="Metodisk kontekst">
-          Statens kreditering sker ex-ante ud fra kortlagt tørvejord og forventet
-          vandstandshævning. Empiriske eftermålinger på tyske MoorFutures-projekter og
-          GEST-baserede opgørelser viser, at ex-ante/proxy-metoder systematisk{" "}
-          <strong>underestimerer</strong> den faktiske klimaeffekt i langt de fleste scenarier
-          (~96–98 % af de undersøgte). Målt verifikation som i denne rapport vil derfor typisk
-          vise en effekt, der er lig med eller større end den krediterede — aldrig et grundlag
-          for at nedskrive den. Se{" "}
+          Statens kreditering sker ex-ante ud fra kortlagt tørvejord og forventet vandstandshævning.
+          Empiriske eftermålinger på tyske MoorFutures-projekter og GEST-baserede opgørelser viser,
+          at ex-ante/proxy-metoder systematisk <strong>underestimerer</strong> den faktiske
+          klimaeffekt i langt de fleste scenarier (~96–98 % af de undersøgte). Målt verifikation som
+          i denne rapport vil derfor typisk vise en effekt, der er lig med eller større end den
+          krediterede — aldrig et grundlag for at nedskrive den. Se{" "}
           <span className="font-mono">docs/lavbund-mrv-positionering.md</span> for kilder og
-          regulatorisk kontekst (bl.a. VLP-ordningens ex-ante-fokus og
-          sørestaurerings-præcedensen for honorering af eftermåling).
+          regulatorisk kontekst (bl.a. VLP-ordningens ex-ante-fokus og sørestaurerings-præcedensen
+          for honorering af eftermåling).
         </ReportNote>
 
         <ReportSection
@@ -591,8 +587,8 @@ function RapportPage() {
         <ReportFooter>
           Anvendelsesområde: prioritering under tilskudsordninger og kommunens klimaregnskab.
           Metoden egner sig ikke til effektberegning ved salg af CO₂-kvoter og afviger fra den
-          nationale opgørelse (jf. v12-vejledningen). SHA-256-kædet hændelseslog — efterprøvbar
-          af revisor/myndighed.
+          nationale opgørelse (jf. v12-vejledningen). SHA-256-kædet hændelseslog — efterprøvbar af
+          revisor/myndighed.
         </ReportFooter>
       </ReportDoc>
     </main>

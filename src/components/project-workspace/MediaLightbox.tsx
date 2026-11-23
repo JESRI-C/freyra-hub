@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { X, ChevronLeft, ChevronRight, MapPin, Compass, Calendar, Tag, Camera, Layers } from "lucide-react";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Compass,
+  Calendar,
+  Tag,
+  Camera,
+  Layers,
+} from "lucide-react";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
 import { BeforeAfterCompare } from "./BeforeAfterCompare";
@@ -34,13 +44,12 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
   if (!item) return null;
 
   const before = item.beforeMediaId ? items.find((m) => m.id === item.beforeMediaId) : null;
-  const dateLabel = new Date(item.capturedAt ?? item.uploadedAt).toLocaleString("da-DK");
+  const dateLabel = item.capturedAt
+    ? new Date(item.capturedAt).toLocaleString("da-DK")
+    : "Optagedato mangler";
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/85 flex items-stretch"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 bg-black/85 flex items-stretch" onClick={onClose}>
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -81,7 +90,12 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
       >
         <div className="flex-1 flex items-center justify-center p-4 lg:p-10 min-h-0">
           {compare && before ? (
-            <BeforeAfterCompare beforeUrl={before.url} afterUrl={item.url} beforeLabel="Før" afterLabel="Nu" />
+            <BeforeAfterCompare
+              beforeUrl={before.url}
+              afterUrl={item.url}
+              beforeLabel="Optagelse A"
+              afterLabel="Optagelse B"
+            />
           ) : (
             <img
               src={item.url}
@@ -160,8 +174,12 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
                 className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg border hover:bg-muted"
               >
                 <Layers className="h-4 w-4" />
-                {compare ? "Vis kun aktuelt billede" : "Sammenlign før / efter"}
+                {compare ? "Vis kun aktuelt billede" : "Sammenlign optagelser"}
               </button>
+              <p className="mt-2 text-xs text-muted-foreground">
+                To fotos dokumenterer ikke i sig selv et indgreb. Brug fotoatlassets arbejdsdato og
+                kilde til en dokumenteret før-/eftersammenligning.
+              </p>
             </div>
           )}
 
@@ -174,7 +192,15 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
   );
 }
 
-function Row({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+function Row({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-start gap-2">
       <span className="text-muted-foreground mt-0.5">{icon}</span>

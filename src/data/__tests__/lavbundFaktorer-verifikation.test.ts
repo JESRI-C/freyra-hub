@@ -52,7 +52,10 @@ describe("Fosfor-faktorer == officielt regneark maj 2024 (DCE-263)", () => {
     const ref = referencer.fosfor.tabel3_haeldning;
     for (const landskab of ["hedeslette", "moraene"] as const) {
       for (const [anlaeg, v] of Object.entries(ref[landskab])) {
-        expect(P_SLOPE[landskab][anlaeg as keyof (typeof P_SLOPE)["hedeslette"]], `${landskab}/${anlaeg}`).toBe(v);
+        expect(
+          P_SLOPE[landskab][anlaeg as keyof (typeof P_SLOPE)["hedeslette"]],
+          `${landskab}/${anlaeg}`,
+        ).toBe(v);
       }
     }
   });

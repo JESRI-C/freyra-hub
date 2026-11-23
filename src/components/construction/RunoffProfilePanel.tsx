@@ -4,7 +4,7 @@ import type { RunoffProfile } from "@/lib/supabase/types";
 
 interface Props {
   profile: RunoffProfile | null;
-  runoffRiskScore: "low" | "medium" | "high" | "critical";
+  runoffRiskScore: "low" | "medium" | "high" | "critical" | "unknown";
 }
 
 function Row({
@@ -31,8 +31,10 @@ function Row({
   );
 }
 
-function riskColors(score: "low" | "medium" | "high" | "critical") {
+function riskColors(score: "low" | "medium" | "high" | "critical" | "unknown") {
   switch (score) {
+    case "unknown":
+      return { bg: "bg-muted border-muted", text: "text-muted-foreground", label: "Ukendt" };
     case "critical":
       return { bg: "bg-red-50 border-red-200", text: "text-red-700", label: "Kritisk" };
     case "high":

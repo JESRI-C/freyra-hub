@@ -21,7 +21,14 @@ interface Props {
   permissions: ProjectPermissions;
 }
 
-const ALL_ROLES: ProjectRole[] = ["admin", "project_manager", "editor", "field", "viewer", "external"];
+const ALL_ROLES: ProjectRole[] = [
+  "admin",
+  "project_manager",
+  "editor",
+  "field",
+  "viewer",
+  "external",
+];
 
 export function ProjectMembersPanel({ projectId, currentUserId, permissions }: Props) {
   const qc = useQueryClient();
@@ -29,7 +36,11 @@ export function ProjectMembersPanel({ projectId, currentUserId, permissions }: P
   const [inviteUserId, setInviteUserId] = useState("");
   const [inviteRole, setInviteRole] = useState<ProjectRole>("editor");
 
-  const { data: members = [], isLoading } = useQuery({
+  const {
+    data: members = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["project-members", projectId],
     queryFn: () => listProjectMembers(projectId),
     enabled: !!projectId,
@@ -123,7 +134,11 @@ export function ProjectMembersPanel({ projectId, currentUserId, permissions }: P
               disabled={!inviteUserId.trim() || add.isPending}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
-              {add.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              {add.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
               Tilføj
             </button>
           </div>
@@ -131,7 +146,9 @@ export function ProjectMembersPanel({ projectId, currentUserId, permissions }: P
         </div>
       )}
 
-      {isLoading ? (
+      {error ? (
+        <p role="alert">Medlemmer kunne ikke indlæses: {error.message}</p>
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground py-2">Indlæser medlemmer…</p>
       ) : members.length === 0 ? (
         <div className="text-center py-8 border border-dashed rounded-lg">
@@ -162,7 +179,9 @@ export function ProjectMembersPanel({ projectId, currentUserId, permissions }: P
                 {permissions.canManage && !isSelf ? (
                   <select
                     value={m.role}
-                    onChange={(e) => changeRole.mutate({ id: m.id, role: e.target.value as ProjectRole })}
+                    onChange={(e) =>
+                      changeRole.mutate({ id: m.id, role: e.target.value as ProjectRole })
+                    }
                     className="px-2 py-1 text-xs rounded border bg-background"
                   >
                     {ALL_ROLES.map((r) => (

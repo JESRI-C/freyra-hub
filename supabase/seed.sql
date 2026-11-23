@@ -154,29 +154,10 @@ insert into reports (project_id, title, report_type, status, period_start, perio
   ('10000000-0000-0000-0000-000000000002', 'Baseline-rapport 2023', 'baseline',  'approved', '2023-09-01', '2023-12-31', 'Udgangspunkt for rewilding-intervention dokumenteret.')
 on conflict do nothing;
 
--- ─── 12. RLS: åbn for INSERT/UPDATE i dev ────────────────────────────────────
--- Kør dette så app'en kan skrive data uden auth.
--- VIGTIGT: erstat med bruger-baserede policies inden produktion!
-do $$
-declare
-  tbl text;
-  tbls text[] := array[
-    'organizations','projects','sites','data_sources','sensors','observations',
-    'indicators','reports','evidence_files','audit_events','actions','impact_units',
-    'map_layers','project_areas','geo_features','geo_observations','calculated_metrics'
-  ];
-begin
-  foreach tbl in array tbls loop
-    begin
-      execute format(
-        'create policy "dev_all" on %I for all using (true) with check (true)', tbl
-      );
-    exception when duplicate_object then null;
-    end;
-  end loop;
-end $$;
+-- Security invariant: seed data must never alter grants or RLS policies.
+-- Local development uses the same tenant boundary as every other environment.
 
--- ─── Tjek resultater ─────────────────────────────────────────────────────────
+-- ─── 12. Tjek resultater ─────────────────────────────────────────────────────
 select 'projects'          as tabel, count(*) as rækker from projects
 union all
 select 'indicators',       count(*) from indicators

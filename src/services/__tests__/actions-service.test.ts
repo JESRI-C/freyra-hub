@@ -33,6 +33,20 @@ describe("actionPriorityTone/Color", () => {
 });
 
 describe("suggestSensorActions", () => {
+  it("does not invent a low battery for a missing value or a not-activated device", () => {
+    expect(
+      suggestSensorActions([
+        { label: "Ikke aktiveret", status: "not_activated", batteryPercent: null },
+        { label: "Ingen batterimåling", status: "online", batteryPercent: null },
+        { label: "Ugyldigt batteriniveau", status: "online", batteryPercent: -1 },
+      ]),
+    ).toEqual([]);
+    expect(
+      suggestSensorActions([
+        { label: "Kontakt kræver kontrol", status: "attention", batteryPercent: null },
+      ]),
+    ).toHaveLength(1);
+  });
   it("is empty when all sensors healthy", () => {
     expect(suggestSensorActions([sensor({ id: "a" }), sensor({ id: "b" })])).toEqual([]);
   });

@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Calendar, ChevronsUpDown, Search, MapPin } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useConnectContext, RANGE_OPTIONS, type ConnectRangeKey } from "@/lib/connect-context";
 
 export function ConnectTopbar() {

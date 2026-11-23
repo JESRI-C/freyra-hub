@@ -38,7 +38,7 @@ export function ProjectMonitorCard({ summary }: ProjectMonitorCardProps) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="font-semibold text-sm leading-snug truncate">{project.name}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Freyra Demo</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Freyra</div>
         </div>
         <Pill tone={statusTone(project.status)}>{project.status ?? "Ukendt"}</Pill>
       </div>

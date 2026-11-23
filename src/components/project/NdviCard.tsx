@@ -31,14 +31,10 @@ export function NdviCard({ projectId, lat, lng }: NdviCardProps) {
     <Card>
       <CardHeader
         title="Vegetationsindeks (NDVI)"
-        subtitle="Sentinel-2 satellitobservation"
+        subtitle="Sentinel-2 punktprøve ved projektets midtpunkt"
         action={
           <div className="flex items-center gap-2">
-            {ndvi != null && (
-              <Pill tone={ndvi >= 0.5 ? "success" : ndvi >= 0.3 ? "warning" : "danger"}>
-                {ndvi.toFixed(2)}
-              </Pill>
-            )}
+            {ndvi != null && <Pill tone="default">{ndvi.toFixed(2)}</Pill>}
             <button
               type="button"
               onClick={() => refresh()}
@@ -53,6 +49,10 @@ export function NdviCard({ projectId, lat, lng }: NdviCardProps) {
         }
       />
       <div className="px-5 pb-5 space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Punktprøven er foreløbig kontekst. Dækning og lokale skyer/skygger skal kontrolleres før
+          projektanalyse og rapport.
+        </p>
         {!hasGeometry && (
           <p className="text-sm text-muted-foreground">
             Projektgeometri mangler — kan ikke hente satellitdata.

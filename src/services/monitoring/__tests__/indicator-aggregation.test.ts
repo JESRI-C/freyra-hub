@@ -6,7 +6,12 @@ import {
   type ObservationLike,
 } from "@/services/monitoring/indicator-aggregation-engine";
 
-function obs(key: string, value: number, observedAt: string, confidence: number | null = null): ObservationLike {
+function obs(
+  key: string,
+  value: number,
+  observedAt: string,
+  confidence: number | null = null,
+): ObservationLike {
   return { indicator_key: key, value, unit: "cm", observed_at: observedAt, confidence };
 }
 
@@ -41,8 +46,20 @@ describe("aggregateObservations", () => {
     const result = aggregateObservations([
       obs("a", 1, "2026-07-12T00:00:00Z"),
       obs("b", 2, "2026-07-12T00:00:00Z"),
-      { indicator_key: null, value: 9, unit: null, observed_at: "2026-07-12T00:00:00Z", confidence: null },
-      { indicator_key: "c", value: null, unit: null, observed_at: "2026-07-12T00:00:00Z", confidence: null },
+      {
+        indicator_key: null,
+        value: 9,
+        unit: null,
+        observed_at: "2026-07-12T00:00:00Z",
+        confidence: null,
+      },
+      {
+        indicator_key: "c",
+        value: null,
+        unit: null,
+        observed_at: "2026-07-12T00:00:00Z",
+        confidence: null,
+      },
     ]);
     expect(result.map((r) => r.key).sort()).toEqual(["a", "b"]);
   });

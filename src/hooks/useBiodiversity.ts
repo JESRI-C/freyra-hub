@@ -23,22 +23,30 @@ export function useBiodiversity(project: Project | null, ndvi?: number | null) {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["biodiversity", project?.id, ndvi],
-    queryFn: () =>
-      runBiodiversityAnalysis(project!.id, lat!, lng!, areaHa, ndvi),
+    queryFn: () => runBiodiversityAnalysis(project!.id, lat!, lng!, areaHa, ndvi),
     enabled: !!project && !!lat && !!lng,
     staleTime: 12 * 60 * 60 * 1000, // 12 timer
     retry: 1,
   });
 
   const refreshMutation = useMutation({
-    mutationFn: () =>
-      runBiodiversityAnalysis(project!.id, lat!, lng!, areaHa, ndvi),
+    mutationFn: () => runBiodiversityAnalysis(project!.id, lat!, lng!, areaHa, ndvi),
     onSuccess: (result) => {
       queryClient.setQueryData(["biodiversity", project?.id, ndvi], result);
     },
   });
 
-  const score = data?.score ?? null;
+  const sourceError = refreshMutation.error ?? error;
+  const errorMessage = sourceError
+    ? sourceError instanceof Error
+      ? sourceError.message
+      : typeof (sourceError as { message?: unknown }).message === "string"
+        ? (sourceError as { message: string }).message
+        : "Projektanalysen kunne ikke gennemføres. Prøv igen."
+    : (data?.error ?? null);
+  // A failed refresh may retain cached data. Do not present that data as the
+  // result of the current attempt or let it hide the failure.
+  const score = errorMessage ? null : (data?.score ?? null);
   const recommendations = score ? generateRecommendations(score) : [];
 
   return {
@@ -58,9 +66,9 @@ export function useBiodiversity(project: Project | null, ndvi?: number | null) {
 
     // Status
     isLoading,
-    isError: !!error,
-    error: error instanceof Error ? error.message : data?.error ?? null,
-    savedToDb: data?.savedToDb ?? false,
+    isError: !!errorMessage,
+    error: errorMessage,
+    savedToDb: !errorMessage && (data?.savedToDb ?? false),
 
     // Actions
     run: () => refreshMutation.mutate(),
@@ -76,7 +84,8 @@ export function formatBiodiversityScore(score: number): {
   bgColor: string;
   label: string;
 } {
-  if (score >= 75) return { color: "text-emerald-700", bgColor: "bg-emerald-100", label: "Meget høj" };
+  if (score >= 75)
+    return { color: "text-emerald-700", bgColor: "bg-emerald-100", label: "Meget høj" };
   if (score >= 55) return { color: "text-emerald-600", bgColor: "bg-emerald-50", label: "Høj" };
   if (score >= 35) return { color: "text-amber-600", bgColor: "bg-amber-50", label: "Moderat" };
   if (score >= 20) return { color: "text-orange-600", bgColor: "bg-orange-50", label: "Lav" };

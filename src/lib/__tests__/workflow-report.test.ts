@@ -1,0 +1,304 @@
+import { describe, expect, it, vi } from "vitest";
+import { WorkflowReportSnapshotSchema } from "../workflow-report";
+import { buildDocx } from "../report-export";
+import { emptyExecution } from "../action-execution";
+import { newReportContent, reportIssues, type ReportRevision } from "../report-document";
+import {
+  buildWorkflowReportPackage,
+  buildWorkOrderReportPackage,
+} from "../workflow-report-package";
+const uuid = (n: number) => "00000000-0000-4000-8000-" + String(n).padStart(12, "0");
+function fixture(): ReportRevision {
+  const entry = {
+    id: uuid(1),
+    entry_id: uuid(2),
+    organization_id: uuid(3),
+    project_id: uuid(4),
+    version: 1,
+    kind: "decision_note" as const,
+    title: "SYNTHETIC execution",
+    created_at: "2026-10-28T12:00:00Z",
+    created_by: uuid(5),
+    payload: {
+      source: "action-execution:" + uuid(2),
+      decision: JSON.stringify({
+        ...emptyExecution(uuid(2)),
+        dataBasis: "synthetic",
+      }),
+      basis: "SYNTHETIC",
+    },
+  };
+  return {
+    id: uuid(6),
+    report_id: uuid(7),
+    version: 1,
+    status: "draft",
+    created_at: "2026-10-28T12:00:00Z",
+    created_by: uuid(5),
+    content: {
+      ...newReportContent("SYNTHETIC PROJECT", "SYNTHETIC ORG", "Descriptive", "Technical test"),
+      title: "SYNTHETIC PROJECT · før/efter af grødeskæring",
+      sources: [
+        {
+          id: "media:" + uuid(8),
+          title: "SYNTHETIC original",
+          kind: "field_photo",
+          capturedAt: null,
+          checksum: "a".repeat(64),
+          position: null,
+          method: "Synthetic fixture",
+          version: "1",
+        },
+      ],
+      sections: [
+        {
+          id: "s1",
+          title: "SYNTHETIC report",
+          text: "Limited descriptive observation only.",
+          sourceIds: ["media:" + uuid(8)],
+          reviewed: true,
+          basis: "not_measured",
+        },
+      ],
+      workflowSnapshot: {
+        schema: "freyra.workflow-report/v1",
+        generatorVersion: "workflow-report/v1",
+        projectId: uuid(4),
+        organizationId: uuid(3),
+        dataBasis: "synthetic",
+        inputs: [entry],
+        baselines: [],
+        plans: [],
+        rounds: [],
+        limitations: ["Synthetic fixture only"],
+        review: null,
+      },
+    },
+  };
+}
+function files(bytes: Uint8Array) {
+  const result: Record<string, Uint8Array> = {};
+  let offset = 0;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  while (view.getUint32(offset, true) === 0x04034b50) {
+    const size = view.getUint32(offset + 18, true),
+      names = view.getUint16(offset + 26, true),
+      extra = view.getUint16(offset + 28, true);
+    const name = new TextDecoder().decode(bytes.slice(offset + 30, offset + 30 + names));
+    const start = offset + 30 + names + extra;
+    result[name] = bytes.slice(start, start + size);
+    offset = start + size;
+  }
+  return result;
+}
+describe("frozen workflow report", () => {
+  it("pairs Word illustrations by frozen media ID and labels each side, including reused photos", () => {
+    const report = fixture();
+    const snapshot = report.content.workflowSnapshot!;
+    const [entry] = snapshot.inputs;
+    const pairs = [
+      [1, 2],
+      [2, 3],
+      [4, 5],
+    ];
+    snapshot.inputs = pairs.map(([before, after], index) => ({
+      ...entry,
+      payload: {
+        ...entry.payload,
+        source: "photo-comparison:" + uuid(10 + index),
+        decision: JSON.stringify({
+          schema: "freyra.photo-comparison/v1",
+          comparisonId: uuid(10 + index),
+          executionRevisionId: null,
+          beforeId: uuid(before),
+          afterId: uuid(after),
+          parameter: "other",
+          samePlaceEvidence: "",
+          commonCoverage: "unknown",
+          coverageDescription: "",
+          excludedAreas: "",
+          captureDifferences: "",
+          conclusion: "",
+          correctionReason: "",
+          quantitative: false,
+        }),
+      },
+    }));
+    const images = [3, 2, 1, 4].map((number) => ({
+      id: "media:" + uuid(number),
+      caption: "Billede " + number,
+      format: "jpeg" as const,
+      bytes: Uint8Array.of(number),
+      width: 60,
+      height: 40,
+    }));
+    const historic = files(buildDocx(report, images));
+    expect(new TextDecoder().decode(historic["word/document.xml"])).not.toContain("<w:tbl>");
+    report.content.photoLayoutVersion = 2;
+    const archive = files(buildDocx(report, images));
+    const document = new TextDecoder().decode(archive["word/document.xml"]);
+    const tables = document.match(/<w:tbl>.*?<\/w:tbl>/gs) ?? [];
+    expect(tables).toHaveLength(2);
+    expect(tables[0]).toMatch(
+      /Tidligere optagelse.*?r:embed="image2".*?Senere optagelse.*?r:embed="image1"/s,
+    );
+    expect(tables[1]).toMatch(
+      /Tidligere optagelse.*?r:embed="image1".*?Senere optagelse.*?r:embed="image0"/s,
+    );
+    expect(document).toMatch(/Fotoatlas.*?r:embed="image3"/s);
+    expect(document).not.toContain("Fotopar 3");
+    expect(Object.keys(archive).filter((name) => name.startsWith("word/media/"))).toHaveLength(4);
+    const placements = [...document.matchAll(/wp:docPr id="(\d+)"/g)].map((m) => m[1]);
+    expect(placements).toHaveLength(5);
+    expect(new Set(placements).size).toBe(placements.length);
+  });
+
+  it("refuses synthetic executions relabelled as customer observations", () => {
+    const snapshot = fixture().content.workflowSnapshot!;
+    expect(() => WorkflowReportSnapshotSchema.parse({ ...snapshot, dataBasis: "real" })).toThrow();
+  });
+  it("does not reuse review after the report result text changes", () => {
+    const c = fixture().content;
+    c.workflowSnapshot!.review = {
+      scope: "documentation",
+      decision: "accepted",
+      inputIds: c.workflowSnapshot!.inputs.map((e) => e.id),
+      reason: "SYNTHETIC review",
+      sectionTexts: { s1: c.sections[0].text },
+    };
+    c.sections[0].text = "Changed result";
+    expect(reportIssues(c).join(" ")).toContain("anden udgave");
+  });
+  it("identifies a saved request for corrections as an approval blocker", () => {
+    const content = fixture().content;
+    const snapshot = content.workflowSnapshot!;
+    snapshot.review = {
+      scope: "documentation",
+      decision: "changes_requested",
+      inputIds: snapshot.inputs.map(({ id }) => id),
+      reason: "Angiv fælles synlig dækning.",
+      sectionTexts: { s1: content.sections[0].text },
+    };
+    expect(WorkflowReportSnapshotSchema.parse(snapshot).review?.reason).toBe(
+      "Angiv fælles synlig dækning.",
+    );
+    expect(reportIssues(content)).toContain(
+      "Dokumentationsreviewet har åbne rettelser, som kræver et nyt accepteret review.",
+    );
+  });
+  it("exports real PDF/ZIP bytes, frozen inputs and verifiable file hashes deterministically", async () => {
+    const report = fixture();
+    const original = JSON.stringify(report);
+    const bytes = await buildWorkflowReportPackage(report);
+    const contents = files(bytes);
+    if (process.env.FREYRA_WRITE_TEST_ARTIFACTS === "1") {
+      const { mkdir, writeFile } = await import("node:fs/promises");
+      const { resolve } = await import("node:path");
+      const directory = resolve("tmp/workflow-qa");
+      await mkdir(directory, { recursive: true });
+      await writeFile(resolve(directory, "synthetic-report.pdf"), contents["rapport.pdf"]);
+      await writeFile(resolve(directory, "synthetic-package.zip"), bytes);
+    }
+    expect(new TextDecoder().decode(contents["rapport.pdf"].slice(0, 5))).toBe("%PDF-");
+    expect(JSON.parse(new TextDecoder().decode(contents["rapportversion.json"]))).toEqual(report);
+    const manifest = JSON.parse(new TextDecoder().decode(contents["manifest.json"]));
+    for (const file of manifest.files) {
+      const data = contents[file.name];
+      const hash = Array.from(
+        new Uint8Array(await crypto.subtle.digest("SHA-256", data.slice().buffer)),
+        (b) => b.toString(16).padStart(2, "0"),
+      ).join("");
+      expect(file.sha256).toBe(hash);
+      expect(file.bytes).toBe(data.length);
+    }
+    expect(await buildWorkflowReportPackage(JSON.parse(original))).toEqual(bytes);
+    expect(JSON.stringify(report)).toBe(original);
+  });
+  it("exports an opgave report with its pinned approval, source references and checksums", async () => {
+    const report = fixture();
+    delete report.content.workflowSnapshot;
+    const approval = {
+      actionId: "00000000-0000-4000-8000-000000000001",
+      submissionId: "00000000-0000-4000-8000-000000000002",
+      submissionVersion: 3,
+      reviewId: "00000000-0000-4000-8000-000000000003",
+      basisHash: "a".repeat(64),
+    };
+    report.content.workOrderApproval = approval;
+    const bytes = await buildWorkOrderReportPackage(report);
+    expect(await buildWorkOrderReportPackage(JSON.parse(JSON.stringify(report)))).toEqual(bytes);
+    const contents = files(bytes);
+    const decoder = new TextDecoder();
+    expect(decoder.decode(contents["rapport.pdf"].slice(0, 5))).toBe("%PDF-");
+    expect(JSON.parse(decoder.decode(contents["inputversioner.json"]))).toEqual(approval);
+    expect(JSON.parse(decoder.decode(contents["rapportversion.json"]))).toEqual(report);
+    expect(JSON.parse(decoder.decode(contents["originalreferencer.json"]))).toEqual(
+      report.content.sources,
+    );
+    const manifest = JSON.parse(decoder.decode(contents["manifest.json"]));
+    expect(manifest).toMatchObject({
+      schema: "freyra.work-order-report-package/v1",
+      reportId: report.report_id,
+      revisionId: report.id,
+      version: report.version,
+    });
+    for (const file of manifest.files) {
+      const data = contents[file.name];
+      const hash = await crypto.subtle.digest("SHA-256", data.slice().buffer);
+      expect(file.sha256).toBe(Buffer.from(hash).toString("hex"));
+      expect(file.bytes).toBe(data.length);
+    }
+  });
+  it("includes only verified originals and refuses a mismatch or oversized download", async () => {
+    const report = fixture();
+    delete report.content.workflowSnapshot;
+    report.content.workOrderApproval = {
+      actionId: uuid(41),
+      submissionId: uuid(42),
+      submissionVersion: 3,
+      reviewId: uuid(43),
+      basisHash: "a".repeat(64),
+    };
+    const id = uuid(44);
+    const original = new Uint8Array([255, 216, 255, 217]);
+    const checksum = Buffer.from(await crypto.subtle.digest("SHA-256", original)).toString("hex");
+    report.content.sources = [
+      {
+        id: "task-original:" + id,
+        title: "Originalfoto",
+        kind: "Originalfoto",
+        capturedAt: null,
+        checksum,
+        position: null,
+        method: "Feltfoto",
+        version: "1",
+      },
+    ];
+    const signed = { url: "https://example.test/signed?token=private", sha256: checksum };
+    const sign = vi.fn(async () => signed);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(original, { headers: { "content-type": "image/jpeg" } }))
+      .mockResolvedValueOnce(new Response(new Uint8Array([0])))
+      .mockResolvedValueOnce(new Response(new Uint8Array(25 * 1024 * 1024 + 1)));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const bytes = await buildWorkOrderReportPackage(report, sign);
+      const contents = files(bytes);
+      const path = "originaler/" + id + ".jpg";
+      expect(sign).toHaveBeenCalledExactlyOnceWith(id);
+      expect(contents[path]).toEqual(original);
+      const manifest = JSON.parse(new TextDecoder().decode(contents["manifest.json"]));
+      expect(manifest.files).toContainEqual({
+        name: path,
+        bytes: original.length,
+        sha256: checksum,
+      });
+      expect(new TextDecoder().decode(bytes)).not.toContain(signed.url);
+      await expect(buildWorkOrderReportPackage(report, sign)).rejects.toThrow("kontrolsum");
+      await expect(buildWorkOrderReportPackage(report, sign)).rejects.toThrow("25 MiB");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

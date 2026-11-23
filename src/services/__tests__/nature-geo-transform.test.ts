@@ -1,109 +1,105 @@
 import { describe, it, expect } from "vitest";
 import {
-  featureExternalId,
-  toFeatureCollection,
-  buildGeoFeatureRows,
-  buildNatureContextRow,
-  type RawWfsFeature,
+  natureCandidatesForDisplay,
+  nativeNaturePointForDisplay,
+  NATURE_DISPLAY_PROJECTION,
 } from "@/services/nature-geo-transform";
+import { baselineSha256 } from "@/services/baseline/public-baseline-service";
+import type { WaterPlanNaturePayload } from "@/services/baseline/water-plan-nature-source";
+import { natureCatalogueFixture } from "./nature-geo.fixtures";
 
-const POINT = { type: "Point", coordinates: [9.5, 55.3] };
-
-describe("featureExternalId", () => {
-  it("bruger feature.id når det findes", () => {
-    expect(featureExternalId({ id: "p3_eng.42" }, "p3_eng", 0)).toBe("p3_eng:p3_eng.42");
+describe("native catalogue display projection", () => {
+  it.each([
+    [
+      [516971.46, 6135460.08],
+      [9.267746972, 55.365161528],
+    ],
+    [
+      [516861.31, 6136017.79],
+      [9.266042848, 55.370176781],
+    ],
+  ] as const)(
+    "agrees with paired official coordinates %j without a survey accuracy claim",
+    (native, lngLat) => {
+      const display = nativeNaturePointForDisplay(native);
+      expect(Math.abs(display[0] - lngLat[0])).toBeLessThan(0.000001);
+      expect(Math.abs(display[1] - lngLat[1])).toBeLessThan(0.000001);
+      expect(NATURE_DISPLAY_PROJECTION).toMatchObject({
+        sourceCrs: "EPSG:25832",
+        displayCrs: "EPSG:4326",
+        displayAxisOrder: "lng-lat",
+        surveyAccuracyVerified: false,
+        heightTransformed: false,
+      });
+      expect(NATURE_DISPLAY_PROJECTION.datumAssumption).toContain("without-epoch-or-grid-shift");
+    },
+  );
+  it.each([{ point: [9.26, 55.36] }, { point: [516000, 6135000, 1] }, { point: [NaN, 6135000] }])(
+    "rejects swapped/geographic/nonfinite/height coordinates %j",
+    ({ point }) => {
+      expect(() => nativeNaturePointForDisplay(point as [number, number])).toThrow();
+    },
+  );
+  it("uses unknown display status for code0 even when the raw source label sounds approved", async () => {
+    const payload = (await natureCatalogueFixture()).payload as unknown as WaterPlanNaturePayload;
+    const candidate = payload.products[0].candidates[0];
+    if (candidate.kind === "vp3-watercourses") throw new Error("Wrong test fixture");
+    candidate.status = {
+      code: 0,
+      name: "Gældende / Vedtaget",
+      interpretation: "unknown",
+      legalApproval: false,
+    };
+    const feature = natureCandidatesForDisplay(payload).paragraph3.features[0];
+    expect(feature.properties.registryStatus).toBe("Ukendt");
+    expect(feature.properties.registryStatusSourceLabel).toBe("Gældende / Vedtaget");
   });
-
-  it("falder tilbage til objekt_id fra properties", () => {
-    expect(featureExternalId({ properties: { objekt_id: "abc-123" } }, "vandloeb", 5)).toBe(
-      "vandloeb:abc-123",
+  it("projects candidate geometries without mutating native payload or inventing project metrics", async () => {
+    const source = await natureCatalogueFixture();
+    const payload = source.payload as unknown as WaterPlanNaturePayload;
+    const before = await baselineSha256(payload);
+    const display = natureCandidatesForDisplay(payload);
+    expect(display.paragraph3.features).toHaveLength(2);
+    expect(display.watercourses.features).toHaveLength(1);
+    const geometry = display.paragraph3.features[0].geometry.coordinates as number[][][][];
+    expect(geometry[0][0][0][0]).toBeGreaterThan(9);
+    expect(geometry[0][0][0][1]).toBeGreaterThan(55);
+    expect(geometry[0][0][0][0]).toBeLessThan(10);
+    expect(await baselineSha256(payload)).toBe(before);
+    expect(display.paragraph3.features[1].properties).toMatchObject({
+      registryStatus: "Ukendt",
+      registryStatusCode: 0,
+      scope: "bbox_candidate",
+      juridicalPresenceAssessed: false,
+      reportAccepted: false,
+    });
+    expect(JSON.stringify(display)).not.toMatch(
+      /Shape_area|paragraph3AreasHa|protected_nature_present|watercourse_present|Bruger_id|Sagsbeh|Journalnr|DKRIVER2580/,
     );
   });
-
-  it("bruger indeks som sidste udvej", () => {
-    expect(featureExternalId({}, "p3_soe", 7)).toBe("p3_soe:idx-7");
-  });
+  it.each(["incomplete", "metrics", "duplicate-product", "wrong-crs"])(
+    "rejects corrupt display contract %s",
+    async (change) => {
+      const payload = (await natureCatalogueFixture()).payload as unknown as WaterPlanNaturePayload;
+      if (change === "incomplete") payload.products.pop();
+      if (change === "metrics") Object.assign(payload, { metricsCalculated: true });
+      if (change === "duplicate-product") payload.products[1] = payload.products[0];
+      if (change === "wrong-crs")
+        Object.assign(payload.products[0].candidates[0], { geometryCrs: "EPSG:4326" });
+      expect(() => natureCandidatesForDisplay(payload)).toThrow();
+    },
+  );
 });
-
-describe("toFeatureCollection", () => {
-  it("normaliserer features og tilføjer ekstra properties", () => {
-    const raw: RawWfsFeature[] = [
-      { id: "a", properties: { navn: "Engen" }, geometry: POINT },
-      { id: "b", properties: {}, geometry: null }, // uden geometri — filtreres fra
-    ];
-    const fc = toFeatureCollection(raw, { idPrefix: "p3_eng", extraProperties: { natureType: "Eng" } });
-    expect(fc.type).toBe("FeatureCollection");
-    expect(fc.features).toHaveLength(1);
-    expect(fc.features[0].id).toBe("p3_eng:a");
-    expect(fc.features[0].properties).toMatchObject({ navn: "Engen", natureType: "Eng" });
-  });
-});
-
-describe("buildGeoFeatureRows", () => {
-  it("mapper features til geo_features-rækker med dedupe-nøgle", () => {
-    const fc = toFeatureCollection(
-      [{ id: "x1", properties: { navn: "Åen" }, geometry: POINT }],
-      { idPrefix: "vandloeb", extraProperties: { natureType: "Vandløb" } },
-    );
-    const rows = buildGeoFeatureRows("layer-uuid", fc, "watercourse");
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      layer_id: "layer-uuid",
-      external_id: "vandloeb:x1",
-      name: "Åen",
-      feature_type: "watercourse",
-    });
-    expect(rows[0].geojson).toBeTruthy();
-  });
-});
-
-describe("buildNatureContextRow", () => {
-  it("afleder kontekstfelter af naturdata", () => {
-    const row = buildNatureContextRow("proj-1", {
-      paragraph3AreasHa: 2.4,
-      natureTypes: ["Eng", "Mose"],
-      watercourseCount: 3,
-      nearestWatercourseM: 120,
-      natura2000WithinM: 900,
-      natura2000Name: "Lillebælt",
-    });
-    expect(row).toMatchObject({
-      project_id: "proj-1",
-      adjacent_nature_type: "Eng, Mose",
-      watercourse_present: true,
-      distance_to_watercourse_m: 120,
-      protected_nature_present: true,
-      protected_nature_type: "Eng",
-      natura2000_nearby: true,
-      distance_to_natura2000_m: 900,
-    });
-  });
-
-  it("markerer fravær korrekt", () => {
-    const row = buildNatureContextRow("proj-2", {
-      paragraph3AreasHa: 0,
-      natureTypes: [],
-      watercourseCount: 0,
-      nearestWatercourseM: null,
-      natura2000WithinM: null,
-      natura2000Name: null,
-    });
-    expect(row.watercourse_present).toBe(false);
-    expect(row.protected_nature_present).toBe(false);
-    expect(row.natura2000_nearby).toBe(false);
-    expect(row.adjacent_nature_type).toBeNull();
-  });
-});
-
 describe("isOpenDataLiveEnabled", () => {
-  it("er slået til som standard og fra ved eksplicit falsk", async () => {
+  it("keeps the existing explicit public-live flag semantics", async () => {
     const { isOpenDataLiveEnabled } = await import("@/lib/nature-geo.functions");
     expect(isOpenDataLiveEnabled({})).toBe(true);
     expect(isOpenDataLiveEnabled({ VITE_ENABLE_LIVE_DATA: "true" })).toBe(true);
     expect(isOpenDataLiveEnabled({ VITE_ENABLE_LIVE_DATA: "false" })).toBe(false);
     expect(isOpenDataLiveEnabled({ ENABLE_LIVE_DATA: "0" })).toBe(false);
     expect(isOpenDataLiveEnabled({ ENABLE_LIVE_DATA: "off" })).toBe(false);
-    // ENABLE_LIVE_DATA har forrang over VITE_-varianten
-    expect(isOpenDataLiveEnabled({ ENABLE_LIVE_DATA: "true", VITE_ENABLE_LIVE_DATA: "false" })).toBe(true);
+    expect(
+      isOpenDataLiveEnabled({ ENABLE_LIVE_DATA: "true", VITE_ENABLE_LIVE_DATA: "false" }),
+    ).toBe(true);
   });
 });

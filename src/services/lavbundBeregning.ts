@@ -59,8 +59,7 @@ export function tiltagValidering(projekt: LavbundsProjekt): TiltagValidering {
   if (antal === 0) {
     return {
       ok: false,
-      besked:
-        "Uden aktiv udtagning kan effekten ikke krediteres (jf. v12-vejledningen)",
+      besked: "Uden aktiv udtagning kan effekten ikke krediteres (jf. v12-vejledningen)",
     };
   }
   return { ok: true };
@@ -234,10 +233,7 @@ function sideKgPrAar(
   vegAndel: number,
 ): number {
   if (brinkHoejde <= 0 || brinkLaengde <= 0 || t.laengdeM <= 0) return 0;
-  const rate =
-    P_EROSION[t.vandloebsform][t.landskabstype][
-      t.vandloebsType as 1 | 2 | 3
-    ];
+  const rate = P_EROSION[t.vandloebsform][t.landskabstype][t.vandloebsType as 1 | 2 | 3];
   const slopeKey = slopeKeyFor(brinkHoejde, brinkLaengde);
   const slopeFaktor = P_SLOPE[t.landskabstype][slopeKey];
   const korrigeret = rate * slopeFaktor; // mm/år
@@ -305,11 +301,7 @@ export function bygSnapshot(input: {
 }): BeregningsSnapshot {
   const co2 = beregnKrediteretCO2(input.projekt);
   const ver = beregnVerifikationsgrad(input.readings, input.projekt.etableringsdato);
-  const fos = beregnFosforBalance(
-    input.transekterFoer,
-    input.transekterEfter,
-    input.groefter,
-  );
+  const fos = beregnFosforBalance(input.transekterFoer, input.transekterEfter, input.groefter);
   const verificeretTonPrHa = co2.krediteretTonPrHa * ver.verifikationsgrad;
   const verificeretTotal = co2.krediteretTotal * ver.verifikationsgrad;
   return {

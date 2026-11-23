@@ -35,7 +35,11 @@ export async function listAlertRules(projectId: string | null): Promise<AlertRul
 
 export async function createAlertRule(input: AlertRuleInsert): Promise<AlertRule> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: raw, error } = await supabase.from("alert_rules").insert(input as never).select("*").single();
+  const { data: raw, error } = await supabase
+    .from("alert_rules")
+    .insert(input as never)
+    .select("*")
+    .single();
   const data = raw as unknown as AlertRule;
   if (error) throw error;
   await logAuditEvent({
@@ -51,7 +55,10 @@ export async function createAlertRule(input: AlertRuleInsert): Promise<AlertRule
 
 export async function toggleAlertRule(id: string, isActive: boolean): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { error } = await supabase.from("alert_rules").update({ is_active: isActive } as never).eq("id", id);
+  const { error } = await supabase
+    .from("alert_rules")
+    .update({ is_active: isActive } as never)
+    .eq("id", id);
   if (error) throw error;
 }
 
@@ -63,7 +70,11 @@ export async function deleteAlertRule(id: string): Promise<void> {
 
 export async function listComments(alertId: string): Promise<AlertComment[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  const { data, error } = await supabase.from("alert_comments").select("*").eq("alert_id", alertId).order("created_at", { ascending: true });
+  const { data, error } = await supabase
+    .from("alert_comments")
+    .select("*")
+    .eq("alert_id", alertId)
+    .order("created_at", { ascending: true });
   if (error) throw error;
   return (data as AlertComment[] | null) ?? [];
 }
@@ -83,9 +94,16 @@ export async function addComment(alertId: string, content: string): Promise<Aler
 
 export async function assignAlert(alertId: string, userId: string | null): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: currentRaw } = await supabase.from("monitoring_alerts").select("*").eq("id", alertId).maybeSingle();
+  const { data: currentRaw } = await supabase
+    .from("monitoring_alerts")
+    .select("*")
+    .eq("id", alertId)
+    .maybeSingle();
   const current = currentRaw as unknown as MonitoringAlert | null;
-  const { error } = await supabase.from("monitoring_alerts").update({ assigned_to: userId } as never).eq("id", alertId);
+  const { error } = await supabase
+    .from("monitoring_alerts")
+    .update({ assigned_to: userId } as never)
+    .eq("id", alertId);
   if (error) throw error;
   await logAuditEvent({
     projectId: current?.project_id ?? null,
@@ -98,7 +116,11 @@ export async function assignAlert(alertId: string, userId: string | null): Promi
   });
 }
 
-export async function markAlertStatus(alertId: string, status: string, meta?: Record<string, unknown>): Promise<void> {
+export async function markAlertStatus(
+  alertId: string,
+  status: string,
+  meta?: Record<string, unknown>,
+): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const patch: Record<string, unknown> = { status };
   if (status === "resolved") {
@@ -110,7 +132,10 @@ export async function markAlertStatus(alertId: string, status: string, meta?: Re
     patch.acknowledged_at = new Date().toISOString();
     patch.acknowledged_by = auth.user?.id ?? null;
   }
-  const { error } = await supabase.from("monitoring_alerts").update(patch as never).eq("id", alertId);
+  const { error } = await supabase
+    .from("monitoring_alerts")
+    .update(patch as never)
+    .eq("id", alertId);
   if (error) throw error;
   await logAuditEvent({
     eventType: `alert_${status}`,

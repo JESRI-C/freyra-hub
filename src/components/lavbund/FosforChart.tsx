@@ -36,15 +36,31 @@ export function FosforChart({ data, height = 240 }: { data: FosforData; height?:
     <div style={{ height }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 4 }} barGap={2}>
-          <CartesianGrid strokeDasharray="2 4" stroke="currentColor" strokeOpacity={0.12} vertical={false} />
-          <XAxis dataKey="kilde" tick={{ fontSize: 12 }} tickLine={false} axisLine={{ strokeOpacity: 0.25 }} />
+          <CartesianGrid
+            strokeDasharray="2 4"
+            stroke="currentColor"
+            strokeOpacity={0.12}
+            vertical={false}
+          />
+          <XAxis
+            dataKey="kilde"
+            tick={{ fontSize: 12 }}
+            tickLine={false}
+            axisLine={{ strokeOpacity: 0.25 }}
+          />
           <YAxis
             tickFormatter={(v: number) => v.toLocaleString("da-DK")}
             tick={{ fontSize: 11 }}
             tickLine={false}
             axisLine={false}
             width={46}
-            label={{ value: "kg P/år", angle: -90, position: "insideLeft", fontSize: 11, offset: 8 }}
+            label={{
+              value: "kg P/år",
+              angle: -90,
+              position: "insideLeft",
+              fontSize: 11,
+              offset: 8,
+            }}
           />
           <Tooltip
             cursor={{ fill: "currentColor", fillOpacity: 0.05 }}

@@ -5,7 +5,10 @@ import type { ConnectorResponse } from "@/services/live-data/live-data-client";
 
 interface Props {
   label: string;
-  response: Pick<ConnectorResponse<unknown>, "mode" | "status" | "error" | "fetchedAt" | "latencyMs"> | undefined | null;
+  response:
+    | Pick<ConnectorResponse<unknown>, "mode" | "status" | "error" | "fetchedAt" | "latencyMs">
+    | undefined
+    | null;
   className?: string;
 }
 
@@ -18,18 +21,38 @@ type Variant = {
 export function ConnectorStatusBadge({ label, response, className }: Props) {
   const variant: Variant = (() => {
     if (!response) {
-      return { label: "Preview", Icon: Eye, className: "bg-muted text-muted-foreground border-border" };
+      return {
+        label: "Preview",
+        Icon: Eye,
+        className: "bg-muted text-muted-foreground border-border",
+      };
     }
     if (response.status === "missing_key") {
-      return { label: "Key missing", Icon: KeyRound, className: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" };
+      return {
+        label: "Key missing",
+        Icon: KeyRound,
+        className: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+      };
     }
     if (response.mode === "error" || response.status === "error" || response.status === "timeout") {
-      return { label: "Error", Icon: AlertTriangle, className: "bg-destructive/15 text-destructive border-destructive/30" };
+      return {
+        label: "Error",
+        Icon: AlertTriangle,
+        className: "bg-destructive/15 text-destructive border-destructive/30",
+      };
     }
     if (response.mode === "live") {
-      return { label: "Active", Icon: Activity, className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" };
+      return {
+        label: "Active",
+        Icon: Activity,
+        className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+      };
     }
-    return { label: "Preview", Icon: Eye, className: "bg-muted text-muted-foreground border-border" };
+    return {
+      label: "Preview",
+      Icon: Eye,
+      className: "bg-muted text-muted-foreground border-border",
+    };
   })();
 
   const Icon = variant.Icon;

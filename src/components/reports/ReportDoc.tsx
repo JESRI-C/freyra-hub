@@ -1,5 +1,5 @@
 /**
- * ReportDoc — fælles designsystem for GoFreyras rapport-DOKUMENTER
+ * ReportDoc — fælles designsystem for Freyras rapport-DOKUMENTER
  * (verifikationsrapporter, kunde-/ESG-rapporter). Ét visuelt sprog:
  * markant masthead, nummererede sektioner med ghost-tal, hero-nøgletal,
  * stat-tiles, hairline-tabeller og dokument-bjælker (CSS-barer der printer
@@ -169,9 +169,7 @@ export function ReportKpi({
   return (
     <div className="rounded-xl border bg-muted/20 px-4 py-3">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div
-        className={`mt-1 text-xl font-semibold tracking-tight ${accent ? "text-primary" : ""}`}
-      >
+      <div className={`mt-1 text-xl font-semibold tracking-tight ${accent ? "text-primary" : ""}`}>
         {value}
       </div>
       {sub && <div className="mt-0.5 text-[11px] text-muted-foreground">{sub}</div>}
@@ -229,7 +227,10 @@ export function ReportBars({ rows }: { rows: DocBarRow[] }) {
   return (
     <div className="space-y-2.5">
       {rows.map((r) => (
-        <div key={r.label + r.sub} className="grid grid-cols-[minmax(7rem,12rem)_1fr] gap-3 items-center">
+        <div
+          key={r.label + r.sub}
+          className="grid grid-cols-[minmax(7rem,12rem)_1fr] gap-3 items-center"
+        >
           <div className="flex items-center gap-2 min-w-0">
             <span
               aria-hidden
@@ -291,10 +292,7 @@ export function ReportTable({
         {rows.map((r, ri) => (
           <tr key={ri}>
             {r.map((c, ci) => (
-              <td
-                key={ci}
-                className={`py-2 ${ci >= numericFra ? "text-right tabular-nums" : ""}`}
-              >
+              <td key={ci} className={`py-2 ${ci >= numericFra ? "text-right tabular-nums" : ""}`}>
                 {c}
               </td>
             ))}
@@ -340,7 +338,7 @@ export function ReportFooter({ children, brand }: { children: ReactNode; brand?:
         {children}
       </p>
       <div className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold shrink-0">
-        {brand ?? "GoFreyra"}
+        {brand ?? "Freyra"}
       </div>
     </footer>
   );

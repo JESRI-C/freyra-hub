@@ -7,9 +7,11 @@ import { ActionEvidenceDialog } from "./ActionEvidenceDialog";
 import { Paperclip, ShieldAlert, MapPin, Target } from "lucide-react";
 import { toast } from "sonner";
 import type { Action } from "@/lib/supabase/types";
+import { Link } from "@tanstack/react-router";
 
 interface ActionItemProps {
   action: Action;
+  canEdit?: boolean;
   siteName?: string | null;
   indicatorLabel?: string | null;
   onStart?: (id: string) => void;
@@ -20,6 +22,7 @@ interface ActionItemProps {
 
 export function ActionItem({
   action,
+  canEdit = true,
   siteName,
   indicatorLabel,
   onStart,
@@ -44,11 +47,33 @@ export function ActionItem({
   const canComplete = !requiresEvidence || evidenceCount > 0;
 
   const startHandler = onStart ?? onMarkInProgress;
-  const completeHandler = onComplete ?? ((id: string) => onMarkCompleted?.(id));
+  const completeHandler =
+    onComplete ?? (onMarkCompleted ? (id: string) => onMarkCompleted(id) : undefined);
 
   const isOpen = action.status === "Åben" || action.status === "open";
   const isInProgress = action.status === "I gang";
   const isClosed = action.status === "Lukket" || action.status === "closed";
+  if (action.action_type === "workflow_followup" && action.project_id)
+    return (
+      <div className="space-y-2 border-b py-3 text-sm">
+        <p className="font-medium">{action.title}</p>
+        <p>
+          {action.status} · {action.owner || "Ansvarlig ikke aftalt"} ·{" "}
+          {action.due_date || "Dato ikke aftalt"}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Intern dokumentationsopgave; status og begrundelse gemmes i opfølgningshistorikken.
+        </p>
+        <Link
+          to="/app/projects/$slug"
+          params={{ slug: action.project_id }}
+          search={{ step: "rapport" }}
+          className="underline"
+        >
+          Åbn opfølgning og historik
+        </Link>
+      </div>
+    );
 
   function handleComplete() {
     if (!canComplete) {
@@ -73,15 +98,11 @@ export function ActionItem({
             <span className="text-sm font-medium">{action.title}</span>
             <Pill tone={tone === "neutral" ? "default" : tone}>{action.priority ?? "Lav"}</Pill>
             <span className="text-xs text-muted-foreground">{action.status}</span>
-            {action.action_type && (
-              <Pill tone="info">{action.action_type}</Pill>
-            )}
+            {action.action_type && <Pill tone="info">{action.action_type}</Pill>}
             {requiresEvidence && (
               <span
                 className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
-                  canComplete
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-amber-50 text-amber-700"
+                  canComplete ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
                 }`}
               >
                 <ShieldAlert className="h-3 w-3" />
@@ -134,7 +155,9 @@ export function ActionItem({
                 className="flex-1 text-xs border rounded px-2 py-1 bg-background"
                 autoFocus
               />
-              <Button size="sm" onClick={handleComplete}>Bekræft</Button>
+              <Button size="sm" onClick={handleComplete}>
+                Bekræft
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -186,6 +209,7 @@ export function ActionItem({
         action={action}
         open={evidenceOpen}
         onOpenChange={setEvidenceOpen}
+        readOnly={!canEdit}
       />
     </>
   );

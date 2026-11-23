@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Sheet,
@@ -35,20 +35,29 @@ import type { Indicator } from "@/lib/supabase/types";
 
 export function IndicatorDetail({
   indicator,
+  readOnly = false,
   open,
   onOpenChange,
 }: {
   indicator: Indicator | null;
+  readOnly?: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
   const [period, setPeriod] = useState<Period>("90d");
   const [newValue, setNewValue] = useState("");
+  const [source, setSource] = useState("");
+  const [method, setMethod] = useState("");
+  const measurementId = useId();
   const [saving, setSaving] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const qc = useQueryClient();
 
-  const { data: measurements = [], refetch } = useQuery({
+  const {
+    data: measurements = [],
+    refetch,
+    error: measurementsError,
+  } = useQuery({
     queryKey: ["indicator-measurements", indicator?.id, period],
     queryFn: () => (indicator ? getMeasurements(indicator, period) : Promise.resolve([])),
     enabled: !!indicator && open,
@@ -61,12 +70,34 @@ export function IndicatorDetail({
     label: new Date(m.measured_at).toLocaleDateString("da-DK", { day: "2-digit", month: "short" }),
     value: Number(m.value),
   }));
+  const first = measurements[0];
+  const last = measurements.at(-1);
+  const comparable =
+    first &&
+    last &&
+    first.measured_at !== last.measured_at &&
+    !!first.source?.trim() &&
+    first.source === last.source &&
+    !!first.method?.trim() &&
+    first.method === last.method &&
+    !!first.unit?.trim() &&
+    first.unit === last.unit;
+  const change = comparable ? Number(last.value) - Number(first.value) : null;
+  const targetValue = indicator.target_value;
+  const targetDirection = indicator.target_direction;
+  const targetUnit = indicator.target_unit;
+  const targetReached =
+    targetValue != null && last && last.unit === targetUnit && Number.isFinite(Number(last.value))
+      ? targetDirection === "at_most"
+        ? Number(last.value) <= targetValue
+        : Number(last.value) >= targetValue
+      : null;
 
   async function handleAdd() {
-    if (!indicator) return;
+    if (!indicator || readOnly || saving || !isSupabaseConfigured) return;
     const v = Number(newValue);
-    if (Number.isNaN(v)) {
-      toast.error("Ugyldig værdi");
+    if (!newValue.trim() || !Number.isFinite(v) || !source.trim() || !method.trim()) {
+      toast.error("Angiv en gyldig værdi, kilde og målemetode.");
       return;
     }
     setSaving(true);
@@ -74,15 +105,19 @@ export function IndicatorDetail({
       await recordMeasurement({
         indicator,
         value: v,
-        source: "manual",
-        method: "manuel indtastning",
-        confidence_score: 1,
+        source: source.trim(),
+        method: method.trim(),
       });
       toast.success("Måling registreret");
       setNewValue("");
+      setSource("");
+      setMethod("");
       await refetch();
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["indicators"] });
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["open-actions"] });
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["audit-events"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Kunne ikke gemme måling");
@@ -113,9 +148,11 @@ export function IndicatorDetail({
                   {indicator.description ? ` · ${indicator.description}` : ""}
                 </SheetDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
-                <Settings2 className="h-4 w-4 mr-1.5" /> Konfigurér
-              </Button>
+              {!readOnly && (
+                <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
+                  <Settings2 className="h-4 w-4 mr-1.5" /> Konfigurér
+                </Button>
+              )}
             </div>
           </SheetHeader>
 
@@ -124,7 +161,9 @@ export function IndicatorDetail({
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">Aktuel værdi</div>
-                <div className={`text-2xl font-bold tabular-nums ${indicatorStatusColor(indicator)}`}>
+                <div
+                  className={`text-2xl font-bold tabular-nums ${indicatorStatusColor(indicator)}`}
+                >
                   {formatIndicatorValue(indicator)}
                 </div>
               </div>
@@ -144,19 +183,76 @@ export function IndicatorDetail({
             </div>
 
             {/* Period switcher */}
-            <div className="flex gap-1 border rounded-lg p-1 w-fit">
+            <div
+              role="group"
+              aria-label="Måleperiode"
+              className="flex w-fit flex-wrap gap-1 rounded-lg border p-1"
+            >
               {(["30d", "90d", "12m", "all"] as Period[]).map((p) => (
                 <button
                   key={p}
+                  type="button"
+                  aria-pressed={period === p}
                   onClick={() => setPeriod(p)}
                   className={`px-3 py-1 text-xs rounded-md ${
-                    period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                    period === p
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   {p === "all" ? "Alle" : p}
                 </button>
               ))}
             </div>
+
+            {!measurementsError && first && last && (
+              <section
+                aria-label="Udvikling i perioden"
+                className="space-y-1 rounded-lg border p-3 text-sm"
+              >
+                <h3 className="font-medium">Udvikling i perioden</h3>
+                {change !== null && Number.isFinite(change) ? (
+                  <>
+                    <p>
+                      Fra {first.value} til {last.value}
+                      {last.unit ? ` ${last.unit}` : ""} · ændring{" "}
+                      {new Intl.NumberFormat("da-DK", {
+                        signDisplay: "exceptZero",
+                        maximumFractionDigits: 6,
+                      }).format(change)}
+                      .
+                    </p>
+                    <p className="text-muted-foreground">
+                      Ændringen gælder de registrerede værdier. Vurder indsatsens effekt ud fra det
+                      faglige grundlag.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">
+                    {measurements.length < 2
+                      ? "Der skal være mindst to registreringer i perioden for at vise en ændring."
+                      : "En sammenligning kræver forskellige måletidspunkter og samme dokumenterede kilde, metode og enhed."}
+                  </p>
+                )}
+              </section>
+            )}
+
+            {targetValue != null && targetDirection && targetUnit && (
+              <section
+                aria-label="Indikatorens mål"
+                className="space-y-1 rounded-lg border p-3 text-sm"
+              >
+                <h3 className="font-medium">Indikatorens mål</h3>
+                <p>
+                  {targetDirection === "at_most" ? "Højst" : "Mindst"} {targetValue} {targetUnit}
+                </p>
+                <p className="text-muted-foreground">
+                  {measurementsError || targetReached === null
+                    ? "Afventer en registrering i perioden med målets enhed."
+                    : `Seneste registrering i perioden: ${last!.value} ${targetUnit}. ${targetReached ? "Værdien opfylder målet." : "Værdien ligger uden for målet."}`}
+                </p>
+              </section>
+            )}
 
             {/* Chart */}
             <div className="h-72 rounded-lg border p-3">
@@ -184,7 +280,12 @@ export function IndicatorDetail({
                         y={indicator.threshold_warning}
                         stroke="#f59e0b"
                         strokeDasharray="4 3"
-                        label={{ value: "Advarsel", fontSize: 10, fill: "#f59e0b", position: "right" }}
+                        label={{
+                          value: "Advarsel",
+                          fontSize: 10,
+                          fill: "#f59e0b",
+                          position: "right",
+                        }}
                       />
                     )}
                     {indicator.threshold_critical != null && (
@@ -192,7 +293,12 @@ export function IndicatorDetail({
                         y={indicator.threshold_critical}
                         stroke="#dc2626"
                         strokeDasharray="4 3"
-                        label={{ value: "Kritisk", fontSize: 10, fill: "#dc2626", position: "right" }}
+                        label={{
+                          value: "Kritisk",
+                          fontSize: 10,
+                          fill: "#dc2626",
+                          position: "right",
+                        }}
                       />
                     )}
                     <Line
@@ -209,27 +315,76 @@ export function IndicatorDetail({
             </div>
 
             {/* Add measurement */}
-            <div className="rounded-lg border p-3 space-y-2">
-              <Label className="text-sm">Registrér ny måling</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  step="any"
-                  value={newValue}
-                  onChange={(e) => setNewValue(e.target.value)}
-                  placeholder={`Værdi${indicator.unit ? ` (${indicator.unit})` : ""}`}
-                  disabled={!isSupabaseConfigured}
-                />
-                <Button onClick={handleAdd} disabled={saving || !newValue || !isSupabaseConfigured}>
-                  {saving ? "Gemmer…" : "Tilføj"}
-                </Button>
-              </div>
-              {!isSupabaseConfigured && (
+            {measurementsError && (
+              <p role="alert">Målinger kunne ikke indlæses: {measurementsError.message}</p>
+            )}
+            {!readOnly && (
+              <form
+                className="space-y-3 rounded-lg border p-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleAdd();
+                }}
+              >
+                <h3 className="text-sm font-medium">Registrér ny måling</h3>
+                <fieldset
+                  disabled={saving || !isSupabaseConfigured}
+                  className="grid gap-3 sm:grid-cols-2"
+                >
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label htmlFor={measurementId + "-value"}>
+                      Værdi{indicator.unit ? ` (${indicator.unit})` : ""}
+                    </Label>
+                    <Input
+                      id={measurementId + "-value"}
+                      type="number"
+                      step="any"
+                      required
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={measurementId + "-source"}>Kilde</Label>
+                    <Input
+                      id={measurementId + "-source"}
+                      value={source}
+                      onChange={(e) => setSource(e.target.value)}
+                      maxLength={120}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={measurementId + "-method"}>Målemetode</Label>
+                    <Input
+                      id={measurementId + "-method"}
+                      value={method}
+                      onChange={(e) => setMethod(e.target.value)}
+                      maxLength={200}
+                      required
+                    />
+                  </div>
+                </fieldset>
                 <p className="text-xs text-muted-foreground">
-                  Kræver tilkoblet database.
+                  Angiv fx feltjournal eller datasæt som kilde og beskriv, hvordan værdien er målt.
                 </p>
-              )}
-            </div>
+                <Button
+                  type="submit"
+                  disabled={
+                    saving ||
+                    !newValue.trim() ||
+                    !source.trim() ||
+                    !method.trim() ||
+                    !isSupabaseConfigured
+                  }
+                >
+                  {saving ? "Gemmer…" : "Gem måling"}
+                </Button>
+                {!isSupabaseConfigured && (
+                  <p className="text-xs text-muted-foreground">Kræver tilkoblet database.</p>
+                )}
+              </form>
+            )}
 
             {/* Recent measurements table */}
             {measurements.length > 0 && (
@@ -238,17 +393,24 @@ export function IndicatorDetail({
                   Seneste målinger
                 </div>
                 <div className="divide-y max-h-56 overflow-y-auto">
-                  {[...measurements].reverse().slice(0, 20).map((m) => (
-                    <div key={m.id} className="px-3 py-2 flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {new Date(m.measured_at).toLocaleString("da-DK")}
-                      </span>
-                      <span className="font-medium tabular-nums">
-                        {m.value}{m.unit ?? ""}
-                        {m.source && <span className="ml-2 text-xs text-muted-foreground">· {m.source}</span>}
-                      </span>
-                    </div>
-                  ))}
+                  {[...measurements]
+                    .reverse()
+                    .slice(0, 20)
+                    .map((m) => (
+                      <div key={m.id} className="space-y-1 break-words px-3 py-2 text-sm">
+                        <span className="mr-2 text-muted-foreground">
+                          {new Date(m.measured_at).toLocaleString("da-DK")}
+                        </span>
+                        <span className="font-medium tabular-nums">
+                          {m.value}
+                          {m.unit ? ` ${m.unit}` : ""}
+                        </span>
+                        <p className="text-xs text-muted-foreground">
+                          Kilde: {m.source?.trim() || "Ukendt"} · Metode:{" "}
+                          {m.method?.trim() || "Ukendt"}
+                        </p>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
@@ -261,7 +423,9 @@ export function IndicatorDetail({
         open={configOpen}
         onOpenChange={setConfigOpen}
         onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["project-workspace"] });
           qc.invalidateQueries({ queryKey: ["indicators"] });
+          qc.invalidateQueries({ queryKey: ["project-workspace"] });
           qc.invalidateQueries({ queryKey: ["indicator-measurements"] });
         }}
       />

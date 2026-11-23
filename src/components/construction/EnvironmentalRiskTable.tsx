@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { getMyProjectRole, permissionsFor } from "@/services/project-members-service";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import type { EnvironmentalRisk } from "@/lib/supabase/types";
 
@@ -31,11 +34,39 @@ interface Props {
 }
 
 export function EnvironmentalRiskTable({ risks }: Props) {
-  const [localRisks, setLocalRisks] = useState<EnvironmentalRisk[]>(risks);
-
-  function markControlled(id: string) {
-    setLocalRisks((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Kontrolleret" } : r)));
-  }
+  const localRisks = risks;
+  const auth = useAuth();
+  const qc = useQueryClient();
+  const projectId = risks[0]?.project_id;
+  const role = useQuery({
+    queryKey: ["project-role", auth.user?.id, projectId],
+    queryFn: () => getMyProjectRole(projectId!, auth.user!.id),
+    enabled: !!(projectId && auth.user),
+  });
+  const canEdit =
+    ["owner", "admin", "editor"].includes(auth.currentOrg?.role ?? "") ||
+    permissionsFor(role.data).canEdit;
+  const mutation = useMutation({
+    mutationFn: async (id: string) => {
+      const risk = risks.find((r) => r.id === id);
+      if (!risk?.project_id) throw new Error("Risikoen har intet projekt.");
+      const { error } = await supabase
+        .from("environmental_risks")
+        .update({ status: "Kontrolleret" })
+        .eq("id", id)
+        .eq("project_id", risk.project_id)
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["project-workspace"] }),
+        qc.invalidateQueries({ queryKey: ["construction-project"] }),
+        qc.invalidateQueries({ queryKey: ["construction-projects"] }),
+      ]);
+    },
+  });
 
   const openCount = localRisks.filter((r) => r.status === "Åben").length;
   const criticalCount = localRisks.filter(
@@ -44,6 +75,11 @@ export function EnvironmentalRiskTable({ risks }: Props) {
 
   return (
     <Card>
+      {mutation.error && (
+        <p role="alert" className="p-4 text-destructive">
+          Ændringen kunne ikke gemmes: {mutation.error.message}
+        </p>
+      )}
       <CardHeader
         title="Miljørisici"
         subtitle={`${localRisks.length} risici registreret`}
@@ -76,9 +112,10 @@ export function EnvironmentalRiskTable({ risks }: Props) {
                   <span className={`text-xs font-medium ${statusColor(risk.status)}`}>
                     {risk.status ?? "—"}
                   </span>
-                  {risk.status === "Åben" && (
+                  {risk.status === "Åben" && canEdit && (
                     <button
-                      onClick={() => markControlled(risk.id)}
+                      disabled={mutation.isPending}
+                      onClick={() => mutation.mutate(risk.id)}
                       className="text-xs px-2 py-0.5 rounded border hover:bg-muted transition-colors"
                     >
                       Markér kontrolleret

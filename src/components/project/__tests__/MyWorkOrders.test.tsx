@@ -1,0 +1,966 @@
+// @vitest-environment jsdom
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { emptyWorkOrderPlan } from "@/lib/work-order-plan";
+const m = vi.hoisted(() => ({
+  load: vi.fn(),
+  loadLink: vi.fn(),
+  claim: vi.fn(),
+  fieldAccess: vi.fn(),
+  sites: vi.fn(),
+  siteProject: vi.fn(),
+  client: vi.fn(),
+  scanned: vi.fn(),
+  blocker: vi.fn(),
+  actor: "00000000-0000-4000-8000-000000000001" as string | null,
+}));
+vi.mock("@/lib/auth", () => ({
+  useAuth: () => ({ user: m.actor ? { id: m.actor } : null, loading: false }),
+}));
+vi.mock("@/lib/supabase/client", () => ({
+  createActorBoundSupabaseClient: (actorId: string) => {
+    m.client(actorId);
+    return {
+      from: (table: string) => {
+        expect(table).toBe("sites");
+        return {
+          select: () => ({
+            eq: (column: string, value: string) => {
+              m.siteProject(column, value);
+              return {
+                neq: () => ({
+                  is: () => ({
+                    in: (column: string, values: string[]) => ({
+                      abortSignal: () => m.sites(column, values),
+                    }),
+                  }),
+                }),
+              };
+            },
+          }),
+        };
+      },
+      rpc: (name: string, args: unknown) => ({
+        abortSignal: async () =>
+          name === "list_field_equipment_label" ? m.scanned(args) : { data: [], error: null },
+      }),
+    };
+  },
+}));
+vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
+vi.mock("@/lib/work-order-assignments.functions", () => ({
+  listCurrentUserWorkOrders: m.load,
+  openCurrentUserWorkOrderLink: m.loadLink,
+  claimProjectWorkOrderPool: m.claim,
+}));
+vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.fieldAccess }));
+vi.mock("@tanstack/react-router", () => ({
+  useBlocker: m.blocker,
+  Link: ({
+    to,
+    children,
+    search,
+    params,
+    disabled,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    search?: unknown;
+    params?: unknown;
+    disabled?: boolean;
+  }) => (
+    <a
+      href={disabled ? undefined : to}
+      aria-disabled={disabled}
+      data-search={JSON.stringify(search)}
+      data-params={JSON.stringify(params)}
+    >
+      {children}
+    </a>
+  ),
+}));
+import { MyWorkOrders } from "../MyWorkOrders";
+vi.mock("../WorkOrderSubmissionPanel", () => ({
+  WorkOrderSubmissionPanel: ({
+    actionId,
+    actorId,
+    scope,
+    readOnly,
+    allowReviewInReadOnly,
+    onEditing,
+  }: {
+    actionId: string;
+    actorId: string;
+    scope: { organizationId: string; projectId: string };
+    readOnly: boolean;
+    allowReviewInReadOnly: boolean;
+    onEditing: (value: boolean) => void;
+  }) => (
+    <div
+      data-submission-task={actionId}
+      data-actor={actorId}
+      data-project={scope.projectId}
+      data-organization={scope.organizationId}
+      data-read-only={readOnly}
+      data-allow-review={allowReviewInReadOnly}
+    >
+      Afleveringsgrundlag
+      <button onClick={() => onEditing(true)}>Synthetic edit submission</button>
+      <button onClick={() => onEditing(false)}>Synthetic cancel submission</button>
+    </div>
+  ),
+}));
+vi.mock("../WorkOrderEvidencePanel", () => ({
+  WorkOrderEvidencePanel: ({
+    actionId,
+    canContribute,
+    onEditing,
+  }: {
+    actionId: string;
+    canContribute: boolean;
+    onEditing: (value: boolean) => void;
+  }) => (
+    <div data-evidence-task={actionId} data-can-contribute={canContribute}>
+      <button onClick={() => onEditing(true)}>Synthetic open original</button>
+      <button onClick={() => onEditing(false)}>Synthetic original complete</button>
+    </div>
+  ),
+}));
+vi.mock("../WorkOrderStatusPanel", () => ({
+  WorkOrderStatusPanel: ({ onEditing }: { onEditing: (value: boolean) => void }) => (
+    <>
+      <button onClick={() => onEditing(true)}>Synthetic edit status</button>
+      <button onClick={() => onEditing(false)}>Synthetic cancel status</button>
+    </>
+  ),
+}));
+const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const task = {
+  user_id: id(1),
+  action_id: id(2),
+  organization_id: id(3),
+  project_id: id(4),
+  plan_version_id: id(5),
+  plan_version: 1,
+  plan: { ...emptyWorkOrderPlan("Synthetic mobile task"), instructions: "Synthetic instructions" },
+  assignment_id: id(6),
+  assignment_version: 3,
+  assignment_mode: "pool",
+  claimed_by: null,
+  can_claim: true,
+  can_execute: false,
+  can_review: false,
+  can_plan: false,
+  waiting_for_prerequisites: false,
+  cancelled: false,
+};
+let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
+async function flush() {
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 15));
+  });
+}
+async function render(
+  linkedActionId?: string,
+  completionIntent = false,
+  scannedEquipmentId?: string,
+) {
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <MyWorkOrders
+          linkedActionId={linkedActionId}
+          completionIntent={completionIntent}
+          scannedEquipmentId={scannedEquipmentId}
+        />
+      </QueryClientProvider>,
+    ),
+  );
+  await flush();
+}
+async function openTask() {
+  await click("Åbn opgave");
+}
+async function click(text: string) {
+  const b = [...host.querySelectorAll("button")].find((b) => b.textContent === text);
+  expect(b).toBeTruthy();
+  await act(async () => b!.click());
+  await flush();
+}
+beforeEach(() => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  vi.clearAllMocks();
+  m.actor = id(1);
+  m.load.mockResolvedValue({ items: [task], nextAfterActionId: null });
+  m.claim.mockRejectedValue(new Error("Synthetic lost response"));
+  m.fieldAccess.mockResolvedValue({
+    userId: task.user_id,
+    projectId: task.project_id,
+    canContribute: false,
+  });
+  host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  cache = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+});
+afterEach(async () => {
+  await act(async () => root.unmount());
+  cache.clear();
+  host.remove();
+});
+describe("mobile personal tasks", () => {
+  it("shows the asset’s authorized current reservation after opening its durable label", async () => {
+    m.scanned.mockResolvedValue({
+      error: null,
+      data: [
+        {
+          booking_id: id(61),
+          action_id: task.action_id,
+          equipment_name: "Motorsav",
+          job_title: "Kantslåning",
+          starts_on: "2026-11-17",
+          ends_on: "2026-11-18",
+          checked_out: false,
+        },
+      ],
+    });
+    await render(undefined, false, id(60));
+    expect(m.load).not.toHaveBeenCalled();
+    expect(m.scanned).toHaveBeenCalledWith({ p_equipment_id: id(60) });
+    expect(host.textContent).toContain("Motorsav");
+    const link = [...host.querySelectorAll("a")].find(
+      (node) => node.textContent?.trim() === "Åbn reservation",
+    );
+    expect(JSON.parse(link!.getAttribute("data-search")!)).toEqual({
+      job: task.action_id,
+      booking: id(61),
+    });
+  });
+
+  it("opens only the linked job without requesting the inbox", async () => {
+    m.loadLink.mockResolvedValue(task);
+    await render(task.action_id);
+    expect(m.load).not.toHaveBeenCalled();
+    expect(m.loadLink).toHaveBeenCalledWith({
+      data: { expectedActorId: task.user_id, actionId: task.action_id },
+    });
+    expect(host.textContent).toContain(task.plan.title);
+    expect(host.textContent).toContain("Tilbage til opgavelisten");
+  });
+  it.each([
+    ["started", "Fortsæt til udført status", "Status og logbog"],
+    ["performed", "Fortsæt til aflevering", "Aflevering og historik"],
+  ] as const)(
+    "opens the appropriate explicit QR completion step for %s",
+    async (status, label, summary) => {
+      m.loadLink.mockResolvedValue({ ...task, can_execute: true, task_status: status });
+      await render(task.action_id, true);
+      const panel = [...host.querySelectorAll("summary")].find(
+        (node) => node.textContent?.trim() === summary,
+      );
+      expect(panel?.closest("details")?.open).toBe(false);
+      expect(m.claim).not.toHaveBeenCalled();
+      await click(label);
+      expect(panel?.closest("details")?.open).toBe(true);
+      expect(panel).toBe(document.activeElement);
+    },
+  );
+
+  it("offers no QR completion action for a blocked or finalized job", async () => {
+    m.loadLink.mockResolvedValue({ ...task, can_execute: true, task_status: "approved" });
+    await render(task.action_id, true);
+    expect(host.querySelector('[aria-label="Færdigmelding fra jobkort"] button')).toBeNull();
+  });
+
+  it("shows a neutral message for an unassigned or missing linked job", async () => {
+    m.loadLink.mockResolvedValue(null);
+    await render(task.action_id);
+    expect(host.textContent).toContain("Opgaven er ikke tilgængelig for din konto.");
+    expect(host.textContent).not.toContain(task.plan.title);
+    expect(m.load).not.toHaveBeenCalled();
+  });
+
+  it("gives field workers directions for exact authorized stops without using estimated locations", async () => {
+    m.load.mockResolvedValue({
+      items: [
+        {
+          ...task,
+          plan: {
+            ...task.plan,
+            siteId: id(41),
+            visitStops: [
+              { siteId: id(42), name: "Eng med flade" },
+              { siteId: id(43), name: "Sted uden adgang" },
+            ],
+          },
+        },
+      ],
+      nextAfterActionId: null,
+    });
+    m.sites.mockResolvedValue({
+      error: null,
+      data: [
+        {
+          id: id(41),
+          name: "Nordporten",
+          geometry_geojson: { type: "Point", coordinates: [9.5, 55.2] },
+        },
+        {
+          id: id(42),
+          name: "Eng med flade",
+          geometry_geojson: { type: "Polygon", coordinates: [] },
+        },
+      ],
+    });
+    await render();
+    expect(m.sites).not.toHaveBeenCalled();
+    await openTask();
+    expect(m.client).toHaveBeenCalledWith(task.user_id);
+    expect(m.siteProject).toHaveBeenCalledWith("project_id", task.project_id);
+    expect(m.sites).toHaveBeenCalledWith("id", [id(41), id(42), id(43)]);
+    const panel = host.querySelector('[aria-label="Vejvisning til arbejdssteder"]')!;
+    const links = panel.querySelectorAll("a");
+    expect(links).toHaveLength(1);
+    expect(new URL(links[0].href).searchParams.get("destination")).toBe("55.2,9.5");
+    expect(panel.textContent).toContain("Eng med flade · Vejvisning er ikke tilgængelig");
+    expect(panel.textContent).toContain("Sted uden adgang · Vejvisning er ikke tilgængelig");
+  });
+
+  it("groups loaded orders by lifecycle and returns to the refreshed board after opening one", async () => {
+    m.load.mockResolvedValue({
+      items: [
+        { ...task, task_status: "returned", plan: emptyWorkOrderPlan("Ret foto") },
+        {
+          ...task,
+          action_id: id(10),
+          task_status: "started",
+          plan: emptyWorkOrderPlan("I felten"),
+        },
+        {
+          ...task,
+          action_id: id(11),
+          task_status: "submitted",
+          plan: emptyWorkOrderPlan("Sendt til gennemgang"),
+        },
+        {
+          ...task,
+          action_id: id(12),
+          task_status: "approved",
+          plan: emptyWorkOrderPlan("Gennemgået"),
+        },
+        {
+          ...task,
+          action_id: id(13),
+          task_status: "assigned",
+          waiting_for_prerequisites: true,
+          plan: emptyWorkOrderPlan("Afventer adgang"),
+        },
+        {
+          ...task,
+          action_id: id(14),
+          plan: emptyWorkOrderPlan("Tidligere opgave"),
+        },
+      ],
+      nextAfterActionId: null,
+    });
+
+    await render();
+    expect(host.querySelector('section[aria-label="Opgavetavle"]')).toBeNull();
+    await click("Kanban");
+    const board = host.querySelector('section[aria-label="Opgavetavle"]')!;
+    const lane = (label: string) => board.querySelector(`section[aria-label="${label}"]`);
+    expect(lane("Åbne")?.textContent).toContain("Returneret");
+    expect(lane("Status ikke oplyst")?.textContent).toContain("Tidligere opgave");
+    expect(lane("I gang")?.textContent).toContain("I felten");
+    expect(lane("Afleveret")?.textContent).toContain("Sendt til gennemgang");
+    expect(lane("Godkendt")?.textContent).toContain("Gennemgået");
+    expect(lane("Afventer")?.textContent).toContain("Afventer adgang");
+    expect(lane("Aflyste")).toBeNull();
+    await act(async () => lane("I gang")?.querySelector("button")?.click());
+    await flush();
+    expect(host.querySelector('section[aria-label="Opgavetavle"]')).toBeNull();
+    expect(
+      [...host.querySelectorAll("h2")].find((heading) => !heading.closest("[hidden]"))?.textContent,
+    ).toBe("I felten");
+    const loads = m.load.mock.calls.length;
+    await click("← Tilbage til opgavetavlen");
+    expect(host.querySelector('section[aria-label="Opgavetavle"]')).not.toBeNull();
+    expect(m.load.mock.calls.length).toBeGreaterThan(loads);
+  });
+
+  it("shows the saved plan window and location before an assigned worker opens the task", async () => {
+    const assigned = {
+      ...task,
+      assignment_mode: "person",
+      can_claim: false,
+      can_execute: true,
+    };
+    m.load.mockResolvedValue({
+      items: [
+        {
+          ...assigned,
+          plan: {
+            ...task.plan,
+            plannedStart: "2026-11-05",
+            plannedEnd: "2026-11-07",
+            locationNote: "Ved den nordlige låge",
+          },
+        },
+        {
+          ...assigned,
+          action_id: id(10),
+          plan: { ...emptyWorkOrderPlan("Startdato"), plannedStart: "2026-11-09" },
+        },
+        { ...assigned, action_id: id(11), plan: emptyWorkOrderPlan("Afventer dato") },
+      ],
+      nextAfterActionId: null,
+    });
+
+    await render();
+
+    const previews = [...host.querySelectorAll('dl[aria-label="Planlagt tid og sted"]')];
+    expect(previews).toHaveLength(3);
+    expect(previews.every((preview) => !preview.closest("[hidden]"))).toBe(true);
+    expect(previews[0].textContent).toContain("Planlagt periode");
+    expect(previews[0].textContent).toContain("5. nov. 2026 – 7. nov. 2026");
+    expect(previews[0].textContent).toContain("Ved den nordlige låge");
+    expect(previews[1].textContent).toContain("Planlagt start");
+    expect(previews[1].textContent).toContain("9. nov. 2026");
+    expect(previews[1].textContent).not.toContain("Sted");
+    expect(previews[2].textContent).toContain("Ingen planlagt dato");
+  });
+
+  it("submits a title search with the selected status and clears it explicitly", async () => {
+    await render();
+    await click("Aktive");
+    const input = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
+        input,
+        "  mobil  ",
+      );
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await click("Søg");
+    expect(m.load.mock.lastCall?.[0].data).toMatchObject({
+      expectedActorId: id(1),
+      afterActionId: null,
+      filter: "active",
+      search: "mobil",
+    });
+    await openTask();
+    await click("← Tilbage til opgavelisten");
+    expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("  mobil  ");
+    await click("Ryd søgning");
+    expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
+  });
+
+  it("requests filtered pages from the server and restores the selected list after opening a task", async () => {
+    m.load.mockImplementation(({ data }) =>
+      Promise.resolve({
+        items: data.filter === "cancelled" ? [{ ...task, cancelled: true }] : [task],
+        nextAfterActionId: null,
+      }),
+    );
+    await render();
+    await click("Aflyste");
+    expect(m.load).toHaveBeenLastCalledWith({
+      data: {
+        expectedActorId: id(1),
+        afterActionId: null,
+        pageSize: 20,
+        filter: "cancelled",
+      },
+    });
+    expect(host.textContent).toContain("Aflyst.");
+    await openTask();
+    await click("← Tilbage til opgavelisten");
+    expect(
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Aflyste")
+        ?.getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  it("keeps a cancelled task accessible without offering active field actions", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, cancelled: true, can_execute: true, can_plan: true }],
+      nextAfterActionId: null,
+    });
+    await render();
+    expect(host.textContent).toContain("Aflyst.");
+    await openTask();
+    expect(host.textContent).toContain("Synthetic instructions");
+    expect(host.textContent).toContain("Status og logbog");
+    expect(host.textContent).not.toContain("Overtag opgaven");
+    expect(host.textContent).not.toContain("Registrér arbejdstid");
+    expect(host.textContent).not.toContain("Fotos og jobkort på opgaven");
+  });
+
+  it("shows waiting status before opening a task and keeps its instructions accessible", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, waiting_for_prerequisites: true }],
+      nextAfterActionId: null,
+    });
+    await render();
+    expect(host.textContent).toContain("Afventer forudsætninger");
+    await openTask();
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.textContent).toContain(
+      "Synthetic instructions",
+    );
+  });
+
+  it("opens the exact task in the field workspace and enables its existing manual evidence link for a project contributor", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, assignment_mode: "person", can_claim: false, can_execute: true }],
+      nextAfterActionId: null,
+    });
+    m.fieldAccess.mockResolvedValue({
+      userId: task.user_id,
+      projectId: task.project_id,
+      canContribute: true,
+    });
+    await render();
+    expect(m.fieldAccess).not.toHaveBeenCalled();
+    await openTask();
+    expect(m.fieldAccess).toHaveBeenCalledWith({ data: { projectId: task.project_id } });
+    const photo = host.querySelector('a[href="/felt"]')!;
+    expect(photo.textContent).toBe("Fotos og jobkort på opgaven");
+    expect(JSON.parse(photo.getAttribute("data-search")!)).toEqual({
+      project: task.project_id,
+      task: task.action_id,
+    });
+    const execution = [...host.querySelectorAll("a")].find(
+      (link) => link.textContent === "Registrér udført arbejde",
+    )!;
+    expect(execution.getAttribute("href")).toBe("/app/projects/$slug");
+    expect(JSON.parse(execution.getAttribute("data-params")!)).toEqual({ slug: task.project_id });
+    expect(JSON.parse(execution.getAttribute("data-search")!)).toEqual({
+      step: "udfoerelse",
+      task: task.action_id,
+      work: "execution",
+    });
+    await click("Gå til aflevering");
+    expect(host.querySelector("[data-submission-task]")?.getAttribute("data-submission-task")).toBe(
+      task.action_id,
+    );
+
+    const evidence = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Dokumentation",
+    )!;
+    await act(async () => {
+      evidence.open = true;
+      evidence.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    const panel = host.querySelector<HTMLElement>("[data-evidence-task]")!;
+    expect(panel.dataset.evidenceTask).toBe(task.action_id);
+    expect(panel.dataset.canContribute).toBe("true");
+    await click("Synthetic open original");
+    expect(photo.getAttribute("aria-disabled")).toBe("true");
+    expect(photo.getAttribute("href")).toBeNull();
+    expect(execution.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it.each([
+    { kind: "outside project contribution", userId: id(1), projectId: id(4), canContribute: false },
+    { kind: "different user", userId: id(99), projectId: id(4), canContribute: true },
+    { kind: "different project", userId: id(1), projectId: id(99), canContribute: true },
+  ])("keeps field photos and evidence writes closed for $kind", async ({ kind: _, ...access }) => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, assignment_mode: "person", can_claim: false, can_execute: true }],
+      nextAfterActionId: null,
+    });
+    m.fieldAccess.mockResolvedValue(access);
+    await render();
+    await openTask();
+    expect(host.textContent).not.toContain("Fotos og jobkort på opgaven");
+    expect(host.textContent).not.toContain("Registrér udført arbejde");
+    const evidence = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Se dokumentation",
+    )!;
+    await act(async () => {
+      evidence.open = true;
+      evidence.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    expect(host.querySelector<HTMLElement>("[data-evidence-task]")?.dataset.canContribute).toBe(
+      "false",
+    );
+  });
+
+  it.each([
+    { canExecute: true, cancelled: false, readOnly: false, allowReview: true },
+    { canExecute: false, cancelled: false, readOnly: true, allowReview: true },
+    { canExecute: true, cancelled: true, readOnly: true, allowReview: false },
+  ])("uses exact task scope and execution access for submission (%j)", async (access) => {
+    m.load.mockResolvedValue({
+      items: [
+        {
+          ...task,
+          assignment_mode: "person",
+          can_claim: false,
+          can_execute: access.canExecute,
+          cancelled: access.cancelled,
+        },
+      ],
+      nextAfterActionId: null,
+    });
+    await render();
+    await openTask();
+    const submission = [...host.querySelectorAll("details")].find(
+      (d) =>
+        d.querySelector("summary")?.textContent ===
+        (access.readOnly ? "Se afleveringsversioner" : "Aflevering og historik"),
+    )!;
+    await act(async () => {
+      submission.open = true;
+      submission.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+
+    const panel = host.querySelector<HTMLElement>("[data-submission-task]")!;
+    expect(panel.dataset).toMatchObject({
+      submissionTask: task.action_id,
+      actor: task.user_id,
+      project: task.project_id,
+      organization: task.organization_id,
+      readOnly: String(access.readOnly),
+      allowReview: String(access.allowReview),
+    });
+    if (access.readOnly) return;
+
+    await click("Synthetic edit submission");
+    expect(panel.closest("fieldset")?.disabled).toBe(false);
+    expect(
+      [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "Opdater opgaver",
+      )?.disabled,
+    ).toBe(true);
+    await click("Synthetic cancel submission");
+
+    const status = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Status og logbog",
+    )!;
+    await act(async () => {
+      status.open = true;
+      status.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    await click("Synthetic edit status");
+    expect(panel.closest("fieldset")?.disabled).toBe(true);
+  });
+
+  it("opens exact-task documentation as read-only and retains the status editor lock", async () => {
+    await render();
+    await openTask();
+    const details = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Se dokumentation",
+    )!;
+    await act(async () => {
+      details.open = true;
+      details.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    expect(host.querySelector("[data-evidence-task]")?.getAttribute("data-evidence-task")).toBe(
+      task.action_id,
+    );
+    expect(host.querySelector("[data-evidence-task]")?.getAttribute("data-can-contribute")).toBe(
+      "false",
+    );
+    const status = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Status og logbog",
+    )!;
+    await act(async () => {
+      status.open = true;
+      status.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    await click("Synthetic edit status");
+    await click("Synthetic original complete");
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
+        ?.disabled,
+    ).toBe(true);
+    await click("Synthetic cancel status");
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
+        ?.disabled,
+    ).toBe(false);
+  });
+  it("locks list refresh and claim while a nested status or note draft is open", async () => {
+    await render();
+    await openTask();
+    const detail = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Status og logbog",
+    )!;
+    await act(async () => {
+      detail.open = true;
+      detail.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    await click("Synthetic edit status");
+    expect(
+      [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "← Tilbage til opgavelisten",
+      )?.disabled,
+    ).toBe(true);
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
+        ?.disabled,
+    ).toBe(true);
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Overtag opgaven")
+        ?.disabled,
+    ).toBe(true);
+    await click("Synthetic cancel status");
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
+        ?.disabled,
+    ).toBe(false);
+  });
+  it("opens exact task instructions for external users without opening the project", async () => {
+    await render();
+    expect(host.textContent).toContain("Synthetic instructions");
+    expect(host.querySelector('a[href="/app/projects/$slug"]')).toBeNull();
+    expect(m.load).toHaveBeenCalledWith({
+      data: { expectedActorId: id(1), afterActionId: null, pageSize: 20, filter: "all" },
+    });
+  });
+  it("reuses the same claim request and frozen versions after a lost response", async () => {
+    await render();
+    await openTask();
+    await click("Overtag opgaven");
+    await click("← Tilbage til opgavelisten");
+    await openTask();
+    await click("Overtag opgaven");
+    const first = m.claim.mock.calls[0][0].data;
+    expect(first).toMatchObject({
+      actionId: id(2),
+      expectedActorId: id(1),
+      expectedVersion: 3,
+      planVersionId: id(5),
+    });
+    expect(m.claim.mock.calls[1][0].data).toEqual(first);
+    expect(host.textContent).toContain("Synthetic lost response");
+  });
+  it("refreshes the list after a claim and removes the takeover action", async () => {
+    m.claim.mockImplementation(async () => {
+      m.load.mockResolvedValue({
+        items: [
+          {
+            ...task,
+            assignment_version: 4,
+            claimed_by: id(1),
+            can_claim: false,
+            can_execute: true,
+          },
+        ],
+        nextAfterActionId: null,
+      });
+      return {};
+    });
+    await render();
+    await openTask();
+    expect(host.textContent).not.toContain("Gå til status og logbog");
+    await click("Overtag opgaven");
+    expect(host.textContent).toContain("Overtaget af dig");
+    await click("Gå til status og logbog");
+    expect(document.activeElement?.textContent).toBe("Status og logbog");
+    expect(document.activeElement?.parentElement?.hasAttribute("open")).toBe(true);
+    expect(
+      [...host.querySelectorAll("button")].some((b) => b.textContent === "Overtag opgaven"),
+    ).toBe(false);
+  });
+  it("hides cached cards on failed refresh and distinguishes failure from an empty list", async () => {
+    await render();
+    m.load.mockRejectedValue(new Error("Synthetic access check failed"));
+    await click("Opdater opgaver");
+    expect(host.textContent).not.toContain("Synthetic mobile task");
+    expect(host.textContent).not.toContain("Du har ingen tildelte");
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+      "Synthetic access check failed",
+    );
+  });
+  it("hides the previous actor's cards on logout and pending account switch", async () => {
+    await render();
+    m.actor = null;
+    await render();
+    expect(host.textContent).not.toContain("Synthetic mobile task");
+    expect(host.textContent).toContain("Log ind for at se dine opgaver");
+    m.actor = id(9);
+    m.load.mockReturnValue(new Promise(() => {}));
+    await render();
+    expect(host.textContent).not.toContain("Synthetic mobile task");
+    expect(host.textContent).toContain("Henter dine opgaver");
+  });
+  it("loads a second page using the server cursor and the same actor", async () => {
+    m.load
+      .mockResolvedValueOnce({ items: [task], nextAfterActionId: id(2) })
+      .mockResolvedValueOnce({
+        items: [{ ...task, action_id: id(10), plan: emptyWorkOrderPlan("Synthetic next task") }],
+        nextAfterActionId: null,
+      });
+    await render();
+    await click("Hent flere opgaver");
+    expect(m.load.mock.calls[1][0].data).toMatchObject({
+      afterActionId: id(2),
+      expectedActorId: id(1),
+      pageSize: 20,
+    });
+    expect(host.textContent).toContain("Synthetic next task");
+  });
+  it("opens an unclaimed pool task for planning without offering unavailable field actions", async () => {
+    m.load.mockResolvedValue({ items: [{ ...task, can_plan: true }], nextAfterActionId: null });
+    await render();
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
+      true,
+    );
+    await openTask();
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
+      false,
+    );
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.textContent).toContain(
+      "Synthetic instructions",
+    );
+    expect(
+      JSON.parse(host.querySelector('a[href="/app/projects/$slug"]')!.getAttribute("data-search")!),
+    ).toEqual({ tab: "handlinger", task: id(2), work: "plan" });
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    expect(host.textContent).not.toContain("Registrér udført arbejde");
+    await click("← Tilbage til opgavelisten");
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
+      true,
+    );
+  });
+
+  it("keeps task context visible while field access is pending and provides a working retry after failure", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, assignment_mode: "person", can_claim: false, can_execute: true }],
+      nextAfterActionId: null,
+    });
+    let fail: (error: Error) => void = () => {};
+    m.fieldAccess.mockReturnValue(
+      new Promise((_, reject) => {
+        fail = reject;
+      }),
+    );
+    await render();
+    await openTask();
+    expect(host.textContent).toContain("Kontrollerer adgang til feltregistrering");
+    expect(host.textContent).toContain("Synthetic instructions");
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    await act(async () => fail(new Error("Sensitive backend detail")));
+    await flush();
+    expect(host.textContent).not.toContain("Sensitive backend detail");
+    expect(host.textContent).toContain("Adgangen til feltregistrering kunne ikke kontrolleres");
+    m.fieldAccess.mockResolvedValue({
+      userId: task.user_id,
+      projectId: task.project_id,
+      canContribute: true,
+    });
+    await click("Kontrollér feltadgang igen");
+    expect(host.querySelector('a[href="/felt"]')).not.toBeNull();
+    expect(host.textContent).not.toContain("Adgangen til feltregistrering kunne ikke kontrolleres");
+  });
+
+  it("closes cached field actions during a background access check and after access is revoked", async () => {
+    m.load.mockResolvedValue({ items: [{ ...task, can_execute: true }], nextAfterActionId: null });
+    m.fieldAccess.mockResolvedValue({
+      userId: task.user_id,
+      projectId: task.project_id,
+      canContribute: true,
+    });
+    await render();
+    await openTask();
+    expect(host.querySelector('a[href="/felt"]')).not.toBeNull();
+    let finish: (value: unknown) => void = () => {};
+    m.fieldAccess.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    let refresh: Promise<void> = Promise.resolve();
+    await act(async () => {
+      refresh = cache.invalidateQueries({
+        queryKey: ["field-job-access", task.user_id, task.project_id],
+      });
+    });
+    await flush();
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    await act(async () => {
+      finish({ userId: task.user_id, projectId: task.project_id, canContribute: false });
+      await refresh;
+    });
+    await flush();
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    expect(host.textContent).toContain("Feltregistrering er ikke tilgængelig");
+  });
+
+  it("retains instructions but never enables field capture or submission while prerequisites are pending", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, can_execute: true, waiting_for_prerequisites: true }],
+      nextAfterActionId: null,
+    });
+    m.fieldAccess.mockResolvedValue({
+      userId: task.user_id,
+      projectId: task.project_id,
+      canContribute: true,
+    });
+    await render();
+    await openTask();
+    expect(m.fieldAccess).not.toHaveBeenCalled();
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    expect(host.textContent).not.toContain("Gå til aflevering");
+    expect(host.textContent).toContain("Synthetic instructions");
+  });
+
+  it("blocks route changes and project navigation while a nested editor is active, without loading more tasks", async () => {
+    m.load.mockResolvedValue({ items: [task], nextAfterActionId: task.action_id });
+    await render();
+    await openTask();
+    expect(host.textContent).not.toContain("Hent flere opgaver");
+    const status = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Status og logbog",
+    )!;
+    await act(async () => {
+      status.open = true;
+      status.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    await click("Synthetic edit status");
+    const projectLink = [...host.querySelectorAll("a")].find(
+      (link) => link.textContent === "Åbn projektoversigten",
+    )!;
+    expect(projectLink.getAttribute("aria-disabled")).toBe("true");
+    expect(projectLink.getAttribute("href")).toBeNull();
+    expect(m.blocker.mock.lastCall?.[0].shouldBlockFn()).toBe(true);
+    expect(m.blocker.mock.lastCall?.[0].enableBeforeUnload).toBe(true);
+    await click("Synthetic cancel status");
+    expect(m.blocker.mock.lastCall?.[0].shouldBlockFn()).toBe(false);
+    expect(host.querySelector('a[href="/select"]')).not.toBeNull();
+  });
+
+  it("locks navigation during a claim request and releases it when the request fails", async () => {
+    let fail: (error: Error) => void = () => {};
+    m.claim.mockReturnValue(
+      new Promise((_, reject) => {
+        fail = reject;
+      }),
+    );
+    await render();
+    await openTask();
+    await click("Overtag opgaven");
+    expect(m.blocker.mock.lastCall?.[0].shouldBlockFn()).toBe(true);
+    expect(
+      [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "← Tilbage til opgavelisten",
+      )?.disabled,
+    ).toBe(true);
+    await act(async () => fail(new Error("Synthetic claim failure")));
+    await flush();
+    expect(m.blocker.mock.lastCall?.[0].shouldBlockFn()).toBe(false);
+  });
+});

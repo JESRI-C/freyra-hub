@@ -1,8 +1,14 @@
 import { getLiveDataConfig } from "@/config/live-data-config";
-import { fetchWithTimeout, fetchConnector, previewResponse } from "../live-data-client";
+import { isDemoDataEnabled } from "@/lib/data-mode";
+import {
+  fetchWithTimeout,
+  fetchConnector,
+  previewResponse,
+  errorResponse,
+  hasSourceGeometry,
+} from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
-
 export interface GeoPlace {
   name: string;
   type: string;
@@ -10,23 +16,19 @@ export interface GeoPlace {
   region?: string;
   coordinates: [number, number];
 }
-
 export interface DataforsyningenData {
   nearestPlaces: GeoPlace[];
   municipalityName?: string;
   regionName?: string;
   fetchedAt: string;
 }
-
 const DATAFORDELER_BASE = "https://services.datafordeler.dk";
 const OPEN_REVERSE_BASE = "https://api.dataforsyningen.dk/reverse";
-
 interface ReverseGeoResponse {
   kommunekode?: string;
   kommunenavn?: string;
   regionsnavn?: string;
 }
-
 const PREVIEW_DATA: DataforsyningenData = {
   nearestPlaces: [
     {
@@ -46,24 +48,24 @@ const PREVIEW_DATA: DataforsyningenData = {
   regionName: "Region Syddanmark",
   fetchedAt: new Date().toISOString(),
 };
-
 export async function getStatus(): Promise<"live" | "preview" | "missing_key"> {
   const config = getLiveDataConfig();
   // Open geocoding API is always available when live data is enabled
   if (!config.isLiveDataEnabled) return "preview";
   return "live";
 }
-
 export async function fetchByGeometry(
   geometry: ProjectGeometry,
 ): Promise<ConnectorResponse<DataforsyningenData>> {
   const config = getLiveDataConfig();
-  if (!config.isLiveDataEnabled) return previewResponse(PREVIEW_DATA);
-
-  const lat = geometry.centroid?.lat;
-  const lng = geometry.centroid?.lng;
-  if (!lat || !lng) return previewResponse(PREVIEW_DATA);
-
+  if (!config.isLiveDataEnabled) return fetchPreview();
+  if (!hasSourceGeometry(geometry)) {
+    return errorResponse(
+      "Dataforsyningen kræver en gyldig projektgeometri med koordinater.",
+      "invalid_geometry",
+    );
+  }
+  const { lat, lng } = geometry.centroid!;
   // Path A: Datafordeler key present — use full place-name API
   if (config.credentials.datafordeler.present) {
     const key = config.credentials.datafordeler.key!;
@@ -77,7 +79,7 @@ export async function fetchByGeometry(
         srid: "4326",
       });
       const url = `${DATAFORDELER_BASE}/STEDNAVNE/Stednavne/1/rest/Stednavn?${params}`;
-      const res = await fetchWithTimeout(url, { timeoutMs: 10_000 });
+      const res = await fetchWithTimeout(url, { timeoutMs: 10000 });
       if (!res.ok) throw new Error(`Datafordeler API ${res.status}`);
       const json = (await res.json()) as {
         features?: Array<{
@@ -87,10 +89,14 @@ export async function fetchByGeometry(
             kommune?: string;
             region?: string;
           };
-          geometry: { coordinates: [number, number] };
+          geometry: {
+            coordinates: [number, number];
+          };
         }>;
       };
-      const nearestPlaces: GeoPlace[] = (json.features ?? []).slice(0, 5).map((f) => ({
+      if (!Array.isArray(json.features))
+        throw new Error("Datafordeler svarede med et ugyldigt stednavneformat.");
+      const nearestPlaces: GeoPlace[] = json.features.slice(0, 5).map((f) => ({
         name: f.properties.navn,
         type: f.properties.type,
         municipality: f.properties.kommune,
@@ -99,10 +105,15 @@ export async function fetchByGeometry(
       }));
       return { nearestPlaces, fetchedAt: new Date().toISOString() };
     });
-    if (result.status === "ok") return result;
-    // Datafordeler failed — fall through to open geocoding
+    if (result.status !== "ok") return result;
+    return result.data?.nearestPlaces.length
+      ? result
+      : errorResponse(
+          "Datafordeler har ingen stednavne i det forespurgte område.",
+          "no_coverage",
+          result.latencyMs,
+        );
   }
-
   // Path B: Open reverse-geocoding (no key required)
   const openResult = await fetchConnector(async () => {
     const params = new URLSearchParams({
@@ -110,7 +121,7 @@ export async function fetchByGeometry(
       y: String(lat),
       srid: "4326",
     });
-    const res = await fetchWithTimeout(`${OPEN_REVERSE_BASE}?${params}`, { timeoutMs: 10_000 });
+    const res = await fetchWithTimeout(`${OPEN_REVERSE_BASE}?${params}`, { timeoutMs: 10000 });
     if (!res.ok) throw new Error(`Dataforsyningen reverse API ${res.status}`);
     const json = (await res.json()) as ReverseGeoResponse;
     return {
@@ -120,16 +131,21 @@ export async function fetchByGeometry(
       fetchedAt: new Date().toISOString(),
     };
   });
-  if (openResult.status === "ok") return openResult;
-
-  // Path C: Both failed — return preview (not error)
-  return { ...previewResponse(PREVIEW_DATA), latencyMs: openResult.latencyMs };
+  if (openResult.status !== "ok") return openResult;
+  return openResult.data?.municipalityName || openResult.data?.regionName
+    ? openResult
+    : errorResponse(
+        "Dataforsyningen har ingen stedreference for koordinaterne.",
+        "no_coverage",
+        openResult.latencyMs,
+      );
 }
-
 export async function fetchPreview(): Promise<ConnectorResponse<DataforsyningenData>> {
-  return previewResponse(PREVIEW_DATA);
+  return errorResponse(
+    "Dataforsyningen er ikke konfigureret til live data. Forbind en verificeret kilde for at hente projektdata.",
+    "disabled",
+  );
 }
-
 export function normalizeResult(
   result: ConnectorResponse<DataforsyningenData>,
 ): Record<string, unknown> {
@@ -137,7 +153,7 @@ export function normalizeResult(
     mode: result.mode,
     status: result.status,
     latencyMs: result.latencyMs,
-    placesFound: result.data?.nearestPlaces.length ?? 0,
+    placesFound: result.data?.nearestPlaces.length,
     municipality: result.data?.municipalityName,
     fetchedAt: result.data?.fetchedAt,
   };

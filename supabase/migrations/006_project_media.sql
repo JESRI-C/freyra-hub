@@ -1,7 +1,9 @@
 -- Create project_media table
 create table if not exists public.project_media (
   id uuid primary key default gen_random_uuid(),
-  project_id text not null references public.projects(id) on delete cascade,
+  -- projects.id has always been uuid. Keeping this FK uuid-typed is required
+  -- for a clean migration replay; PostgreSQL cannot create a text -> uuid FK.
+  project_id uuid not null references public.projects(id) on delete cascade,
   title text not null,
   description text,
   category text not null check (category in ('field_photo','drone_image','satellite_snapshot','before_after','document_scan','biodiversity_observation','water_observation','soil_observation')),

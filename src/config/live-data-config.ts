@@ -13,7 +13,10 @@ export interface LiveDataConfig {
 export function getLiveDataConfig(): LiveDataConfig {
   // Prefer server-side process.env when available (server functions),
   // fall back to import.meta.env (client / build-time).
-  const serverEnv = (typeof process !== "undefined" ? (process as { env?: Record<string, string | undefined> }).env : undefined) ?? {};
+  const serverEnv =
+    (typeof process !== "undefined"
+      ? (process as { env?: Record<string, string | undefined> }).env
+      : undefined) ?? {};
   const clientEnv = import.meta.env as Record<string, string | undefined>;
 
   const pick = (serverKey: string, clientKey: string): string | null => {
@@ -48,4 +51,3 @@ export function getLiveDataConfig(): LiveDataConfig {
     missingKeys,
   };
 }
-

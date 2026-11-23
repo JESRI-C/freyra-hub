@@ -18,10 +18,17 @@ const ev: AuditEvent = {
 
 describe("auditEventsToCsv", () => {
   it("emits header + row and escapes quotes and commas", () => {
-    const messy: AuditEvent = { ...ev, id: "e2", title: 'Han sagde "hej", derefter', description: "line\nbreak" };
+    const messy: AuditEvent = {
+      ...ev,
+      id: "e2",
+      title: 'Han sagde "hej", derefter',
+      description: "line\nbreak",
+    };
     const csv = auditEventsToCsv([ev, messy]);
     const lines = csv.split("\n");
-    expect(lines[0]).toBe("created_at,event_type,entity_type,entity_id,title,description,actor,source");
+    expect(lines[0]).toBe(
+      "created_at,event_type,entity_type,entity_id,title,description,actor,source",
+    );
     expect(lines).toHaveLength(4); // header + row1 + row2 (2 lines because of embedded newline quoted → still one CSV row containing \n)
     expect(csv).toContain('"Han sagde ""hej"", derefter"');
     expect(csv).toContain('"line\nbreak"');
