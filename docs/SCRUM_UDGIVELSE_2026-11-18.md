@@ -1,6 +1,6 @@
 # GoFreyra · Scrum og samlet udgivelse
 
-Opdateret 23. november 2026. Status: klargøring; den eksisterende side er endnu ikke erstattet.
+Opdateret 24. november 2026. Status: klargøring; den eksisterende side er endnu ikke erstattet.
 
 ## Samlet mål
 
@@ -17,7 +17,7 @@ Sager indeholder flere jobs. Jobkortet samler steder, billeder, timer og materia
 | Prioritet | Opgave | Status | Accept |
 | --- | --- | --- | --- |
 | P0 | Saml eksisterende app og byggede moduler | Samlet udgivelsesforslag oprettet | Bevar eksisterende design, funktioner og kundedata. |
-| P0 | Enkel planlægning på tværs af sager | Ugeplan under kontrol | Direkte indgang, planlagte perioder, synlige manglende datoer og adgang til den eksisterende planeditor. Bevar kladder og håndhæv adgang. |
+| P0 | Enkel planlægning på tværs af sager | Browserprøve bestået | Direkte indgang, planlagte perioder, synlige manglende datoer og adgang til den eksisterende planeditor. Bevar kladder og håndhæv adgang. |
 | P0 | Klargør den samlede kodepakke | I gang | Obligatoriske kode-, sikkerheds- og byggekontroller skal være godkendt. |
 | P0 | Afstem produktionsdatabase og serveropsætning | Database opgraderet; serverklargøring i gang | Gennemgå opgradering, adgang, billedlager og mulighed for gendannelse før ændring. |
 | P0 | Erstat den eksisterende GoFreyra-side | Afventer teknisk afklaring | Verificér den nye version på den eksisterende adresse, inklusive login og genindlæsning. |
@@ -43,7 +43,9 @@ Rækkefølgen ændrer ikke omfanget. Synlige menuer og kodefiler er ikke dokumen
 
 ## Aktuel udvikling
 
-Ugeplanen bygges oven på den eksisterende adgangsafgrænsede arbejdsordreoversigt og planeditor. Den bruger planlagt start og slut; en frist bruges ikke som arbejdsdato. Opgaver med manglende datoer bevares i en særskilt kø. De 43 målrettede prøver i tre filer består, inklusive datoer, adgangstab og beskyttelse af en åben kladde. Den fulde kode- og databasekontrol følges pr. kildeversion i [PR #52](https://github.com/JESRI-C/freyra-hub/pull/52) og skal bestå på den endelige kode. Faktisk browseraccept af ugeplanen er fortsat åben.
+Ugeplanen bruger den eksisterende adgangsafgrænsede arbejdsordreoversigt og planeditor. Planlagt start og slut placerer opgaverne i kalenderen; opgaver med manglende datoer bevares i en særskilt kø. De 43 målrettede prøver i tre filer består, inklusive datoer, adgangstab og beskyttelse af en åben kladde.
+
+På c3aa3834 består den fulde CI: 4116 appprøver, 2257 databaseprøver, gendannelse, TypeScript, lint, sikkerhedskontrol og produktionsbuild. To browserforløb med fiktive login består også: gem en planændring gennem serveren og genindlæs den; afvis en medarbejder uden planlægningsadgang. Desktop og mobilbredde er kontrolleret. Resultaterne følges pr. kildeversion i [PR #52](https://github.com/JESRI-C/freyra-hub/pull/52). Accept af den udgivne produktionsversion er fortsat åben.
 
 Lovable-previewet virker efter afhængighedsrettelsen i f68a967a. Den nye ugeplan er endnu ikke flettet eller udgivet. Produktionsdatabasen er opgraderet; den ejerbegrænsede sikkerhedsrettelse og produktionsserverens accept er fortsat åbne.
 

@@ -216,17 +216,6 @@ jobs:
           CI: "true"
         run: node scripts/test-local-planning-browser.mjs --disposable-local
 
-      - name: Preserve synthetic planning browser evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: planning-browser-evidence
-          path: |
-            tmp/planning-e2e/result.json
-            tmp/planning-e2e/screens/*.png
-          if-no-files-found: ignore
-          retention-days: 14
-
       - name: Stop disposable local stack and retain cleanup evidence
         if: always()
         run: node scripts/database-concurrency/stop-disposable-stack.mjs --disposable-local
