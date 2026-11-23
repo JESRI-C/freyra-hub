@@ -17,7 +17,7 @@ concurrency:
 jobs:
   app-gates:
     name: Typecheck, test and build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       CI: "true"
@@ -76,6 +76,10 @@ jobs:
 
       - name: Test serially
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        env:
+          VITE_SUPABASE_URL: ""
+          VITE_SUPABASE_PUBLISHABLE_KEY: ""
+          VITE_SUPABASE_ANON_KEY: ""
         run: npm test -- --maxWorkers=1 --no-file-parallelism
 
       - name: Build
@@ -84,7 +88,7 @@ jobs:
 
   database-gates:
     name: Fresh local migrations and isolation tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     steps:
@@ -130,6 +134,19 @@ jobs:
             --disposable-local \
             --database postgresql://postgres:postgres@127.0.0.1:54322/postgres \
             | tee tmp/database-concurrency/work-order-observation-drafts.json
+
+      - name: Match PostgreSQL client tools to the disposable server
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          pgdg_fingerprint=$(gpg --batch --with-colons --show-keys --fingerprint /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | awk -F: '$1 == "fpr" {print $10; exit}')
+          test "$pgdg_fingerprint" = B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Restore a real database dump to a disposable database
         env:
@@ -184,6 +201,20 @@ jobs:
           path: tmp/database-lint/*.json
           if-no-files-found: ignore
           retention-days: 35
+
+      - name: Install pinned npm for browser acceptance
+        run: npm install --global npm@11.6.0
+
+      - name: Install browser acceptance dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium for disposable browser acceptance
+        run: npx playwright install --with-deps chromium
+
+      - name: Test real weekly planning in the disposable local stack
+        env:
+          CI: "true"
+        run: node scripts/test-local-planning-browser.mjs --disposable-local
 
       - name: Stop disposable local stack and retain cleanup evidence
         if: always()

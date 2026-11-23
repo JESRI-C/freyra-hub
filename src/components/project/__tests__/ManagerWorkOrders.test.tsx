@@ -806,6 +806,7 @@ describe("manager work orders across projects", () => {
       filters: { ...emptyManagerWorkOrderFilters(), projectId: id(3), status: "submitted" },
       view: "list",
       selection: null,
+      planningDay: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
     });
     expect(JSON.stringify(stored)).not.toContain("Frederik");
     m.org = id(30);
@@ -975,6 +976,53 @@ describe("manager work orders across projects", () => {
       sessionStorage.getItem(`freyra-manager-work-orders/v1:${id(1)}:${id(2)}`)!,
     );
     expect(saved.selection).toBeNull();
+  });
+
+  it("plans by the actual period across projects and keeps deadline-only jobs in the undated queue", async () => {
+    const unplanned = {
+      ...task,
+      action_id: id(31),
+      project_id: id(4),
+      project_name: "Mosen uden opgaver",
+      title: "Kun en frist",
+      planned_start: null,
+      planned_end: null,
+      due_date: "2026-11-04",
+    };
+    m.load.mockResolvedValue(page([task, unplanned]));
+    await render();
+    await click("Ugeplan");
+    await change("Dato i ugen", "2026-11-04");
+    await flush();
+    const day = host.querySelector('[aria-label="Plan for 2026-11-04"]')!;
+    expect(day.textContent).toContain("Pleje langs åen");
+    expect(day.textContent).not.toContain("Kun en frist");
+    expect(
+      host.querySelector('[aria-label="Opgaver uden fuld planperiode"]')!.textContent,
+    ).toContain("Kun en frist");
+    expect(host.textContent).toContain("1 forskellige opgaver");
+    expect(m.load).toHaveBeenCalledTimes(1);
+    expect(m.load.mock.calls[0][0].data.filters).toEqual(emptyManagerWorkOrderFilters());
+    const saved = JSON.parse(
+      sessionStorage.getItem(`freyra-manager-work-orders/v1:${id(1)}:${id(2)}`)!,
+    );
+    expect(saved.planningDay).toBe("2026-11-04");
+    expect(saved.view).toBe("planning");
+  });
+
+  it("hides the planning view and its task context after access is revoked", async () => {
+    m.load
+      .mockResolvedValueOnce(page([task]))
+      .mockRejectedValueOnce(new WorkOrderRequestError("access"));
+    await render();
+    await click("Ugeplan");
+    await change("Dato i ugen", "2026-11-04");
+    await flush();
+    expect(host.querySelector('[aria-label="Ugeplan på tværs af sager"]')).not.toBeNull();
+    await click("Opdater");
+    expect(host.querySelector('[aria-label="Ugeplan på tværs af sager"]')).toBeNull();
+    expect(host.textContent).not.toContain("Pleje langs åen");
+    expect(field("Projekt").querySelectorAll("option")).toHaveLength(1);
   });
 
   it("does not load work orders until authentication and organization selection are available", async () => {
