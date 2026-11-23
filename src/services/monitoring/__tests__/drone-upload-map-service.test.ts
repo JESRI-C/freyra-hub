@@ -20,6 +20,9 @@ function upload(overrides: Partial<Upload> = {}): Upload {
     uploaded_by: "a1000000-0000-4000-8000-000000000001",
     file_name: fileName,
     original_file_name: fileName,
+    original_sha256: null,
+    original_validation: null,
+    original_validation_sha256: null,
     mime_type: mimeType,
     file_size: fileSize,
     storage_path:
