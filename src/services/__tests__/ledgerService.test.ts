@@ -1,4 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// These assertions exercise the real hash chain without a database connection.
+vi.mock("@/services/lavbundService", () => ({
+  getLedger: vi.fn(async () => []),
+  appendLedger: vi.fn(async () => undefined),
+}));
+
 import { ledgerAppend, ledgerList, ledgerVerify, _debugManipuler } from "../ledgerService";
 
 function uid(): string {

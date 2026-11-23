@@ -76,6 +76,10 @@ jobs:
 
       - name: Test serially
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        env:
+          VITE_SUPABASE_URL: ""
+          VITE_SUPABASE_PUBLISHABLE_KEY: ""
+          VITE_SUPABASE_ANON_KEY: ""
         run: npm test -- --maxWorkers=1 --no-file-parallelism
 
       - name: Build
