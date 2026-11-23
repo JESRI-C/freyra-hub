@@ -43,7 +43,7 @@ Rækkefølgen ændrer ikke omfanget. Synlige menuer og kodefiler er ikke dokumen
 
 ## Aktuel udvikling
 
-Ugeplanen bygges oven på den eksisterende adgangsafgrænsede arbejdsordreoversigt og planeditor. Den bruger planlagt start og slut; en frist bruges ikke som arbejdsdato. Opgaver med manglende datoer bevares i en særskilt kø. De 43 målrettede prøver i tre filer består, inklusive datoer, adgangstab og beskyttelse af en åben kladde. Fuld CI og faktisk browseraccept for ændringen afventer; tidligere grønne kontroller gælder deres egne kildeversioner.
+Ugeplanen bygges oven på den eksisterende adgangsafgrænsede arbejdsordreoversigt og planeditor. Den bruger planlagt start og slut; en frist bruges ikke som arbejdsdato. Opgaver med manglende datoer bevares i en særskilt kø. De 43 målrettede prøver i tre filer består, inklusive datoer, adgangstab og beskyttelse af en åben kladde. Den fulde kode- og databasekontrol følges pr. kildeversion i [PR #52](https://github.com/JESRI-C/freyra-hub/pull/52) og skal bestå på den endelige kode. Faktisk browseraccept af ugeplanen er fortsat åben.
 
 Lovable-previewet virker efter afhængighedsrettelsen i f68a967a. Den nye ugeplan er endnu ikke flettet eller udgivet. Produktionsdatabasen er opgraderet; den ejerbegrænsede sikkerhedsrettelse og produktionsserverens accept er fortsat åbne.
 
