@@ -5,17 +5,28 @@ import { isMunicipalRoute, MUNICIPAL_PROJECT_TABS } from "../demo-mode";
 
 const navigationState = vi.hoisted(() => ({ path: "/app/projects" }));
 vi.mock("@tanstack/react-router", () => ({
-  useRouterState: () => navigationState.path,
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { pathname: string; search: object } }) => unknown;
+  }) => select({ location: { pathname: navigationState.path, search: {} } }),
   Link: ({
     children,
     to,
+    search,
     activeOptions: _activeOptions,
     ...props
   }: {
     children?: ReactNode;
     to: string;
+    search?: Record<string, string>;
     activeOptions?: unknown;
-  }) => createElement("a", { href: to, ...props }, children),
+  }) =>
+    createElement(
+      "a",
+      { href: search ? `${to}?${new URLSearchParams(search)}` : to, ...props },
+      children,
+    ),
 }));
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({
@@ -135,6 +146,7 @@ describe("kommunens arbejdsflade", () => {
       [
         "/app/overview",
         "/app/program",
+        "/app/program?visning=skyhost",
         "/app/work-orders",
         "/opgaver",
         "/app/projects",
@@ -154,7 +166,10 @@ describe("kommunens arbejdsflade", () => {
         "/app/system-test",
       ].sort(),
     );
-    expect(navigation).toContain("Programoverblik");
+    expect(navigation).toContain("Projektstyring");
+    expect(navigation).toContain("Funktionsoversigt");
+    expect(navigation).toContain("Byggeprojekter");
+    expect(navigation).toContain("Sager og arbejdsordrer");
     expect(navigation).toContain('href="/opgaver"');
     expect(navigation).toContain("Mine opgaver");
     expect(navigation).toContain('href="/app/overview"');

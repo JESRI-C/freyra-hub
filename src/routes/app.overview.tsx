@@ -22,6 +22,8 @@ import {
   Info,
 } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
+import { ProjectManagementLinks } from "@/components/ProjectManagementLinks";
+import { projectManagementEntry } from "@/lib/project-management-navigation";
 import { useAuth } from "@/lib/auth";
 import { isDemoDataEnabled } from "@/lib/data-mode";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
@@ -181,6 +183,28 @@ function DashboardPage() {
   );
   return (
     <main className="p-6 max-w-[1500px] w-full mx-auto space-y-6">
+      <section
+        aria-labelledby="dashboard-workflow"
+        className="space-y-3 rounded-2xl border bg-card p-5"
+      >
+        <h2 id="dashboard-workflow" className="text-sm font-semibold">
+          Arbejdsflow
+        </h2>
+        <Link
+          to={projectManagementEntry.to}
+          className="flex items-center justify-between gap-3 rounded-xl bg-leaf/15 px-4 py-3 hover:bg-leaf/25"
+        >
+          <span>
+            <span className="block font-semibold">{projectManagementEntry.label}</span>
+            <span className="block text-sm text-muted-foreground">
+              Se alle funktioner og værktøjerne fra Skyhost-kortlægningen.
+            </span>
+          </span>
+          <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" />
+        </Link>
+        <ProjectManagementLinks />
+      </section>
+
       {/* 1. Hero */}
       <section className="rounded-2xl border bg-gradient-to-br from-leaf/20 via-card to-card p-8 relative overflow-hidden">
         <div className="max-w-3xl space-y-3">

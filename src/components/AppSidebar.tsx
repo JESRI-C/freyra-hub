@@ -2,7 +2,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import {
   LayoutDashboard,
-  FolderOpen,
   FileText,
   Database,
   Coins,
@@ -10,7 +9,6 @@ import {
   Settings,
   ChevronsUpDown,
   Map,
-  Building2,
   Cable,
   Brain,
   BookCheck,
@@ -18,7 +16,7 @@ import {
   FlaskConical,
   Droplets,
   Menu,
-  Network,
+  ChevronDown,
   Columns3,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -26,12 +24,18 @@ import { programPageGuide } from "@/lib/program-map";
 import { canViewDevelopment } from "@/lib/development-access";
 import logoMark from "@/assets/gofreyra-logo.png";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import {
+  projectManagementEntry,
+  projectManagementLinks,
+} from "@/lib/project-management-navigation";
 
 type SidebarItem = {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   development?: boolean;
+  children?: readonly SidebarItem[];
+  search?: { visning: "skyhost" };
 };
 type SidebarGroup = { label: string; items: SidebarItem[] };
 
@@ -40,10 +44,19 @@ const GROUPS: SidebarGroup[] = [
     label: "Arbejdsflow",
     items: [
       { to: "/app/overview", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/app/program", label: "Programoverblik", icon: Network },
-      { to: "/app/work-orders", label: "Arbejdsordrer", icon: Columns3 },
+      {
+        ...projectManagementEntry,
+        children: [
+          ...projectManagementLinks,
+          {
+            to: "/app/program",
+            label: "Skyhost-jobområder",
+            icon: Columns3,
+            search: { visning: "skyhost" },
+          },
+        ],
+      },
       { to: "/opgaver", label: "Mine opgaver", icon: BookCheck },
-      { to: "/app/projects", label: "Naturprojekter", icon: FolderOpen },
       { to: "/app/reports", label: "Rapporter", icon: FileText },
     ],
   },
@@ -51,7 +64,6 @@ const GROUPS: SidebarGroup[] = [
     label: "Projektværktøjer",
     items: [
       { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
-      { to: "/app/construction", label: "Byggeri & natur", icon: Building2 },
       { to: "/app/connect", label: "Overvågning og feltdata", icon: Cable },
       { to: "/app/lavbund", label: "Lavbund og beplantning", icon: Droplets },
       { to: "/app/decisions", label: "Projektindsigt", icon: Brain },
@@ -85,8 +97,12 @@ const GROUPS: SidebarGroup[] = [
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const onSkyhostView = useRouterState({
+    select: (s) => s.location.search.visning === "skyhost",
+  });
   const { currentOrg: org, currentProject: project } = useAuth();
   const activeItem = GROUPS.flatMap((group) => group.items)
+    .flatMap((item) => [item, ...(item.children ?? [])])
     .filter((item) => path === item.to || path.startsWith(item.to + "/"))
     .sort((a, b) => b.to.length - a.to.length)[0];
 
@@ -131,6 +147,39 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                 .map((item) => {
                   const active = item === activeItem;
                   const Icon = item.icon;
+                  if (item.children) {
+                    return (
+                      <details key={item.to} open={active || item.children.includes(activeItem)}>
+                        <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-sidebar-accent [&::-webkit-details-marker]:hidden">
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="flex-1">{item.label}</span>
+                          <ChevronDown aria-hidden="true" className="h-4 w-4" />
+                        </summary>
+                        <div className="ml-5 space-y-0.5 border-l border-sidebar-border pl-2">
+                          {[{ ...item, label: "Funktionsoversigt" }, ...item.children].map(
+                            (link) => (
+                              <Link
+                                key={link.label}
+                                to={link.to}
+                                search={link.search}
+                                onClick={onNavigate}
+                                aria-current={
+                                  activeItem?.to === link.to &&
+                                  (link.to !== projectManagementEntry.to ||
+                                    !!link.search === onSkyhostView)
+                                    ? "page"
+                                    : undefined
+                                }
+                                className="block rounded-lg px-3 py-2 text-sm hover:bg-sidebar-accent aria-[current=page]:bg-leaf aria-[current=page]:text-leaf-foreground"
+                              >
+                                {link.label}
+                              </Link>
+                            ),
+                          )}
+                        </div>
+                      </details>
+                    );
+                  }
                   return (
                     <Link
                       key={item.to}

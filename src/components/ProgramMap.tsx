@@ -9,6 +9,7 @@ import {
   SKYHOST_JOB_AREAS,
 } from "@/lib/program-map";
 import { WorkspaceGuide } from "./WorkspaceGuide";
+import { ProjectManagementLinks } from "./ProjectManagementLinks";
 
 const control = "min-h-11 min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
@@ -22,29 +23,40 @@ const statusLabels = {
 export function ProgramMap({
   projectId,
   projectName,
+  showDevelopment = false,
+  mode: selectedMode,
+  onModeChange,
 }: {
   projectId?: string;
   projectName?: string;
+  showDevelopment?: boolean;
+  mode?: "program" | "skyhost";
+  onModeChange?: (mode: "program" | "skyhost") => void;
 }) {
   const [query, setQuery] = useState("");
   const [area, setArea] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [mode, setMode] = useState<"program" | "skyhost">("program");
+  const [status, setStatus] = useState("built");
+  const [localMode, setMode] = useState<"program" | "skyhost">("program");
+  const mode = selectedMode ?? localMode;
   const term = query.trim().toLocaleLowerCase("da-DK");
   const visible = PROGRAM_FEATURES.filter(
     (item) =>
+      (showDevelopment || item.id !== "/app/development") &&
       (area === "all" || item.areaId === area) &&
-      (status === "all" || item.status === status) &&
+      (status === "all" ||
+        item.status === status ||
+        (status === "built" && (item.status === "existing" || item.status === "partial"))) &&
       programFeatureMatches(item, term),
   );
   return (
     <main className="mx-auto w-full max-w-[1200px] min-w-0 space-y-6 p-3 pb-12 sm:p-6 [overflow-wrap:anywhere]">
       <header>
-        <h1 className="text-2xl font-semibold">Programoverblik</h1>
+        <h1 className="text-2xl font-semibold">Projektstyring</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Find funktionerne, forstå sammenhængen, og åbn det relevante arbejdsrum.
         </p>
       </header>
+      <ProjectManagementLinks />
       <WorkspaceGuide
         question="Hvad kan du bruge Freyra til?"
         purpose="Fra naturproblem til plan, udførelse, vurdering og dokumentation. De eksisterende værktøjer er samlet her sammen med de funktioner, der fortsat skal udvikles."
@@ -55,7 +67,7 @@ export function ProgramMap({
           type="button"
           className={button}
           aria-pressed={mode === "program"}
-          onClick={() => setMode("program")}
+          onClick={() => (onModeChange ?? setMode)("program")}
         >
           Hele Freyra
         </button>
@@ -63,7 +75,7 @@ export function ProgramMap({
           type="button"
           className={button}
           aria-pressed={mode === "skyhost"}
-          onClick={() => setMode("skyhost")}
+          onClick={() => (onModeChange ?? setMode)("skyhost")}
         >
           Skyhosts ti jobområder
         </button>
@@ -88,7 +100,7 @@ export function ProgramMap({
         <>
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="grid gap-1 text-sm font-medium">
-              Søg i programmet
+              Søg efter en funktion
               <input
                 className={control}
                 value={query}
@@ -122,6 +134,7 @@ export function ProgramMap({
                 onChange={(e) => setStatus(e.target.value)}
               >
                 <option value="all">Alle funktioner</option>
+                <option value="built">Byggede og delvist byggede funktioner</option>
                 {Object.entries(statusLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -154,7 +167,7 @@ export function ProgramMap({
             return (
               <details
                 key={`${a.id}:${term}:${area}:${status}`}
-                open={!!term || area !== "all" || status !== "all"}
+                open={!!term || area !== "all" || (status !== "all" && status !== "built")}
                 className="border-t pt-3"
               >
                 <summary className="min-h-11 cursor-pointer py-3 text-lg font-semibold">
