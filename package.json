@@ -17,7 +17,8 @@
     "sharp": "0.35.5",
     "undici": "7.30.1",
     "esbuild": "0.28.2",
-    "picomatch": "$picomatch"
+    "picomatch": "$picomatch",
+    "seroval-plugins": "1.7.7"
   },
   "scripts": {
     "dev": "vite dev",
@@ -119,9 +120,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "2.27.1",
+    "@lovable.dev/vite-tanstack-config": "2.7.6",
     "@playwright/test": "1.56.1",
-    "@types/leaflet": "^1.9.21",
+    "@types/leaflet": "1.9.22",
     "@types/node": "^22.16.5",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.0",
