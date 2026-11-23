@@ -5,6 +5,7 @@ type Fixture = {
   organization: string;
   manager: { email: string; password: string };
   field: { email: string; password: string };
+  startActionId: string;
 };
 
 async function fixture(): Promise<Fixture> {
@@ -91,4 +92,31 @@ test("field account is denied the planner by the real server", async ({ page }) 
   ).toBeVisible();
   await expect(page.getByRole("region", { name: "Ugeplan på tværs af sager" })).toHaveCount(0);
   await expect(page.locator("body")).not.toContainText("Syntetisk opgave A");
+});
+
+test("assigned worker confirms start with server time while the device clock is ahead", async ({
+  page,
+}) => {
+  const data = await fixture();
+  await login(page, data.field, data.organization);
+  await page.goto(`/opgaver?job=${encodeURIComponent(data.startActionId)}`);
+  await expect(
+    page.getByRole("heading", { name: "Syntetisk jobstart", exact: true }),
+  ).toBeVisible();
+  await page.getByText("Status og logbog", { exact: true }).click();
+  const status = page.getByRole("region", { name: "Operationel status og logbog", exact: true });
+  await expect(status).toContainText("Status: Tildelt · version 3");
+  await status.getByRole("button", { name: "Registrer start", exact: true }).click();
+  await page.clock.setFixedTime(new Date(Date.now() + 120_000));
+  await status.getByRole("button", { name: "Indsæt tidspunkt nu", exact: true }).click();
+  await expect(status.getByLabel("Kilde til starttidspunkt", { exact: true })).toHaveValue(
+    "Egenregistrering med serverens ur",
+  );
+  await status.getByRole("button", { name: "Gem statusversion", exact: true }).click();
+  await expect(status).toContainText("Status: Påbegyndt · version 4");
+  await expect(status).toContainText("Kilde: Egenregistrering med serverens ur. Bekræftet af Dig.");
+  await page.reload();
+  await page.getByText("Status og logbog", { exact: true }).click();
+  await expect(status).toContainText("Status: Påbegyndt · version 4");
+  await expect(status).toContainText("Kilde: Egenregistrering med serverens ur. Bekræftet af Dig.");
 });

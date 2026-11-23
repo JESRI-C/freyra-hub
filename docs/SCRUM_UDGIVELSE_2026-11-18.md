@@ -17,7 +17,7 @@ Sager indeholder flere jobs. Jobkortet samler steder, billeder, timer og materia
 | Prioritet | Opgave | Status | Accept |
 | --- | --- | --- | --- |
 | P0 | Saml eksisterende app og byggede moduler | Samlet udgivelsesforslag oprettet | Bevar eksisterende design, funktioner og kundedata. |
-| P0 | Enkel planlægning på tværs af sager | Browserprøve bestået | Direkte indgang, planlagte perioder, synlige manglende datoer og adgang til den eksisterende planeditor. Bevar kladder og håndhæv adgang. |
+| P0 | Enkel planlægning på tværs af sager | Flettet og observeret i preview | Direkte indgang, planlagte perioder, synlige manglende datoer og adgang til den eksisterende planeditor. Bevar kladder og håndhæv adgang. |
 | P0 | Klargør den samlede kodepakke | I gang | Obligatoriske kode-, sikkerheds- og byggekontroller skal være godkendt. |
 | P0 | Afstem produktionsdatabase og serveropsætning | Database opgraderet; serverklargøring i gang | Gennemgå opgradering, adgang, billedlager og mulighed for gendannelse før ændring. |
 | P0 | Erstat den eksisterende GoFreyra-side | Afventer teknisk afklaring | Verificér den nye version på den eksisterende adresse, inklusive login og genindlæsning. |
@@ -45,9 +45,11 @@ Rækkefølgen ændrer ikke omfanget. Synlige menuer og kodefiler er ikke dokumen
 
 Ugeplanen bruger den eksisterende adgangsafgrænsede arbejdsordreoversigt og planeditor. Planlagt start og slut placerer opgaverne i kalenderen; opgaver med manglende datoer bevares i en særskilt kø. De 43 målrettede prøver i tre filer består, inklusive datoer, adgangstab og beskyttelse af en åben kladde.
 
-På c3aa3834 består den fulde CI: 4116 appprøver, 2257 databaseprøver, gendannelse, TypeScript, lint, sikkerhedskontrol og produktionsbuild. To browserforløb med fiktive login består også: gem en planændring gennem serveren og genindlæs den; afvis en medarbejder uden planlægningsadgang. Desktop og mobilbredde er kontrolleret. Resultaterne følges pr. kildeversion i [PR #52](https://github.com/JESRI-C/freyra-hub/pull/52). Accept af den udgivne produktionsversion er fortsat åben.
+På b385ef28 består den fulde CI: 4116 appprøver, 2257 databaseprøver, gendannelse, TypeScript, lint, sikkerhedskontrol og produktionsbuild. To browserforløb med fiktive login består også: gem en planændring gennem serveren og genindlæs den; afvis en medarbejder uden planlægningsadgang. Desktop og mobilbredde er kontrolleret. Resultaterne følges pr. kildeversion i [PR #52](https://github.com/JESRI-C/freyra-hub/pull/52). Accept af den udgivne produktionsversion er fortsat åben.
 
-Lovable-previewet virker efter afhængighedsrettelsen i f68a967a. Den nye ugeplan er endnu ikke flettet eller udgivet. Produktionsdatabasen er opgraderet; den ejerbegrænsede sikkerhedsrettelse og produktionsserverens accept er fortsat åbne.
+PR #52 er flettet som 8f5fcd39. Lovable viser samme kildeversion med status ready, og den nye ugeplan er observeret efter genindlæsning. Produktionsdatabasen er opgraderet; den ejerbegrænsede sikkerhedsrettelse og produktionsserverens accept er fortsat åbne.
+
+Startregistreringen afprøves nu med serverens aktuelle tidspunkt, så en forskel på telefonens ur ikke spærrer knappen Indsæt tidspunkt nu. Medarbejderen kontrollerer tidspunktet før gemning; manuel indtastning og registreringens kilde bevares. Tre nye komponentprøver består, inklusive præcis tid, tabt svar og mislykket tidsopslag. En browserprøve med et ur, der går to minutter foran, indgår i den fulde kontrol.
 
 ## Kanban og færdigkriterium
 

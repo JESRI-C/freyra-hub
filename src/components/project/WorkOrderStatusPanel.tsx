@@ -234,6 +234,40 @@ function StatusPanel({
       setBusy(false);
     }
   }
+  async function insertStartTime() {
+    if (
+      !draft ||
+      draft.kind !== "status" ||
+      draft.values.operation !== "transition" ||
+      draft.values.targetStatus !== "started" ||
+      inFlight.current
+    )
+      return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      // A new log snapshot carries the database statement's time, not the device clock.
+      const snapshot = await loadLog({ data: { ...inputScope, cursor: null, pageSize: 1 } });
+      const date = new Date(snapshot.as_of);
+      setDraft({
+        ...draft,
+        localStart: new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 19),
+        values: {
+          ...draft.values,
+          startedAt: snapshot.as_of,
+          startedSource: draft.values.startedSource || "Egenregistrering med serverens ur",
+        },
+      });
+    } catch {
+      setError("Starttidspunktet kunne ikke hentes. Din registrering er bevaret. Prøv igen.");
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
   async function save() {
     if (!draft || inFlight.current) return;
     inFlight.current = true;
@@ -247,7 +281,10 @@ function StatusPanel({
         if (values.operation === "transition" && values.targetStatus === "started") {
           if (!draft.localStart || !Number.isFinite(new Date(draft.localStart).getTime()))
             throw Error("Angiv det faktiske starttidspunkt.");
-          values = { ...values, startedAt: new Date(draft.localStart).toISOString() };
+          values = {
+            ...values,
+            startedAt: values.startedAt ?? new Date(draft.localStart).toISOString(),
+          };
         }
         const p = MutateWorkOrderLifecycleSchema.safeParse({
           ...inputScope,
@@ -569,29 +606,26 @@ function StatusPanel({
                           step="1"
                           value={draft.localStart}
                           required
-                          onChange={(e) => setDraft({ ...draft, localStart: e.target.value })}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              localStart: e.target.value,
+                              values: { ...draft.values, startedAt: null },
+                            })
+                          }
                         />
                       </label>
                       <button
                         type="button"
                         className={button}
-                        onClick={() => {
-                          const d = new Date();
-                          setDraft({
-                            ...draft,
-                            localStart: new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-                              .toISOString()
-                              .slice(0, 19),
-                            values: {
-                              ...draft.values,
-                              startedSource:
-                                draft.values.startedSource || "Egenregistrering i Freyra",
-                            },
-                          });
-                        }}
+                        onClick={() => void insertStartTime()}
                       >
                         Indsæt tidspunkt nu
                       </button>
+                      <p className="text-sm text-muted-foreground">
+                        Knappen henter serverens aktuelle tidspunkt. Kontrollér, at det svarer til
+                        arbejdets faktiske start, før du gemmer.
+                      </p>
                       <label className="block text-sm">
                         Kilde til starttidspunkt
                         <input
