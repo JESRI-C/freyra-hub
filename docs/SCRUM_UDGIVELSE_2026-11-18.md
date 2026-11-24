@@ -69,6 +69,8 @@ Kontakter, kolleger og ældre kundehistorik udbygges nu med søgning og sidevisn
 
 ## Kanban og færdigkriterium
 
+Billedserveren klargøres med et særskilt miljø til den godkendte Risteprøve-database. Miljø og database skal passe sammen, før serveradgang anvendes; forveksling med staging, produktion eller en lignende adresse afvises. De 31 målrettede prøver, typekontrol, generering af bindingstyper og pakning med dry-run består. Behandlingen aktiveres først efter kontrol af den hostede opsætning og prøven med originalfoto og forhåndsvisning. Samlet hosted billedaccept er fortsat åben.
+
 Udviklingstavlen viser funktionsområder, kodehenvisninger og acceptkrav. En funktion afsluttes først efter den konkrete accept på den angivne udgivelse. En kodehenvisning alene er ikke en færdig funktion. Den realistiske demosag skal indeholde flere jobs og kunne vises til Dalgas.
 
 Udgivelsesforslag: [PR #51](https://github.com/JESRI-C/freyra-hub/pull/51).

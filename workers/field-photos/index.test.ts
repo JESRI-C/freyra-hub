@@ -29,6 +29,7 @@ describe("field photo deployment boundary", () => {
   it.each([
     ["production", "https://ikrmcetjutqcjtwfhzfv.supabase.co"],
     ["staging", "https://xdvqdzdpyceojbdknofi.supabase.co"],
+    ["riste", "https://mmiqyepkhmvaztnurybf.supabase.co"],
     ["local", "http://127.0.0.1:54321"],
   ])("processes only the database selected by %s", async (environment, url) => {
     await tick(environment, url);
@@ -39,6 +40,14 @@ describe("field photo deployment boundary", () => {
   it.each([
     ["staging", "https://ikrmcetjutqcjtwfhzfv.supabase.co"],
     ["production", "https://xdvqdzdpyceojbdknofi.supabase.co"],
+    ["riste", "https://ikrmcetjutqcjtwfhzfv.supabase.co"],
+    ["riste", "https://xdvqdzdpyceojbdknofi.supabase.co"],
+    ["production", "https://mmiqyepkhmvaztnurybf.supabase.co"],
+    ["staging", "https://mmiqyepkhmvaztnurybf.supabase.co"],
+    [undefined, "https://mmiqyepkhmvaztnurybf.supabase.co"],
+    ["local", "https://mmiqyepkhmvaztnurybf.supabase.co"],
+    ["riste", "https://mmiqyepkhmvaztnurybf.supabase.co.attacker.invalid"],
+    ["riste", "https://mmiqyepkhmvaztnurybf.supabase.co/redirect"],
     [undefined, "https://ikrmcetjutqcjtwfhzfv.supabase.co"],
     ["local", "https://ikrmcetjutqcjtwfhzfv.supabase.co"],
     ["production", "https://ikrmcetjutqcjtwfhzfv.supabase.co.attacker.invalid"],

@@ -14,6 +14,8 @@ export default {
         env.SUPABASE_URL === "https://ikrmcetjutqcjtwfhzfv.supabase.co") ||
       (env.FIELD_PHOTO_ENVIRONMENT === "staging" &&
         env.SUPABASE_URL === "https://xdvqdzdpyceojbdknofi.supabase.co") ||
+      (env.FIELD_PHOTO_ENVIRONMENT === "riste" &&
+        env.SUPABASE_URL === "https://mmiqyepkhmvaztnurybf.supabase.co") ||
       (env.FIELD_PHOTO_ENVIRONMENT === "local" &&
         /^http:\/\/127\.0\.0\.1:\d+$/.test(env.SUPABASE_URL));
     if (!matchesEnvironment) throw new Error("Field photo worker environment mismatch");
