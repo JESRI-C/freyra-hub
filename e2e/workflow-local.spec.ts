@@ -100,9 +100,13 @@ test("employee completes a documented job from the map and a separate manager re
   await card.getByRole("link", { name: "Fotos og jobkort på opgaven", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/felt\\?.*task=${actionId}`));
   await page.getByRole("button", { name: "Klargør sagen til offlinebrug", exact: true }).click();
+  await expect(page.getByText(/^Sagen og programfilerne er gemt til feltbrug\./)).toBeVisible({
+    timeout: 150_000,
+  });
   const photos = page.getByRole("region", { name: "Feltfotos på telefonen", exact: true });
   const jobs = page.getByRole("region", { name: "Jobkort på telefonen", exact: true });
   await expect(photos.getByRole("radio", { name: /Opgaven:/ })).toBeChecked();
+  await expect(photos.getByLabel("Tag originalfoto til feltkøen", { exact: true })).toBeEnabled();
   await photos
     .getByLabel("Tag originalfoto til feltkøen", { exact: true })
     .setInputFiles({ name: "syntetisk-arbejdsfoto.png", mimeType: "image/png", buffer: photo });

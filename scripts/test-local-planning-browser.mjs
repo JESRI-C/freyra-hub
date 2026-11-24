@@ -1,6 +1,6 @@
 import { spawn, execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { mkdir, open, readFile, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
 import { createClient } from "@supabase/supabase-js";
@@ -286,33 +286,82 @@ await writeFile(
   { mode: 0o600 },
 );
 const log = await open(resolve(output, "server.private.log"), "a");
-const server = spawn(
-  process.execPath,
-  [
-    "--max-old-space-size=3072",
-    "node_modules/vite/bin/vite.js",
-    "dev",
-    "--host",
-    "127.0.0.1",
-    "--port",
-    "4179",
-    "--strictPort",
-  ],
-  {
-    env: {
-      ...process.env,
-      VITE_SUPABASE_URL: local.API_URL,
-      VITE_SUPABASE_PUBLISHABLE_KEY: local.ANON_KEY,
-      VITE_SUPABASE_PROJECT_ID: "disposable-local",
-      SUPABASE_URL: local.API_URL,
-      SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
-    },
-    stdio: ["ignore", log.fd, log.fd],
-    windowsHide: true,
-  },
-);
+const runtimeEnv = {
+  ...process.env,
+  VITE_SUPABASE_URL: local.API_URL,
+  VITE_SUPABASE_PUBLISHABLE_KEY: local.ANON_KEY,
+  VITE_SUPABASE_PROJECT_ID: "disposable-local",
+  SUPABASE_URL: local.API_URL,
+  SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
+  CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false",
+};
+const workerSecrets = resolve(".output/server/.dev.vars");
+let secretsCreated = false;
+let server;
 let browserExitCode = null;
 try {
+  // Offline program files are emitted only by a real build. A Vite development
+  // server cannot establish the same service-worker readiness contract.
+  const build = spawn(
+    process.execPath,
+    ["--max-old-space-size=3072", "node_modules/vite/bin/vite.js", "build"],
+    { env: runtimeEnv, stdio: ["ignore", log.fd, log.fd], windowsHide: true },
+  );
+  const buildCode = await new Promise((resolve, reject) => {
+    build.once("error", reject);
+    build.once("exit", (code) => resolve(code ?? 1));
+  });
+  if (buildCode !== 0) throw new Error("Disposable application build failed.");
+  const manifest = JSON.parse(
+    await readFile(resolve(".output/public/field-offline-manifest.json"), "utf8"),
+  );
+  if (
+    manifest.schema !== "freyra.field-offline-assets/v1" ||
+    !Array.isArray(manifest.assets) ||
+    manifest.assets.length === 0
+  )
+    throw new Error("Built offline program files are missing.");
+  for (const asset of manifest.assets) {
+    if (typeof asset !== "string" || !asset.startsWith("/") || asset.includes(".."))
+      throw new Error("Unexpected offline asset path.");
+    if (!/\.(?:js|css)$/.test(asset)) continue;
+    const content = await readFile(resolve(".output/public", asset.slice(1)), "utf8");
+    if (content.includes(local.SERVICE_ROLE_KEY))
+      throw new Error("A server credential reached a client asset.");
+  }
+  // Bind only the disposable stack. Never inherit a production .env or put
+  // secret values in command arguments, tracked configuration or browser files.
+  execFileSync("git", ["check-ignore", "--quiet", "--", workerSecrets], { stdio: "ignore" });
+  await writeFile(
+    workerSecrets,
+    Object.entries({
+      SUPABASE_URL: local.API_URL,
+      SUPABASE_PUBLISHABLE_KEY: local.ANON_KEY,
+      SUPABASE_ANON_KEY: local.ANON_KEY,
+      SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
+    })
+      .map(([name, value]) => `${name}=${JSON.stringify(value)}`)
+      .join("\n") + "\n",
+    { flag: "wx", mode: 0o600 },
+  );
+  secretsCreated = true;
+  server = spawn(
+    process.execPath,
+    [
+      "node_modules/wrangler/bin/wrangler.js",
+      "dev",
+      "--config",
+      ".output/server/wrangler.json",
+      "--local",
+      "--ip",
+      "127.0.0.1",
+      "--port",
+      "4179",
+      "--persist-to",
+      resolve(output, "worker-state"),
+    ],
+    { env: runtimeEnv, stdio: ["ignore", log.fd, log.fd], windowsHide: true },
+  );
   const deadline = Date.now() + 300_000;
   let ready = false;
   while (Date.now() < deadline) {
@@ -326,11 +375,20 @@ try {
         break;
       }
     } catch {
-      // Vite compiles the real server on the first request.
+      // Wait for the built local Worker to start.
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   if (!ready) throw new Error("Disposable browser server did not become ready.");
+  const workerResponse = await fetch("http://127.0.0.1:4179/field-sw.js", {
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (
+    !workerResponse.ok ||
+    !/javascript|ecmascript/.test(workerResponse.headers.get("content-type") ?? "") ||
+    (await workerResponse.text()).includes("const manifest = __FREYRA_FIELD_PRECACHE__;")
+  )
+    throw new Error("The built field service worker is unavailable.");
   const browser = spawn(
     process.execPath,
     ["node_modules/@playwright/test/cli.js", "test", "--config", "playwright.planning.config.ts"],
@@ -346,8 +404,9 @@ try {
   });
   if (browserExitCode !== 0) throw new Error("Disposable planning browser acceptance failed.");
 } finally {
-  server.kill("SIGTERM");
+  server?.kill("SIGTERM");
   await log.close();
+  if (secretsCreated) await unlink(workerSecrets);
   if (browserExitCode !== 0) {
     let diagnostic = await readFile(resolve(output, "server.private.log"), "utf8");
     for (const secret of [local.SERVICE_ROLE_KEY, local.ANON_KEY, manager.password, field.password])

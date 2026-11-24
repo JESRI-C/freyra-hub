@@ -55,6 +55,8 @@ Mine opgaver udbygges med et kort over de indlæste, tildelte jobs og en liste t
 
 Browserprøven fandt et klik på en punktmarkering, som ikke åbnede jobbet. Markørerne ændres til almindelige knapper med en trykflade på 44 pixels og navngiven tastaturbetjening. Den nye kontrol skal åbne et job med Enter, vende tilbage til kortet og åbne dokumentationsjobbet ved klik. Prøven fortsætter derefter gennem hele jobforløbet; en direkte jobadresse erstatter ikke kortvalget. [PR #54](https://github.com/JESRI-C/freyra-hub/pull/54) forbliver kladde, indtil den samlede prøve består.
 
+Den samlede prøve køres mod den byggede app i en lokal Worker med den disponible database. Offlineprogramfiler og lokal fotokvittering skal være klar, før prøven registrerer jobkort. Serveradgang opbevares uden for klientfiler og versionskontrol; prøveopsætningen må ikke vælge produktionsmiljøet.
+
 Kunderegister, kontaktpersoner og sagsreferencer er identificeret som åbne leverancer i det samlede sagsforløb. De tælles ikke som færdige alene på grund af projektoversigten.
 
 ## Kanban og færdigkriterium
