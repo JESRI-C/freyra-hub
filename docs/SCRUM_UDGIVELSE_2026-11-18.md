@@ -47,15 +47,15 @@ Ugeplanen bruger den eksisterende adgangsafgrænsede arbejdsordreoversigt og pla
 
 På b385ef28 består den fulde CI: 4116 appprøver, 2257 databaseprøver, gendannelse, TypeScript, lint, sikkerhedskontrol og produktionsbuild. To browserforløb med fiktive login består også: gem en planændring gennem serveren og genindlæs den; afvis en medarbejder uden planlægningsadgang. Desktop og mobilbredde er kontrolleret. Resultaterne følges pr. kildeversion i [PR #52](https://github.com/JESRI-C/freyra-hub/pull/52). Accept af den udgivne produktionsversion er fortsat åben.
 
-PR #52 er flettet som 8f5fcd39. Lovable viser samme kildeversion med status ready, og den nye ugeplan er observeret efter genindlæsning. Produktionsdatabasen er opgraderet; den ejerbegrænsede sikkerhedsrettelse og produktionsserverens accept er fortsat åbne.
+PR #52 er flettet som 8f5fcd39. Lovable viser samme kildeversion med status ready, og den nye ugeplan er observeret efter genindlæsning. Produktionsdatabasen er opgraderet. PostGIS-systemtabellen er flyttet ud af det offentlige API efter en kontrolleret migration; produktionsserverens samlede accept er fortsat åben.
 
 Startregistreringen afprøves nu med serverens aktuelle tidspunkt, så en forskel på telefonens ur ikke spærrer knappen Indsæt tidspunkt nu. Medarbejderen kontrollerer tidspunktet før gemning; manuel indtastning og registreringens kilde bevares. Tre nye komponentprøver består, inklusive præcis tid, tabt svar og mislykket tidsopslag. En browserprøve med et ur, der går to minutter foran, indgår i den fulde kontrol.
 
-Mine opgaver udbygges med et kort over de indlæste, tildelte jobs og en liste til opgaver uden koordinater. Kort og kildestatus afprøves med samme adgang som opgavelisten. Den samlede browserprøve forbinder kortvalg, originalfoto, krævede jobkort, timer, materialer, udførelse, aflevering og uafhængig gennemgang samt rapport/PDF og originalpakke. Teknisk accept følges pr. kildeversion i udgivelsesforslaget; samlet hosted accept er fortsat åben.
+Mine opgaver har et kort over de indlæste, tildelte jobs og en liste til opgaver uden koordinater. Kort og kildestatus afprøves med samme adgang som opgavelisten. Den samlede browserprøve forbinder kortvalg, originalfoto, krævede jobkort, timer, materialer, udførelse, aflevering og uafhængig gennemgang samt rapport/PDF og originalpakke. Teknisk accept følges pr. kildeversion i udgivelsesforslaget; samlet hosted accept er fortsat åben.
 
 Browserprøven fandt et klik på en punktmarkering, som ikke åbnede jobbet. Markørerne ændres til almindelige knapper med en trykflade på 44 pixels og navngiven tastaturbetjening. Den nye kontrol skal åbne et job med Enter, vende tilbage til kortet og åbne dokumentationsjobbet ved klik. Det samlede jobforløb og de hentede PDF-/ZIP-filer er accepteret i den disponible database. [PR #54](https://github.com/JESRI-C/freyra-hub/pull/54) er flettet; kortvisningen indgår i den aktuelle forhåndsvisning. Hosted accept og fysisk telefon er fortsat åbne.
 
-Nye rapportkladder fra en godkendt aflevering udbygges med det gemte jobnavn, stednoten og jobkortenes felter, svar og originalreferencer. Samme registrering vises én gang, også når flere fotos dokumenterer den. Senere rettelser af plan eller skabelon må ikke ændre rapportgrundlaget. PDF- og ZIP-forløbet kræver fortsat samlet accept.
+Nye rapportkladder fra en godkendt aflevering indeholder det gemte jobnavn, stednoten og jobkortenes felter, svar og originalreferencer. Samme registrering vises én gang, også når flere fotos dokumenterer den. Senere rettelser af plan eller skabelon må ikke ændre rapportgrundlaget. PDF- og ZIP-forløbet er accepteret i den disponible database; hosted accept er fortsat åben.
 
 Den samlede prøve køres mod den byggede app i en lokal Worker med den disponible database. Offlineprogramfiler og lokal fotokvittering skal være klar, før prøven registrerer jobkort. Serveradgang opbevares uden for klientfiler og versionskontrol; prøveopsætningen må ikke vælge produktionsmiljøet.
 
@@ -73,8 +73,8 @@ Kun kode og Scrum-plan offentliggøres. Interne projekt- og testnoter, prøvekvi
 
 Den automatiske app- og databasekontrol uploader fremover ikke downloadbare prøvekvitteringer. Database-, gendannelses- og browserkontrollerne kører fortsat; deres midlertidige filer bliver i det isolerede testmiljø.
 
-### Kontrolleret flytning af PostGIS
+### Gennemført flytning af PostGIS
 
 Sikkerhedskandidaten flytter geoudvidelsen og koordinatreferencerne fra public til extensions. Geometrikolonnerne bevares gennem en binær mellemrepræsentation, og ukendte afhængigheder stopper migrationen. Tabeldata, indeks, kolonner, rettigheder og den adgangsafgrænsede kortfunktion kontrolleres før og efter.
 
-En særskilt disponibel prøve dækker ikke-tomme geometrier, GeoJSON-fallback, egne koordinatreferencer, rollback og afviste API-kald. Den efterfølges af friske migrationer og hele den almindelige app-, database- og browserkontrol. Kandidaten er endnu ikke accepteret eller anvendt i produktion.
+En særskilt disponibel prøve dækker ikke-tomme geometrier, GeoJSON-fallback, egne koordinatreferencer, rollback og afviste API-kald. Den efterfølges af friske migrationer og hele den almindelige app-, database- og browserkontrol. Flytningen er gennemført i test og produktion med bevarede apptabeller, geometrier og koordinatreferencer. Den offentlige API-adgang til systemtabellen er lukket. Kodeændringen er integreret i [PR #55](https://github.com/JESRI-C/freyra-hub/pull/55) efter bestået samlet kontrol. Hosted billedbehandler, beskyttet overvågning, hele det hostede jobforløb og fysisk telefon er fortsat åbne.
