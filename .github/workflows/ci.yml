@@ -110,8 +110,24 @@ jobs:
       - name: Start disposable local stack
         run: supabase start --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor
 
+      - name: Match PostgreSQL client tools to the disposable server
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          pgdg_fingerprint=$(gpg --batch --with-colons --show-keys --fingerprint /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | awk -F: '$1 == "fpr" {print $10; exit}')
+          test "$pgdg_fingerprint" = B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
       - name: Replay migrations from empty local database
-        run: supabase db reset --local --no-seed
+        run: |
+          supabase db reset --local --no-seed --version 20261124022247
+          node scripts/test-postgis-schema-upgrade.mjs --disposable-local
+          supabase db reset --local --no-seed
 
       - name: Check database isolation
         run: supabase test db --local supabase/tests/database
@@ -135,58 +151,25 @@ jobs:
             --database postgresql://postgres:postgres@127.0.0.1:54322/postgres \
             | tee tmp/database-concurrency/work-order-observation-drafts.json
 
-      - name: Match PostgreSQL client tools to the disposable server
-        run: |
-          set -euo pipefail
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-          pgdg_fingerprint=$(gpg --batch --with-colons --show-keys --fingerprint /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | awk -F: '$1 == "fpr" {print $10; exit}')
-          test "$pgdg_fingerprint" = B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client-17
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
-          /usr/lib/postgresql/17/bin/pg_dump --version
-
       - name: Restore a real database dump to a disposable database
         env:
           CI: "true"
         run: bash scripts/test-release-restore.sh
 
       - name: Check database functions
-        env:
-          PGPASSWORD: postgres
-        run: |
-          set -euo pipefail
-          command -v psql
-          mkdir -p tmp/database-lint
-          supabase db lint --local --schema public,private,storage --level error --fail-on none > tmp/database-lint/raw-lint.json
-          psql --host=127.0.0.1 --port=54322 --dbname=postgres --username=postgres --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align <<'SQL' > tmp/database-lint/function-ownership.json
-          SELECT COALESCE(jsonb_agg(jsonb_build_object(
-            'qualifiedName', namespace.nspname || '.' || routine.proname,
-            'oid', routine.oid::text,
-            'identityArguments', pg_catalog.pg_get_function_identity_arguments(routine.oid),
-            'extensionName', extension.extname,
-            'dependencyType', dependency.deptype::text,
-            'dependencyRefClass', CASE WHEN dependency.refclassid = 'pg_catalog.pg_extension'::regclass THEN 'pg_extension' ELSE NULL END
-          ) ORDER BY namespace.nspname, routine.proname, routine.oid), '[]'::jsonb)
-          FROM pg_catalog.pg_proc routine
-          JOIN pg_catalog.pg_namespace namespace ON namespace.oid = routine.pronamespace
-          LEFT JOIN pg_catalog.pg_depend dependency
-            ON dependency.classid = 'pg_catalog.pg_proc'::regclass
-            AND dependency.objid = routine.oid
-            AND dependency.deptype = 'e'
-            AND dependency.refclassid = 'pg_catalog.pg_extension'::regclass
-          LEFT JOIN pg_catalog.pg_extension extension ON extension.oid = dependency.refobjid
-          WHERE namespace.nspname IN ('public', 'private', 'storage');
-          SQL
-          node scripts/check-database-lint.mjs tmp/database-lint/raw-lint.json tmp/database-lint/function-ownership.json > tmp/database-lint/classification.json
+        run: supabase db lint --local --schema public,private,storage --level error --fail-on error
 
       - name: Install pinned npm for browser acceptance
         run: npm install --global npm@11.6.0
 
       - name: Install browser acceptance dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Check migrated public API types
+        run: |
+          mkdir -p tmp/postgis-upgrade
+          supabase gen types typescript --local --schema public > tmp/postgis-upgrade/public-schema.ts
+          node scripts/check-postgis-api-types.mjs src/integrations/supabase/types.ts tmp/postgis-upgrade/public-schema.ts
 
       - name: Install Chromium for disposable browser acceptance
         run: npx playwright install --with-deps chromium
