@@ -1,5 +1,12 @@
 import { useRef, useState } from "react";
 import { workOrderUsageConflict } from "@/lib/work-order-usage-conflict";
+import {
+  clearPendingUsage,
+  pendingUsageKey,
+  readPendingUsage,
+  storePendingUsage,
+  usageAttempt,
+} from "@/lib/work-order-pending-usage";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -23,6 +30,14 @@ const rowSchema = z.object({
   reason: z.string(),
 });
 type Row = z.infer<typeof rowSchema>;
+const pendingMaterial = usageAttempt.extend({
+  material: z.string().min(1).max(120),
+  unit: rowSchema.shape.unit,
+  quantityMilli: rowSchema.shape.quantity_milli,
+  reason: z.string().max(1000),
+  base: rowSchema.pick({ entry_id: true, version: true }).optional(),
+  catalogId: z.string().uuid().optional(),
+});
 const quantityFormat = new Intl.NumberFormat("da-DK", { useGrouping: false });
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full rounded-xl border bg-background px-3 text-base";
@@ -134,20 +149,26 @@ export function WorkOrderMaterials({
   canWrite?: boolean;
   onEditing?: (editing: boolean) => void;
 }) {
-  const [draft, setDraft] = useState<{
-    material: string;
-    unit: Row["unit"];
-    quantity: string;
-    reason: string;
-    base?: Row;
-    catalogId?: string;
-  }>();
+  const pendingKey = pendingUsageKey("material", { ...scope, actorId, actionId });
+  const [pending, setPending] = useState(() =>
+    canWrite ? readPendingUsage(pendingKey, pendingMaterial) : undefined,
+  );
+  const [draft, setDraft] = useState<
+    | {
+        material: string;
+        unit: Row["unit"];
+        quantity: string;
+        reason: string;
+        base?: Pick<Row, "entry_id" | "version">;
+        catalogId?: string;
+      }
+    | undefined
+  >(() => (pending ? { ...pending, quantity: String(pending.quantityMilli / 1000) } : undefined));
   const [cursor, setCursor] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const inFlight = useRef(false);
-  const attempt = useRef<{ signature: string; id: string } | null>(null);
   useWorkOrderEditorLock(!!draft || busy, onEditing);
   const db = () => createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
   const key = ["work-order-materials", actorId, scope, actionId];
@@ -169,7 +190,7 @@ export function WorkOrderMaterials({
   const [catalogSearch, setCatalogSearch] = useState("");
   const catalog = useQuery({
     queryKey: ["material-catalog", actorId, scope, catalogSearch],
-    enabled: canWrite && !!draft && !draft.base,
+    enabled: canWrite && !!draft && !draft.base && !pending,
     queryFn: async () => {
       const result = await db()
         .from("project_material_catalog")
@@ -203,34 +224,35 @@ export function WorkOrderMaterials({
       setError("Angiv en årsag til rettelsen.");
       return;
     }
-    const signature = JSON.stringify([
-      draft.base?.id,
-      draft.catalogId,
+    const attempt = pending ?? {
+      id: crypto.randomUUID(),
       material,
-      draft.unit,
+      unit: draft.unit,
       quantityMilli,
       reason,
-    ]);
-    if (attempt.current?.signature !== signature)
-      attempt.current = { signature, id: crypto.randomUUID() };
-    const id = attempt.current.id;
+      base: draft.base && { entry_id: draft.base.entry_id, version: draft.base.version },
+      catalogId: draft.catalogId,
+    };
+    const id = attempt.id;
     const payload = {
       id,
-      entry_id: draft.base?.entry_id ?? id,
+      entry_id: attempt.base?.entry_id ?? id,
       action_id: actionId,
       organization_id: scope.organizationId,
       project_id: scope.projectId,
-      material,
-      unit: draft.unit,
-      quantity_milli: quantityMilli,
-      version: (draft.base?.version ?? 0) + 1,
-      reason,
-      ...(draft.catalogId ? { catalog_id: draft.catalogId } : {}),
+      material: attempt.material,
+      unit: attempt.unit,
+      quantity_milli: attempt.quantityMilli,
+      version: (attempt.base?.version ?? 0) + 1,
+      reason: attempt.reason,
+      ...(attempt.catalogId ? { catalog_id: attempt.catalogId } : {}),
     };
     inFlight.current = true;
     setBusy(true);
     setError("");
     try {
+      storePendingUsage(pendingKey, pendingMaterial, attempt);
+      setPending(attempt);
       const client = db();
       const result = await client.from(table).insert(payload).select().single();
       const recovered = result.error
@@ -238,16 +260,23 @@ export function WorkOrderMaterials({
         : result;
       const receipt = rowSchema.safeParse(recovered.data);
       if (!receipt.success || receipt.data.id !== id || receipt.data.actor_id !== actorId) {
-        if (workOrderUsageConflict(result.error) === "cancelled")
+        const conflict =
+          !recovered.error && !recovered.data && workOrderUsageConflict(result.error);
+        if (conflict) {
+          clearPendingUsage(pendingKey, id);
+          setPending(undefined);
+        }
+        if (conflict === "cancelled")
           throw new Error("Opgaven er aflyst. Du kan stadig se tidligere materialeforbrug.");
         throw new Error(
-          workOrderUsageConflict(result.error) === "changed"
+          conflict === "changed"
             ? "Registreringen er ændret. Fortryd og hent den nyeste version."
             : "Registreringen kunne ikke bekræftes. Prøv igen.",
         );
       }
+      clearPendingUsage(pendingKey, id);
+      setPending(undefined);
       setDraft(undefined);
-      attempt.current = null;
       setMessage("Materialeforbrug gemt.");
       await rows.refetch();
     } catch (failure) {
@@ -368,8 +397,8 @@ export function WorkOrderMaterials({
             void save();
           }}
         >
-          <fieldset className="min-w-0 space-y-2" disabled={busy}>
-            {!draft.base && (
+          <fieldset className="min-w-0 space-y-2" disabled={busy || !canWrite}>
+            {!draft.base && !pending && (
               <div className="space-y-2 rounded-lg border p-2">
                 <label className="block">
                   Søg i materialekataloget
@@ -424,7 +453,7 @@ export function WorkOrderMaterials({
                 required
                 maxLength={120}
                 value={draft.material}
-                readOnly={!!draft.base || !!draft.catalogId}
+                readOnly={!!pending || !!draft.base || !!draft.catalogId}
                 onChange={(event) => setDraft({ ...draft, material: event.target.value })}
               />
             </label>
@@ -433,7 +462,7 @@ export function WorkOrderMaterials({
               <select
                 className={control}
                 value={draft.unit}
-                disabled={!!draft.base || !!draft.catalogId}
+                disabled={!!pending || !!draft.base || !!draft.catalogId}
                 onChange={(event) =>
                   setDraft({ ...draft, unit: z.enum(units).parse(event.target.value) })
                 }
@@ -452,6 +481,7 @@ export function WorkOrderMaterials({
                 required
                 inputMode="decimal"
                 maxLength={10}
+                readOnly={!!pending}
                 value={draft.quantity}
                 onChange={(event) => setDraft({ ...draft, quantity: event.target.value })}
               />
@@ -463,6 +493,7 @@ export function WorkOrderMaterials({
                   className={control}
                   required
                   maxLength={1000}
+                  readOnly={!!pending}
                   value={draft.reason}
                   onChange={(event) => setDraft({ ...draft, reason: event.target.value })}
                 />
@@ -475,8 +506,8 @@ export function WorkOrderMaterials({
               <button
                 type="button"
                 className={button}
+                disabled={!!pending}
                 onClick={() => {
-                  attempt.current = null;
                   setDraft(undefined);
                   setError("");
                   void rows.refetch();
@@ -487,6 +518,11 @@ export function WorkOrderMaterials({
             </div>
           </fieldset>
         </form>
+      )}
+      {pending && !busy && (
+        <p role="status">
+          Registreringen er gemt på denne enhed. Tryk Gem materiale for at bekræfte den.
+        </p>
       )}
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}

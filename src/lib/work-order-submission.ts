@@ -5,6 +5,7 @@ import { WorkOrderExecutionBindingSchema } from "./work-order-execution";
 import { ActionExecutionSchema } from "./action-execution";
 import { EvidenceVersionSchema } from "./work-order-evidence";
 import { fieldJobGaps } from "./field-job-cards";
+import { CaseCustomerBindingSchema } from "./work-customers";
 
 const uuid = z.string().uuid();
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -44,6 +45,7 @@ export const SubmissionPageSchema = WorkOrderScopeSchema.extend({
 export const SubmissionSnapshotSchema = WorkOrderScopeSchema.extend({
   schema: z.literal("freyra.work-order-submission/v1"),
   ruleSet: z.enum(["freyra.submission-core/v1", "freyra.submission-requirements/v1"]),
+  caseCustomer: CaseCustomerBindingSchema.optional(),
   indicatorTarget: z
     .object({
       indicatorId: uuid,

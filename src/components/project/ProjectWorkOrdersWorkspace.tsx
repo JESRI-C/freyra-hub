@@ -45,6 +45,7 @@ import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
+import { CaseCustomerPanel } from "./CaseCustomerPanel";
 import type { WorkOrderCorrectionNote } from "@/lib/work-order-review";
 import type { WorkOrderStatus } from "@/lib/work-order-lifecycle";
 
@@ -63,7 +64,7 @@ type Props = {
 };
 export type { WorkOrderView } from "@/lib/work-order-navigation";
 type Part = WorkOrderView;
-type Editor = Part | "material-catalog";
+type Editor = Part | "material-catalog" | "customer-context";
 const parts = WORK_ORDER_PARTS;
 const taskPageSize = 40;
 const reviewAttention = {
@@ -171,6 +172,10 @@ function WorkOrders({
       return next;
     });
   }, []);
+  const onCustomerEditing = useCallback(
+    (value: boolean) => onEditing("customer-context", value),
+    [onEditing],
+  );
   const access = useQuery({
     queryKey: ["field-job-access", actorId, scope.projectId],
     queryFn: () => loadAccess({ data: { projectId: scope.projectId } }),
@@ -410,6 +415,15 @@ function WorkOrders({
   }
   return (
     <section aria-label="Arbejdsopgaver" className="min-w-0 space-y-4 [overflow-wrap:anywhere]">
+      {authorized && actorId && (
+        <CaseCustomerPanel
+          organizationId={scope.organizationId}
+          projectId={scope.projectId}
+          actorId={actorId}
+          actionId={actionId || undefined}
+          onEditingChange={onCustomerEditing}
+        />
+      )}
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className={`${actionId ? "text-2xl leading-tight" : "text-xl"} font-semibold`}>

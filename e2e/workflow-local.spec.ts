@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Dialog, type Locator, type Page, type Route } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
@@ -14,6 +14,64 @@ async function myJob(page: Page, actionId: string) {
   });
   await expect(card).toBeVisible();
   return card;
+}
+
+async function retryUsageAfterLostResponse(
+  page: Page,
+  table: string,
+  panel: Locator,
+  save: Locator,
+  section: RegExp,
+) {
+  const pattern = `**/rest/v1/${table}*`;
+  const writes: unknown[] = [];
+  let firstId: string | undefined;
+  let firstStatus: number | undefined;
+  let recoveryBlocked = true;
+  const intercept = async (route: Route) => {
+    const request = route.request();
+    if (request.method() === "POST") {
+      const payload = request.postDataJSON();
+      writes.push(payload);
+      if (writes.length === 1) {
+        firstId = payload.id;
+        const response = await route.fetch();
+        firstStatus = response.status();
+        await route.abort("failed");
+        return;
+      }
+    } else if (
+      recoveryBlocked &&
+      firstId &&
+      new URL(request.url()).searchParams.get("id") === `eq.${firstId}`
+    ) {
+      await route.abort("failed");
+      return;
+    }
+    await route.continue();
+  };
+  await page.route(pattern, intercept);
+  try {
+    await save.click();
+    await expect(panel.getByText("Registreringen kunne ikke bekræftes. Prøv igen.")).toBeVisible();
+    expect(firstStatus).toBe(201);
+    const acceptReload = (dialog: Dialog) => dialog.accept();
+    page.on("dialog", acceptReload);
+    try {
+      await page.reload();
+    } finally {
+      page.off("dialog", acceptReload);
+    }
+    await page.locator("summary").filter({ hasText: section }).click();
+    await expect(panel.getByText(/^Registreringen er gemt på denne enhed/)).toBeVisible();
+    recoveryBlocked = false;
+    await save.click();
+    await expect(save).toBeHidden();
+    expect(writes).toHaveLength(2);
+    expect(writes[1]).toEqual(writes[0]);
+  } finally {
+    await page.unroute(pattern, intercept);
+  }
 }
 
 test("employee completes a documented job from the map and a separate manager reviews its report", async ({
@@ -85,6 +143,11 @@ test("employee completes a documented job from the map and a separate manager re
     );
   }
   expect(errors).toEqual([]);
+  const customerContext = card.getByRole("region", { name: "Kunde og sagsreference", exact: true });
+  await expect(customerContext).toContainText("Fiktiv feltkontakt");
+  await expect(customerContext).toContainText("FIKTIV-FELT-REF");
+  await expect(customerContext).not.toContainText("Fiktiv faktureringsadresse");
+  await expect(customerContext.getByRole("button")).toHaveCount(0);
   await expect(
     card.getByRole("link", { name: /Vejvisning til Syntetisk arbejdssted 2/ }),
   ).toHaveAttribute("href", /destination=56\.11.*9\.41/);
@@ -105,6 +168,8 @@ test("employee completes a documented job from the map and a separate manager re
   });
   const photos = page.getByRole("region", { name: "Feltfotos på telefonen", exact: true });
   const jobs = page.getByRole("region", { name: "Jobkort på telefonen", exact: true });
+  await page.context().setOffline(true);
+  await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
   await expect(photos.getByRole("radio", { name: /Opgaven:/ })).toBeChecked();
   await expect(photos.getByLabel("Tag originalfoto til feltkøen", { exact: true })).toBeEnabled();
   await photos
@@ -130,6 +195,25 @@ test("employee completes a documented job from the map and a separate manager re
     .getByLabel("Begrundelse for registreringen", { exact: true })
     .fill("Syntetisk afslutningskontrol med nul og falsk");
   await jobs.getByRole("button", { name: "Gem registrering på telefonen", exact: true }).click();
+
+  const [offlinePhotos, offlineCards] = await Promise.all([
+    worker
+      .from("field_photo_uploads")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("captured_action_id", actionId),
+    worker
+      .from("field_job_versions")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("action_id", actionId),
+  ]);
+  expect(offlinePhotos.error).toBeNull();
+  expect(offlineCards.error).toBeNull();
+  expect(offlinePhotos.data).toHaveLength(0);
+  expect(offlineCards.data).toHaveLength(0);
+  await page.context().setOffline(false);
+  await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(true);
 
   await expect
     .poll(
@@ -213,7 +297,13 @@ test("employee completes a documented job from the map and a separate manager re
   await time.getByLabel("Dato for arbejdet", { exact: true }).fill(workDate);
   await time.getByRole("button", { name: "Registrér tid", exact: true }).click();
   await time.getByLabel("Arbejdstid i minutter", { exact: true }).fill("45");
-  await time.getByRole("button", { name: "Gem tid", exact: true }).click();
+  await retryUsageAfterLostResponse(
+    page,
+    "work_order_time_versions",
+    time,
+    time.getByRole("button", { name: "Gem tid", exact: true }),
+    /^Registrér arbejdstid$/,
+  );
   await expect(time).toContainText("45 min. · Version 1");
   await expect(time).toContainText("Afventer godkendelse");
   await task
@@ -224,11 +314,26 @@ test("employee completes a documented job from the map and a separate manager re
   await materials.getByRole("button", { name: "Registrér materiale", exact: true }).click();
   await materials.getByLabel("Materiale", { exact: true }).fill("Syntetiske markeringspæle");
   await materials.getByLabel("Mængde", { exact: true }).fill("2");
-  await materials.getByRole("button", { name: "Gem materiale", exact: true }).click();
+  await retryUsageAfterLostResponse(
+    page,
+    "work_order_material_versions",
+    materials,
+    materials.getByRole("button", { name: "Gem materiale", exact: true }),
+    /^Registrér materialeforbrug$/,
+  );
   await expect(materials).toContainText("Syntetiske markeringspæle");
   await expect(
     materials.getByRole("button", { name: "Registrér materiale", exact: true }),
   ).toBeVisible();
+  for (const table of ["work_order_time_versions", "work_order_material_versions"]) {
+    const saved = await worker
+      .from(table)
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("action_id", actionId);
+    expect(saved.error).toBeNull();
+    expect(saved.data).toHaveLength(1);
+  }
 
   await task.getByRole("link", { name: "Registrér udført arbejde", exact: true }).click();
   const execution = page.getByRole("region", { name: "Faktisk udførelse", exact: true });
@@ -367,6 +472,9 @@ test("employee completes a documented job from the map and a separate manager re
       await loading.destroy();
     }
     expect(text).toContain("Syntetisk dokumentationsjob");
+    expect(text).toContain("Fiktiv feltkunde");
+    expect(text).toContain("Fiktiv feltkontakt");
+    expect(text).toContain("FIKTIV-FELT-REF");
     expect(text).toContain("Syntetisk stedkontrol");
     expect(text).toContain("Syntetisk afslutningskontrol");
     expect(text).toMatch(/Antal:\s*0/);

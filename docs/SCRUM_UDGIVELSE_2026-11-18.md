@@ -12,6 +12,8 @@ Saml de byggede GoFreyra-moduler på den eksisterende app. En medarbejder skal k
 
 Sager indeholder flere jobs. Jobkortet samler steder, billeder, timer og materialer, som kan indgå i godkendte rapporter og senere fakturagrundlag. Roller afgrænser, hvem der kan se og ændre hvad.
 
+Frem mod salgsdemoen 25. november prioriteres ét komplet kundeforløb: opret kunde og kontakt, opret en sag med mindst tre jobs, tildel medarbejdere, dokumentér arbejdet fra mobilen og genfind den godkendte dokumentation i rapporten. Denne leverance samler kunde, sag, jobs og rapportgrundlag. Server, billedbehandling og udgivelse skal accepteres på den samme kildeversion, før det samlede forløb kan kaldes klar til kunder. Den øvrige kortlagte funktionalitet bevares i planen.
+
 ## Prioriteret sprint
 
 | Prioritet | Opgave | Status | Accept |
@@ -59,7 +61,11 @@ Nye rapportkladder fra en godkendt aflevering indeholder det gemte jobnavn, sted
 
 Den samlede prøve køres mod den byggede app i en lokal Worker med den disponible database. Offlineprogramfiler og lokal fotokvittering skal være klar, før prøven registrerer jobkort. Serveradgang opbevares uden for klientfiler og versionskontrol; prøveopsætningen må ikke vælge produktionsmiljøet.
 
-Kunderegister, kontaktpersoner og sagsreferencer er identificeret som åbne leverancer i det samlede sagsforløb. De tælles ikke som færdige alene på grund af projektoversigten.
+Kunde- og sagsforløbet er bygget på den eksisterende projekt-/jobstruktur i [PR #56](https://github.com/JESRI-C/freyra-hub/pull/56). Kundeadministration, kontaktpersoner og særskilt planlægningsadgang forbinder kunden med en sag og flere jobs. Medarbejderen får kun den nødvendige kontakt og reference gennem sin sag eller et konkret tildelt job. Kunde-/kontaktversioner fastfryses i afleveringen og dens kontrolsum og genfindes i den godkendte rapport. Senere rettelser og arkivering bevarer historikken.
+
+Basiskandidaten består samlet kontrol med seks browserforløb, herunder kunde/kontakt→planlægger→sag→tre jobs, to samtidige redigeringsvinduer og det mobile dokumentationsforløbs PDF/ZIP. Testdatabasen er opgraderet med bevarede eksisterende data; rolleprøven er gennemført og rullet tilbage. Hosted browseraccept, fysisk telefon og produktionsudgivelse er stadig åbne.
+
+Kontakter, kolleger og ældre kundehistorik udbygges nu med søgning og sidevisning. Et valgt kontaktkort og en åben kladde skal bevares gennem søgning, sideskift og fejl. 51 målrettede komponent-/serverprøver består. Den nye migration kan afvikles fra tom database; én kontrol læste kundenavnet fra et forkert svarfelt og er rettet. Samlet database- og browseraccept afventes. En særskilt browserprøve dækker sidste side af kontakter og kolleger samt ældre adresser på mobilbredde. Prøver med over 500 kontakter og brugere er fortsat under accept. Den allerede anvendte kundemigration bevares; udvidelsen leveres som en ny migration. Kladden forbliver under accept.
 
 ## Kanban og færdigkriterium
 

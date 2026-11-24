@@ -6,6 +6,15 @@ export type LocalFixture = {
   organization: string;
   manager: FixtureActor;
   field: FixtureActor;
+  registryAdmin: FixtureActor;
+  collections: {
+    customerId: string;
+    customerName: string;
+    lastContactId: string;
+    lastContactName: string;
+    lastMemberId: string;
+    lastMemberName: string;
+  };
   startActionId: string;
   workflow: {
     actionId: string;

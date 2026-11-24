@@ -507,6 +507,16 @@ export function WorkOrderSubmissionPanel({
                   </summary>
                   <div className="space-y-3 text-sm">
                     <h5 className="font-medium">{row.snapshot.plan.plan.title}</h5>
+                    {row.snapshot.caseCustomer && (
+                      <p>
+                        {row.snapshot.caseCustomer.customerName} · Sag{" "}
+                        {row.snapshot.caseCustomer.number}
+                        {row.snapshot.caseCustomer.customerReference &&
+                          ` · Reference ${row.snapshot.caseCustomer.customerReference}`}
+                        {row.snapshot.caseCustomer.contact &&
+                          ` · ${row.snapshot.caseCustomer.contact.name}`}
+                      </p>
+                    )}
                     {row.snapshot.plan.plan.profile && (
                       <p>
                         Metodeprofil ved aflevering ·{" "}
