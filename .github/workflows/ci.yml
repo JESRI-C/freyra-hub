@@ -157,39 +157,19 @@ jobs:
         run: bash scripts/test-release-restore.sh
 
       - name: Check database functions
-        env:
-          PGPASSWORD: postgres
-        run: |
-          set -euo pipefail
-          command -v psql
-          mkdir -p tmp/database-lint
-          supabase db lint --local --schema public,private,storage --level error --fail-on none > tmp/database-lint/raw-lint.json
-          psql --host=127.0.0.1 --port=54322 --dbname=postgres --username=postgres --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align <<'SQL' > tmp/database-lint/function-ownership.json
-          SELECT COALESCE(jsonb_agg(jsonb_build_object(
-            'qualifiedName', namespace.nspname || '.' || routine.proname,
-            'oid', routine.oid::text,
-            'identityArguments', pg_catalog.pg_get_function_identity_arguments(routine.oid),
-            'extensionName', extension.extname,
-            'dependencyType', dependency.deptype::text,
-            'dependencyRefClass', CASE WHEN dependency.refclassid = 'pg_catalog.pg_extension'::regclass THEN 'pg_extension' ELSE NULL END
-          ) ORDER BY namespace.nspname, routine.proname, routine.oid), '[]'::jsonb)
-          FROM pg_catalog.pg_proc routine
-          JOIN pg_catalog.pg_namespace namespace ON namespace.oid = routine.pronamespace
-          LEFT JOIN pg_catalog.pg_depend dependency
-            ON dependency.classid = 'pg_catalog.pg_proc'::regclass
-            AND dependency.objid = routine.oid
-            AND dependency.deptype = 'e'
-            AND dependency.refclassid = 'pg_catalog.pg_extension'::regclass
-          LEFT JOIN pg_catalog.pg_extension extension ON extension.oid = dependency.refobjid
-          WHERE namespace.nspname IN ('public', 'private', 'storage');
-          SQL
-          node scripts/check-database-lint.mjs tmp/database-lint/raw-lint.json tmp/database-lint/function-ownership.json > tmp/database-lint/classification.json
+        run: supabase db lint --local --schema public,private,storage --level error --fail-on error
 
       - name: Install pinned npm for browser acceptance
         run: npm install --global npm@11.6.0
 
       - name: Install browser acceptance dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Check migrated public API types
+        run: |
+          mkdir -p tmp/postgis-upgrade
+          supabase gen types typescript --local --schema public > tmp/postgis-upgrade/public-schema.ts
+          node scripts/check-postgis-api-types.mjs src/integrations/supabase/types.ts tmp/postgis-upgrade/public-schema.ts
 
       - name: Install Chromium for disposable browser acceptance
         run: npx playwright install --with-deps chromium
