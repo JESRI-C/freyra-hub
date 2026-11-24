@@ -153,17 +153,6 @@ jobs:
           CI: "true"
         run: bash scripts/test-release-restore.sh
 
-      - name: Preserve credential-free restore evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-restore-evidence
-          path: |
-            tmp/release-restore/result.json
-            tmp/release-restore/restore.log
-            tmp/release-restore/dump.sha256
-          if-no-files-found: ignore
-
       - name: Check database functions
         env:
           PGPASSWORD: postgres
@@ -193,15 +182,6 @@ jobs:
           SQL
           node scripts/check-database-lint.mjs tmp/database-lint/raw-lint.json tmp/database-lint/function-ownership.json > tmp/database-lint/classification.json
 
-      - name: Preserve local database lint evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: local-database-lint-evidence
-          path: tmp/database-lint/*.json
-          if-no-files-found: ignore
-          retention-days: 35
-
       - name: Install pinned npm for browser acceptance
         run: npm install --global npm@11.6.0
 
@@ -211,7 +191,7 @@ jobs:
       - name: Install Chromium for disposable browser acceptance
         run: npx playwright install --with-deps chromium
 
-      - name: Test real weekly planning in the disposable local stack
+      - name: Test planning and documented field workflow in the disposable local stack
         env:
           CI: "true"
         run: node scripts/test-local-planning-browser.mjs --disposable-local
@@ -220,11 +200,5 @@ jobs:
         if: always()
         run: node scripts/database-concurrency/stop-disposable-stack.mjs --disposable-local
 
-      - name: Preserve disposable local concurrency evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: local-database-concurrency-evidence
-          path: tmp/database-concurrency/**
-          if-no-files-found: ignore
-          retention-days: 35
+      # Generated receipts and logs stay in the ignored directories on this
+      # disposable runner. This public repository must not publish test files.

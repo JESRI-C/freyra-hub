@@ -14,12 +14,12 @@ const input = { ...scope, id: version().id, expectedActorId: actor };
 const origin = "https://example.supabase.co";
 const url = () =>
   `${origin}/storage/v1/object/sign/project-media/${pin().original.storagePath}?token=synthetic`;
-function setup(value = url()) {
+function setup(value = url(), configuredOrigin = origin) {
   const rpc = vi.fn().mockResolvedValue({ data: pin(), error: null });
   const sign = vi.fn().mockResolvedValue({ data: { signedUrl: value }, error: null });
   const from = vi.fn().mockReturnValue({ createSignedUrl: sign });
   const signer = vi.fn().mockResolvedValue({ storage: { from } });
-  return { client: { rpc }, rpc, sign, from, deps: { signer, origin } };
+  return { client: { rpc }, rpc, sign, from, deps: { signer, origin: configuredOrigin } };
 }
 describe("exact-reference original signing", () => {
   it("signs only the authorized pinned original for sixty seconds and rechecks access", async () => {
@@ -40,6 +40,38 @@ describe("exact-reference original signing", () => {
       signWorkOrderEvidenceOriginal(s.client, actor, input, s.deps),
     ).rejects.toHaveProperty("code", "access");
     expect(s.deps.signer).not.toHaveBeenCalled();
+  });
+  it("opens an authorized original on the configured Supabase CLI loopback origin", async () => {
+    const localOrigin = "http://127.0.0.1:54321";
+    const localUrl = url().replace(origin, localOrigin);
+    const s = setup(localUrl, localOrigin);
+    expect(await signWorkOrderEvidenceOriginal(s.client, actor, input, s.deps)).toEqual({
+      url: localUrl,
+      expiresIn: 60,
+      sha256: "a".repeat(64),
+    });
+    expect(s.rpc).toHaveBeenCalledTimes(2);
+  });
+  it.each([
+    ["http://example.supabase.co", "http://example.supabase.co"],
+    ["http://127.0.0.1.attacker.test:54321", "http://127.0.0.1.attacker.test:54321"],
+    ["http://127.0.0.1:54322", "http://127.0.0.1:54322"],
+    ["http://127.0.0.1:54321", origin],
+    ["http://user:pass@127.0.0.1:54321", "http://127.0.0.1:54321"],
+  ])("withholds an original for HTTP or mismatched origin %s", async (base, configured) => {
+    const s = setup(url().replace(origin, base), configured);
+    await expect(
+      signWorkOrderEvidenceOriginal(s.client, actor, input, s.deps),
+    ).rejects.toHaveProperty("code", "unavailable");
+  });
+  it("still checks the pinned path and fragment on the loopback origin", async () => {
+    const localOrigin = "http://127.0.0.1:54321";
+    for (const value of [url().replace("/original?", "/other?"), url() + "#fragment"]) {
+      const s = setup(value.replace(origin, localOrigin), localOrigin);
+      await expect(
+        signWorkOrderEvidenceOriginal(s.client, actor, input, s.deps),
+      ).rejects.toHaveProperty("code", "unavailable");
+    }
   });
   it("checks actor before any RPC", async () => {
     const s = setup();

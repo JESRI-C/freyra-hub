@@ -51,6 +51,16 @@ PR #52 er flettet som 8f5fcd39. Lovable viser samme kildeversion med status read
 
 Startregistreringen afprøves nu med serverens aktuelle tidspunkt, så en forskel på telefonens ur ikke spærrer knappen Indsæt tidspunkt nu. Medarbejderen kontrollerer tidspunktet før gemning; manuel indtastning og registreringens kilde bevares. Tre nye komponentprøver består, inklusive præcis tid, tabt svar og mislykket tidsopslag. En browserprøve med et ur, der går to minutter foran, indgår i den fulde kontrol.
 
+Mine opgaver udbygges med et kort over de indlæste, tildelte jobs og en liste til opgaver uden koordinater. Kort og kildestatus afprøves med samme adgang som opgavelisten. Den samlede browserprøve forbinder kortvalg, originalfoto, krævede jobkort, timer, materialer, udførelse, aflevering og uafhængig gennemgang samt rapport/PDF og originalpakke. Teknisk accept følges pr. kildeversion i udgivelsesforslaget; samlet hosted accept er fortsat åben.
+
+Browserprøven fandt et klik på en punktmarkering, som ikke åbnede jobbet. Markørerne ændres til almindelige knapper med en trykflade på 44 pixels og navngiven tastaturbetjening. Den nye kontrol skal åbne et job med Enter, vende tilbage til kortet og åbne dokumentationsjobbet ved klik. Prøven fortsætter derefter gennem hele jobforløbet; en direkte jobadresse erstatter ikke kortvalget. [PR #54](https://github.com/JESRI-C/freyra-hub/pull/54) forbliver kladde, indtil den samlede prøve består.
+
+Nye rapportkladder fra en godkendt aflevering udbygges med det gemte jobnavn, stednoten og jobkortenes felter, svar og originalreferencer. Samme registrering vises én gang, også når flere fotos dokumenterer den. Senere rettelser af plan eller skabelon må ikke ændre rapportgrundlaget. PDF- og ZIP-forløbet kræver fortsat samlet accept.
+
+Den samlede prøve køres mod den byggede app i en lokal Worker med den disponible database. Offlineprogramfiler og lokal fotokvittering skal være klar, før prøven registrerer jobkort. Serveradgang opbevares uden for klientfiler og versionskontrol; prøveopsætningen må ikke vælge produktionsmiljøet.
+
+Kunderegister, kontaktpersoner og sagsreferencer er identificeret som åbne leverancer i det samlede sagsforløb. De tælles ikke som færdige alene på grund af projektoversigten.
+
 ## Kanban og færdigkriterium
 
 Udviklingstavlen viser funktionsområder, kodehenvisninger og acceptkrav. En funktion afsluttes først efter den konkrete accept på den angivne udgivelse. En kodehenvisning alene er ikke en færdig funktion. Den realistiske demosag skal indeholde flere jobs og kunne vises til Dalgas.
@@ -60,3 +70,5 @@ Udgivelsesforslag: [PR #51](https://github.com/JESRI-C/freyra-hub/pull/51).
 ## Offentlighed
 
 Kun kode og Scrum-plan offentliggøres. Interne projekt- og testnoter, prøvekvitteringer, skærmbilleder og servernøgler holdes private. Detaljerede kontrolresultater opbevares i det private arbejdsrum.
+
+Den automatiske app- og databasekontrol uploader fremover ikke downloadbare prøvekvitteringer. Database-, gendannelses- og browserkontrollerne kører fortsat; deres midlertidige filer bliver i det isolerede testmiljø.

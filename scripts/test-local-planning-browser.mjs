@@ -1,6 +1,6 @@
 import { spawn, execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { mkdir, open, readFile, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
 import { createClient } from "@supabase/supabase-js";
@@ -56,7 +56,8 @@ const manager = await user("Syntetisk planlægger");
 const field = await user("Syntetisk medarbejder");
 const organizationId = randomUUID();
 const projectIds = [randomUUID(), randomUUID(), randomUUID()];
-const actionIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+const actionIds = Array.from({ length: 6 }, () => randomUUID());
+const siteIds = [randomUUID(), randomUUID()];
 const organization = "Syntetisk planprøve";
 await checked(
   await admin
@@ -80,6 +81,10 @@ await checked(
       id,
       organization_id: organizationId,
       name: index < 2 ? `Syntetisk sag ${index === 0 ? "A" : "B"}` : "Skjult syntetisk sag",
+      slug: `synthetic-planning-${id}`,
+      project_type: "nature_restoration",
+      status: "planning",
+      description: "Syntetisk softwareprøve; ingen faktisk naturindsats.",
     })),
   ),
   "create cases",
@@ -96,6 +101,20 @@ await checked(
   "create project capabilities",
 );
 await checked(
+  await admin.from("sites").insert(
+    siteIds.map((id, index) => ({
+      id,
+      project_id: projectIds[0],
+      name: `Syntetisk arbejdssted ${index + 1}`,
+      status: "active",
+      centroid_lng: 9.4 + index / 100,
+      centroid_lat: 56.1 + index / 100,
+      geometry_geojson: { type: "Point", coordinates: [9.4 + index / 100, 56.1 + index / 100] },
+    })),
+  ),
+  "create synthetic job locations",
+);
+await checked(
   await admin.from("actions").insert([
     { id: actionIds[0], project_id: projectIds[0], title: "Syntetisk opgave A" },
     { id: actionIds[1], project_id: projectIds[1], title: "Syntetisk opgave B" },
@@ -107,6 +126,7 @@ await checked(
     },
     { id: actionIds[3], project_id: projectIds[2], title: "Skjult syntetisk opgave" },
     { id: actionIds[4], project_id: projectIds[0], title: "Syntetisk jobstart" },
+    { id: actionIds[5], project_id: projectIds[0], title: "Syntetisk dokumentationsjob" },
   ]),
   "create jobs",
 );
@@ -117,8 +137,46 @@ await checked(
   await actor.auth.signInWithPassword({ email: manager.email, password: manager.password }),
   "authenticate planner",
 );
-for (const index of [0, 1, 4]) {
-  const projectId = projectIds[index === 4 ? 0 : index];
+const cards = [];
+for (const definition of [
+  {
+    schema: "freyra.field-job-template/v1",
+    title: "Syntetisk stedkontrol",
+    domain: "nature",
+    fields: [{ key: "condition", label: "Forhold på stedet", type: "text", required: true }],
+  },
+  {
+    schema: "freyra.field-job-template/v1",
+    title: "Syntetisk afslutningskontrol",
+    domain: "nature",
+    fields: [
+      { key: "count", label: "Antal", type: "number", required: true },
+      { key: "checked", label: "Kontrolleret", type: "boolean", required: true },
+    ],
+  },
+]) {
+  const rows = await checked(
+    await actor.rpc("save_field_job_template_version", {
+      p_organization_id: organizationId,
+      p_project_id: projectIds[0],
+      p_template_id: randomUUID(),
+      p_expected_version: 0,
+      p_definition: definition,
+      p_request_id: randomUUID(),
+    }),
+    "create required synthetic job card",
+  );
+  const row = rows[0];
+  cards.push({
+    templateVersionId: row.id,
+    templateId: row.template_id,
+    version: row.version,
+    definition: row.definition,
+  });
+}
+let workflow;
+for (const index of [0, 1, 4, 5]) {
+  const projectId = projectIds[index >= 4 ? 0 : index];
   const plans = await checked(
     await actor.rpc("save_work_order_plan", {
       p_action_id: actionIds[index],
@@ -127,26 +185,32 @@ for (const index of [0, 1, 4]) {
       p_expected_version: 0,
       p_plan: {
         schema: "freyra.work-order-plan/v1",
-        title: index === 4 ? "Syntetisk jobstart" : `Syntetisk opgave ${index === 0 ? "A" : "B"}`,
+        title:
+          index === 5
+            ? "Syntetisk dokumentationsjob"
+            : index === 4
+              ? "Syntetisk jobstart"
+              : `Syntetisk opgave ${index === 0 ? "A" : "B"}`,
         description: "",
         instructions: "Syntetisk arbejdsinstruktion",
-        profile: "general",
+        profile: index === 5 ? "nature" : "general",
         responsibleId: manager.id,
-        siteId: null,
+        siteId: index >= 4 ? siteIds[index - 4] : null,
         watercourseVersionId: null,
         locationNote: "Fiktivt sted",
-        plannedStart: index === 4 ? null : index === 0 ? "2026-11-23" : "2026-11-24",
-        plannedEnd: index === 4 ? null : "2026-11-24",
+        plannedStart: index >= 4 ? null : index === 0 ? "2026-11-23" : "2026-11-24",
+        plannedEnd: index >= 4 ? null : "2026-11-24",
         priority: null,
         plannedMethod: null,
         watercourse: null,
+        ...(index === 5 ? { requiredJobCards: cards } : {}),
       },
       p_correction_reason: "",
       p_request_id: randomUUID(),
     }),
     "save initial plan as the actual planner",
   );
-  if (index === 4) {
+  if (index >= 4) {
     const planId = plans[0].id;
     const assignments = await checked(
       await actor.rpc("configure_work_order_assignment", {
@@ -182,42 +246,122 @@ for (const index of [0, 1, 4]) {
         "prepare the assigned lifecycle through the real planner API",
       );
     }
+    if (index === 5) {
+      await checked(
+        await actor.rpc("save_work_order_access", {
+          p_action_id: actionIds[index],
+          p_organization_id: organizationId,
+          p_project_id: projectId,
+          p_user_id: manager.id,
+          p_expected_version: 0,
+          p_active: true,
+          p_can_execute: false,
+          p_can_review: true,
+          p_reason: "Syntetisk uafhængig gennemgang",
+          p_request_id: randomUUID(),
+        }),
+        "grant independent review of the synthetic job",
+      );
+      workflow = {
+        actionId: actionIds[index],
+        organizationId,
+        projectId,
+        planId,
+        cardIds: cards.map((card) => card.templateVersionId),
+      };
+    }
   }
 }
 await actor.auth.signOut();
 await writeFile(
   resolve(output, "fixture.private.json"),
-  JSON.stringify({ organization, manager, field, startActionId: actionIds[4] }),
+  JSON.stringify({
+    organization,
+    manager,
+    field,
+    startActionId: actionIds[4],
+    workflow,
+    api: { url: local.API_URL, anonKey: local.ANON_KEY },
+  }),
   { mode: 0o600 },
 );
 const log = await open(resolve(output, "server.private.log"), "a");
-const server = spawn(
-  process.execPath,
-  [
-    "--max-old-space-size=3072",
-    "node_modules/vite/bin/vite.js",
-    "dev",
-    "--host",
-    "127.0.0.1",
-    "--port",
-    "4179",
-    "--strictPort",
-  ],
-  {
-    env: {
-      ...process.env,
-      VITE_SUPABASE_URL: local.API_URL,
-      VITE_SUPABASE_PUBLISHABLE_KEY: local.ANON_KEY,
-      VITE_SUPABASE_PROJECT_ID: "disposable-local",
-      SUPABASE_URL: local.API_URL,
-      SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
-    },
-    stdio: ["ignore", log.fd, log.fd],
-    windowsHide: true,
-  },
-);
+const runtimeEnv = {
+  ...process.env,
+  VITE_SUPABASE_URL: local.API_URL,
+  VITE_SUPABASE_PUBLISHABLE_KEY: local.ANON_KEY,
+  VITE_SUPABASE_PROJECT_ID: "disposable-local",
+  SUPABASE_URL: local.API_URL,
+  SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
+  CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false",
+};
+const workerSecrets = resolve(".output/server/.dev.vars");
+let secretsCreated = false;
+let server;
 let browserExitCode = null;
 try {
+  // Offline program files are emitted only by a real build. A Vite development
+  // server cannot establish the same service-worker readiness contract.
+  const build = spawn(
+    process.execPath,
+    ["--max-old-space-size=3072", "node_modules/vite/bin/vite.js", "build"],
+    { env: runtimeEnv, stdio: ["ignore", log.fd, log.fd], windowsHide: true },
+  );
+  const buildCode = await new Promise((resolve, reject) => {
+    build.once("error", reject);
+    build.once("exit", (code) => resolve(code ?? 1));
+  });
+  if (buildCode !== 0) throw new Error("Disposable application build failed.");
+  const manifest = JSON.parse(
+    await readFile(resolve(".output/public/field-offline-manifest.json"), "utf8"),
+  );
+  if (
+    manifest.schema !== "freyra.field-offline-assets/v1" ||
+    !Array.isArray(manifest.assets) ||
+    manifest.assets.length === 0
+  )
+    throw new Error("Built offline program files are missing.");
+  for (const asset of manifest.assets) {
+    if (typeof asset !== "string" || !asset.startsWith("/") || asset.includes(".."))
+      throw new Error("Unexpected offline asset path.");
+    if (!/\.(?:js|css)$/.test(asset)) continue;
+    const content = await readFile(resolve(".output/public", asset.slice(1)), "utf8");
+    if (content.includes(local.SERVICE_ROLE_KEY))
+      throw new Error("A server credential reached a client asset.");
+  }
+  // Bind only the disposable stack. Never inherit a production .env or put
+  // secret values in command arguments, tracked configuration or browser files.
+  execFileSync("git", ["check-ignore", "--quiet", "--", workerSecrets], { stdio: "ignore" });
+  await writeFile(
+    workerSecrets,
+    Object.entries({
+      SUPABASE_URL: local.API_URL,
+      SUPABASE_PUBLISHABLE_KEY: local.ANON_KEY,
+      SUPABASE_ANON_KEY: local.ANON_KEY,
+      SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
+    })
+      .map(([name, value]) => `${name}=${JSON.stringify(value)}`)
+      .join("\n") + "\n",
+    { flag: "wx", mode: 0o600 },
+  );
+  secretsCreated = true;
+  server = spawn(
+    process.execPath,
+    [
+      "node_modules/wrangler/bin/wrangler.js",
+      "dev",
+      "--config",
+      ".output/server/wrangler.json",
+      "--local",
+      "--ip",
+      "127.0.0.1",
+      "--port",
+      "4179",
+      "--persist-to",
+      resolve(output, "worker-state"),
+    ],
+    { env: runtimeEnv, stdio: ["ignore", log.fd, log.fd], windowsHide: true },
+  );
   const deadline = Date.now() + 300_000;
   let ready = false;
   while (Date.now() < deadline) {
@@ -231,11 +375,20 @@ try {
         break;
       }
     } catch {
-      // Vite compiles the real server on the first request.
+      // Wait for the built local Worker to start.
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   if (!ready) throw new Error("Disposable browser server did not become ready.");
+  const workerResponse = await fetch("http://127.0.0.1:4179/field-sw.js", {
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (
+    !workerResponse.ok ||
+    !/javascript|ecmascript/.test(workerResponse.headers.get("content-type") ?? "") ||
+    (await workerResponse.text()).includes("const manifest = __FREYRA_FIELD_PRECACHE__;")
+  )
+    throw new Error("The built field service worker is unavailable.");
   const browser = spawn(
     process.execPath,
     ["node_modules/@playwright/test/cli.js", "test", "--config", "playwright.planning.config.ts"],
@@ -251,8 +404,9 @@ try {
   });
   if (browserExitCode !== 0) throw new Error("Disposable planning browser acceptance failed.");
 } finally {
-  server.kill("SIGTERM");
+  server?.kill("SIGTERM");
   await log.close();
+  if (secretsCreated) await unlink(workerSecrets);
   if (browserExitCode !== 0) {
     let diagnostic = await readFile(resolve(output, "server.private.log"), "utf8");
     for (const secret of [local.SERVICE_ROLE_KEY, local.ANON_KEY, manager.password, field.password])

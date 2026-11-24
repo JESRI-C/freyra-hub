@@ -101,23 +101,31 @@ export default function ManagerWorkOrderMapCanvas({
         const first = jobs[0];
         const [lng, lat] = (first.location.geometry as { coordinates: [number, number] })
           .coordinates;
-        const icon = document.createElement("span");
+        // Native buttons retain pointer and keyboard activation independently of map gestures.
+        const icon = document.createElement("button");
+        icon.type = "button";
         icon.className =
-          "flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow";
+          "flex h-11 w-11 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+        icon.setAttribute(
+          "aria-label",
+          jobs.length > 1
+            ? `Vælg mellem ${jobs.length} arbejdsordrer på samme position`
+            : `Åbn opgave: ${first.title}`,
+        );
         icon.style.backgroundColor = jobs.length > 1 ? "#475569" : first.color;
         icon.textContent = jobs.length > 1 ? String(jobs.length) : "";
         if (jobs.some((job) => job.actionId === selectedActionId))
           icon.style.outline = "3px solid #0f172a";
         const marker = L.marker([lat, lng], {
-          keyboard: true,
+          keyboard: false,
           title:
             jobs.length > 1
               ? `${jobs.length} arbejdsordrer på samme position`
               : `${first.title} · ${managerMapSourceLabel(first.location)}`,
-          icon: L.divIcon({ html: icon, className: "", iconSize: [32, 32], iconAnchor: [16, 16] }),
+          icon: L.divIcon({ html: icon, className: "", iconSize: [44, 44], iconAnchor: [22, 22] }),
         }).addTo(group);
-        if (jobs.length === 1)
-          marker.on("click", () => select.current(first.actionId, first.projectId));
+        L.DomEvent.disableClickPropagation(icon);
+        if (jobs.length === 1) icon.onclick = () => select.current(first.actionId, first.projectId);
         else {
           const choices = document.createElement("div");
           const heading = document.createElement("strong");
@@ -127,11 +135,12 @@ export default function ManagerWorkOrderMapCanvas({
             const button = document.createElement("button");
             button.type = "button";
             button.className = "block min-h-11 w-full border-b py-2 text-left";
-            button.textContent = `${job.title} · ${job.projectName}`;
+            button.textContent = `${job.title} · ${job.contextLabel ?? job.projectName}`;
             button.onclick = () => select.current(job.actionId, job.projectId);
             choices.append(button);
           }
           marker.bindPopup(choices);
+          icon.onclick = () => marker.openPopup();
         }
       }
     });

@@ -6,6 +6,7 @@ export type ManagerMapFeature = {
   projectId: string;
   title: string;
   projectName: string;
+  contextLabel?: string;
   color: string;
   location: ManagerWorkOrderMapLocation;
 };
@@ -43,7 +44,11 @@ function validGeometry(location: ManagerWorkOrderMapLocation) {
         geometry.coordinates.every(validCoordinate);
 }
 
-function colorFor(task: ManagerWorkOrder) {
+export function workOrderMapColor(task: {
+  task_status?: string | null;
+  blocked?: boolean;
+  waiting_for_prerequisites: boolean;
+}) {
   if (task.task_status === "cancelled") return "#64748b";
   if (
     task.blocked ||
@@ -82,7 +87,7 @@ export function managerMapData(items: ManagerWorkOrder[]) {
         projectId: task.project_id,
         title: task.title,
         projectName: task.project_name,
-        color: colorFor(task),
+        color: workOrderMapColor(task),
         location,
       });
       mapped.add(`${task.project_id}:${task.action_id}`);

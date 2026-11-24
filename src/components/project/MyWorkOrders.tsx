@@ -15,6 +15,8 @@ import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignm
 import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
 import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
+import { MyWorkOrderMap } from "./MyWorkOrderMap";
+import type { ManagerMapViewport } from "./ManagerWorkOrderMap";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 import { ScannedEquipmentReservations } from "./ScannedEquipmentReservations";
@@ -311,7 +313,8 @@ function MyTasks({ actorId }: { actorId: string }) {
   const load = useServerFn(listCurrentUserWorkOrders);
   const [editors, setEditors] = useState<Set<string>>(() => new Set());
   const [activeTaskId, setActiveTask] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "board">("list");
+  const [view, setView] = useState<"list" | "board" | "map">("list");
+  const [mapViewport, setMapViewport] = useState<ManagerMapViewport | null>(null);
   const [filter, setFilter] = useState<(typeof taskFilters)[number][0]>("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -339,9 +342,10 @@ function MyTasks({ actorId }: { actorId: string }) {
   });
   const items = tasks.isError ? [] : (tasks.data?.pages.flatMap((page) => page.items) ?? []);
   const showBoard = view === "board" && !activeTaskId;
+  const showMap = view === "map" && !activeTaskId;
   return (
     <main
-      className={`mx-auto min-h-dvh space-y-4 p-3 pb-12 sm:p-6 [overflow-wrap:anywhere] ${showBoard ? "max-w-6xl" : "max-w-3xl"}`}
+      className={`mx-auto min-h-dvh space-y-4 p-3 pb-12 sm:p-6 [overflow-wrap:anywhere] ${showBoard || showMap ? "max-w-6xl" : "max-w-3xl"}`}
     >
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Mine opgaver</h1>
@@ -377,6 +381,17 @@ function MyTasks({ actorId }: { actorId: string }) {
             onClick={() => setView("board")}
           >
             Kanban
+          </button>
+          <button
+            type="button"
+            className={
+              button + (view === "map" ? " bg-primary text-primary-foreground" : " bg-card")
+            }
+            aria-pressed={view === "map"}
+            disabled={editors.size > 0}
+            onClick={() => setView("map")}
+          >
+            Kort
           </button>
         </div>
       )}
@@ -440,10 +455,14 @@ function MyTasks({ actorId }: { actorId: string }) {
           disabled={editors.size > 0}
           onClick={() => {
             setActiveTask(null);
-            if (view === "board") void tasks.refetch();
+            if (view === "board" || view === "map") void tasks.refetch();
           }}
         >
-          {view === "board" ? "← Tilbage til opgavetavlen" : "← Tilbage til opgavelisten"}
+          {view === "board"
+            ? "← Tilbage til opgavetavlen"
+            : view === "map"
+              ? "← Tilbage til opgavekortet"
+              : "← Tilbage til opgavelisten"}
         </button>
       )}
       {!!editors.size && (
@@ -477,10 +496,22 @@ function MyTasks({ actorId }: { actorId: string }) {
       {showBoard && items.length > 0 && (
         <WorkOrderBoard items={items} onOpen={setActiveTask} locked={editors.size > 0} />
       )}
+      {showMap && items.length > 0 && (
+        <MyWorkOrderMap
+          actorId={actorId}
+          items={items}
+          hasMore={!!tasks.hasNextPage}
+          onOpen={setActiveTask}
+          viewport={mapViewport}
+          onViewport={setMapViewport}
+        />
+      )}
       {items.map((task) => (
         <div
           key={task.action_id}
-          hidden={showBoard || (activeTaskId !== null && activeTaskId !== task.action_id)}
+          hidden={
+            showBoard || showMap || (activeTaskId !== null && activeTaskId !== task.action_id)
+          }
         >
           <TaskCard
             task={task}

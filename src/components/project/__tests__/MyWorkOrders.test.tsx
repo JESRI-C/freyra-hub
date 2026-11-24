@@ -4,6 +4,8 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { emptyWorkOrderPlan } from "@/lib/work-order-plan";
+import type { ManagerMapFeature } from "../manager-work-order-map-data";
+import type { ManagerMapViewport } from "../ManagerWorkOrderMap";
 const m = vi.hoisted(() => ({
   load: vi.fn(),
   loadLink: vi.fn(),
@@ -14,6 +16,7 @@ const m = vi.hoisted(() => ({
   client: vi.fn(),
   scanned: vi.fn(),
   blocker: vi.fn(),
+  mapViewport: vi.fn(),
   actor: "00000000-0000-4000-8000-000000000001" as string | null,
 }));
 vi.mock("@/lib/auth", () => ({
@@ -30,6 +33,9 @@ vi.mock("@/lib/supabase/client", () => ({
             eq: (column: string, value: string) => {
               m.siteProject(column, value);
               return {
+                in: (column: string, values: string[]) => ({
+                  abortSignal: () => m.sites(column, values),
+                }),
                 neq: () => ({
                   is: () => ({
                     in: (column: string, values: string[]) => ({
@@ -47,6 +53,32 @@ vi.mock("@/lib/supabase/client", () => ({
           name === "list_field_equipment_label" ? m.scanned(args) : { data: [], error: null },
       }),
     };
+  },
+}));
+vi.mock("../ManagerWorkOrderMapCanvas", () => ({
+  default: ({
+    features,
+    onSelect,
+    viewport,
+    onViewport,
+  }: {
+    features: ManagerMapFeature[];
+    onSelect: (id: string, projectId: string) => void;
+    viewport: ManagerMapViewport | null;
+    onViewport: (value: ManagerMapViewport) => void;
+  }) => {
+    m.mapViewport(viewport);
+    return features.map((feature) => (
+      <button
+        key={feature.key}
+        onClick={() => {
+          onViewport({ lat: 56.11, lng: 9.41, zoom: 15 });
+          onSelect(feature.actionId, feature.projectId);
+        }}
+      >
+        Synthetic marker · {feature.title}
+      </button>
+    ));
   },
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
@@ -211,6 +243,48 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("opens the selected map job and returns to the same map viewport and filter", async () => {
+    const assigned = {
+      ...task,
+      assignment_mode: "person",
+      can_claim: false,
+      can_execute: true,
+      plan: { ...task.plan, siteId: id(41) },
+    };
+    m.load.mockResolvedValue({ items: [assigned], nextAfterActionId: null });
+    m.sites.mockResolvedValue({
+      data: [
+        {
+          id: id(41),
+          project_id: task.project_id,
+          name: "Synthetic work site",
+          status: "active",
+          archived_at: null,
+          centroid_lng: 9.41,
+          centroid_lat: 56.11,
+          geometry_geojson: { type: "Point", coordinates: [9.41, 56.11] },
+        },
+      ],
+      error: null,
+    });
+    await render();
+    await click("Aktive");
+    await click("Kort");
+    expect(host.querySelector('section[aria-label="Kort over mine opgaver"]')).not.toBeNull();
+    await click("Synthetic marker · Synthetic mobile task");
+    expect(host.querySelector('section[aria-label="Kort over mine opgaver"]')).toBeNull();
+    expect(host.querySelector("article")?.closest("[hidden]")).toBeNull();
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.textContent).toContain(
+      "Synthetic instructions",
+    );
+    const loads = m.load.mock.calls.length;
+    await click("← Tilbage til opgavekortet");
+    expect(host.querySelector('section[aria-label="Kort over mine opgaver"]')).not.toBeNull();
+    expect(m.load.mock.calls.length).toBeGreaterThan(loads);
+    expect(m.load.mock.lastCall?.[0].data.filter).toBe("active");
+    expect(m.mapViewport).toHaveBeenLastCalledWith({ lat: 56.11, lng: 9.41, zoom: 15 });
+  });
+
   it("shows the asset’s authorized current reservation after opening its durable label", async () => {
     m.scanned.mockResolvedValue({
       error: null,
