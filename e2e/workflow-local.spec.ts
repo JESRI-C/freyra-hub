@@ -57,7 +57,24 @@ test("employee completes a documented job from the map and a separate manager re
   const card = page.getByRole("article").filter({
     has: page.getByRole("heading", { name: "Syntetisk dokumentationsjob", exact: true }),
   });
-  await expect(card).toBeVisible();
+  try {
+    await expect(map).toBeHidden();
+    await expect(card).toBeVisible();
+  } catch (failure) {
+    // This suite uses only the disposable synthetic account. Keep screenshots private,
+    // while reporting enough application state to distinguish a runtime error from a locator.
+    throw new Error(
+      JSON.stringify({
+        step: "map-marker-to-job",
+        pageErrors: errors,
+        mapVisible: await map.isVisible(),
+        headings: await page.getByRole("heading").allTextContents(),
+        alerts: await page.getByRole("alert").allTextContents(),
+      }),
+      { cause: failure },
+    );
+  }
+  expect(errors).toEqual([]);
   await expect(
     card.getByRole("link", { name: /Vejvisning til Syntetisk arbejdssted 2/ }),
   ).toHaveAttribute("href", /destination=56\.11.*9\.41/);
