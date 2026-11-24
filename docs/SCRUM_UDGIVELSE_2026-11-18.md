@@ -53,7 +53,7 @@ Startregistreringen afprøves nu med serverens aktuelle tidspunkt, så en forske
 
 Mine opgaver udbygges med et kort over de indlæste, tildelte jobs og en liste til opgaver uden koordinater. Kort og kildestatus afprøves med samme adgang som opgavelisten. Den samlede browserprøve forbinder kortvalg, originalfoto, krævede jobkort, timer, materialer, udførelse, aflevering og uafhængig gennemgang samt rapport/PDF og originalpakke. Teknisk accept følges pr. kildeversion i udgivelsesforslaget; samlet hosted accept er fortsat åben.
 
-Browserprøven fandt et klik på en punktmarkering, som ikke åbnede jobbet. Markørerne ændres til almindelige knapper med en trykflade på 44 pixels og navngiven tastaturbetjening. Den nye kontrol skal åbne et job med Enter, vende tilbage til kortet og åbne dokumentationsjobbet ved klik. Prøven fortsætter derefter gennem hele jobforløbet; en direkte jobadresse erstatter ikke kortvalget. [PR #54](https://github.com/JESRI-C/freyra-hub/pull/54) forbliver kladde, indtil den samlede prøve består.
+Browserprøven fandt et klik på en punktmarkering, som ikke åbnede jobbet. Markørerne ændres til almindelige knapper med en trykflade på 44 pixels og navngiven tastaturbetjening. Den nye kontrol skal åbne et job med Enter, vende tilbage til kortet og åbne dokumentationsjobbet ved klik. Det samlede jobforløb og de hentede PDF-/ZIP-filer er accepteret i den disponible database. [PR #54](https://github.com/JESRI-C/freyra-hub/pull/54) er flettet; kortvisningen indgår i den aktuelle forhåndsvisning. Hosted accept og fysisk telefon er fortsat åbne.
 
 Nye rapportkladder fra en godkendt aflevering udbygges med det gemte jobnavn, stednoten og jobkortenes felter, svar og originalreferencer. Samme registrering vises én gang, også når flere fotos dokumenterer den. Senere rettelser af plan eller skabelon må ikke ændre rapportgrundlaget. PDF- og ZIP-forløbet kræver fortsat samlet accept.
 
@@ -72,3 +72,9 @@ Udgivelsesforslag: [PR #51](https://github.com/JESRI-C/freyra-hub/pull/51).
 Kun kode og Scrum-plan offentliggøres. Interne projekt- og testnoter, prøvekvitteringer, skærmbilleder og servernøgler holdes private. Detaljerede kontrolresultater opbevares i det private arbejdsrum.
 
 Den automatiske app- og databasekontrol uploader fremover ikke downloadbare prøvekvitteringer. Database-, gendannelses- og browserkontrollerne kører fortsat; deres midlertidige filer bliver i det isolerede testmiljø.
+
+### Kontrolleret flytning af PostGIS
+
+Sikkerhedskandidaten flytter geoudvidelsen og koordinatreferencerne fra public til extensions. Geometrikolonnerne bevares gennem en binær mellemrepræsentation, og ukendte afhængigheder stopper migrationen. Tabeldata, indeks, kolonner, rettigheder og den adgangsafgrænsede kortfunktion kontrolleres før og efter.
+
+En særskilt disponibel prøve dækker ikke-tomme geometrier, GeoJSON-fallback, egne koordinatreferencer, rollback og afviste API-kald. Den efterfølges af friske migrationer og hele den almindelige app-, database- og browserkontrol. Kandidaten er endnu ikke accepteret eller anvendt i produktion.

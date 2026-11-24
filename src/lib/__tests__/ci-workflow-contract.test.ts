@@ -75,6 +75,17 @@ describe("P0 app-gates workflow", () => {
     expect(workflow).toContain(
       "if: always()\n        run: node scripts/database-concurrency/stop-disposable-stack.mjs --disposable-local",
     );
+    const legacyReplay = workflow.indexOf(
+      "supabase db reset --local --no-seed --version 20261124022247",
+    );
+    const upgradeProbe = workflow.indexOf(
+      "node scripts/test-postgis-schema-upgrade.mjs --disposable-local",
+    );
+    const freshReplay = workflow.lastIndexOf("supabase db reset --local --no-seed");
+    expect(legacyReplay).toBeGreaterThan(workflow.indexOf("name: Match PostgreSQL client tools"));
+    expect(upgradeProbe).toBeGreaterThan(legacyReplay);
+    expect(freshReplay).toBeGreaterThan(upgradeProbe);
+    expect(workflow.indexOf("supabase test db --local")).toBeGreaterThan(freshReplay);
     const cleanup = readFileSync(
       resolve(process.cwd(), "scripts/database-concurrency/stop-disposable-stack.mjs"),
       "utf8",

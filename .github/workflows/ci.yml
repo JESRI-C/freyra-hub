@@ -110,8 +110,24 @@ jobs:
       - name: Start disposable local stack
         run: supabase start --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor
 
+      - name: Match PostgreSQL client tools to the disposable server
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          pgdg_fingerprint=$(gpg --batch --with-colons --show-keys --fingerprint /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | awk -F: '$1 == "fpr" {print $10; exit}')
+          test "$pgdg_fingerprint" = B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
       - name: Replay migrations from empty local database
-        run: supabase db reset --local --no-seed
+        run: |
+          supabase db reset --local --no-seed --version 20261124022247
+          node scripts/test-postgis-schema-upgrade.mjs --disposable-local
+          supabase db reset --local --no-seed
 
       - name: Check database isolation
         run: supabase test db --local supabase/tests/database
@@ -134,19 +150,6 @@ jobs:
             --disposable-local \
             --database postgresql://postgres:postgres@127.0.0.1:54322/postgres \
             | tee tmp/database-concurrency/work-order-observation-drafts.json
-
-      - name: Match PostgreSQL client tools to the disposable server
-        run: |
-          set -euo pipefail
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-          pgdg_fingerprint=$(gpg --batch --with-colons --show-keys --fingerprint /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | awk -F: '$1 == "fpr" {print $10; exit}')
-          test "$pgdg_fingerprint" = B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client-17
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
-          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Restore a real database dump to a disposable database
         env:
