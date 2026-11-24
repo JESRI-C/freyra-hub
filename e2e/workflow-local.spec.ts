@@ -110,6 +110,8 @@ test("employee completes a documented job from the map and a separate manager re
   });
   const photos = page.getByRole("region", { name: "Feltfotos på telefonen", exact: true });
   const jobs = page.getByRole("region", { name: "Jobkort på telefonen", exact: true });
+  await page.context().setOffline(true);
+  await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
   await expect(photos.getByRole("radio", { name: /Opgaven:/ })).toBeChecked();
   await expect(photos.getByLabel("Tag originalfoto til feltkøen", { exact: true })).toBeEnabled();
   await photos
@@ -135,6 +137,25 @@ test("employee completes a documented job from the map and a separate manager re
     .getByLabel("Begrundelse for registreringen", { exact: true })
     .fill("Syntetisk afslutningskontrol med nul og falsk");
   await jobs.getByRole("button", { name: "Gem registrering på telefonen", exact: true }).click();
+
+  const [offlinePhotos, offlineCards] = await Promise.all([
+    worker
+      .from("field_photo_uploads")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("captured_action_id", actionId),
+    worker
+      .from("field_job_versions")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("action_id", actionId),
+  ]);
+  expect(offlinePhotos.error).toBeNull();
+  expect(offlineCards.error).toBeNull();
+  expect(offlinePhotos.data).toHaveLength(0);
+  expect(offlineCards.data).toHaveLength(0);
+  await page.context().setOffline(false);
+  await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(true);
 
   await expect
     .poll(
