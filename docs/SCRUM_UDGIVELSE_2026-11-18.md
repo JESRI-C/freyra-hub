@@ -67,6 +67,8 @@ Kunderegisterets første database- og serverkontrol består. Kandidaten har nu f
 
 Den udvidede kunde-/sagskandidat har bestået 4188 appprøver, 2342 databaseprøver, fem reelle samtidighedsscenarier og fire eksisterende browserforløb. React-typen for det gemte genforsøg og testformatteringen er rettet efter kontrollen. Kandidaten udvides med kundens adgangsafgrænsede sagsoversigt og en ny browserprøve med kunde, kontakt, planlægger, sag og tre jobs. Det eksisterende mobile dokumentationsforløb skal også bevise kundens navn, kontakt og reference i den hentede PDF. Den nye samlede kontrol og hosted accept er fortsat åbne.
 
+Appens samlede kontrol og 2347 databaseprøver består i den næste kandidat. Det mobile dokumentationsforløb har nu også bevist kunde, kontakt og reference i PDF-downloaden. Browserprøven af kundeoprettelse fandt en fejl i rullemenuernes mærkning efter gemning af kunde og kontakt. Felterne får nu eksplicitte etiketter. En ekstra prøve med to åbne redigeringsvinduer kontrollerer, at en forældet rettelse bevares, og at den seneste version hentes, når kladden lukkes. Samlet browseraccept af disse rettelser afventer.
+
 ## Kanban og færdigkriterium
 
 Udviklingstavlen viser funktionsområder, kodehenvisninger og acceptkrav. En funktion afsluttes først efter den konkrete accept på den angivne udgivelse. En kodehenvisning alene er ikke en færdig funktion. Den realistiske demosag skal indeholde flere jobs og kunne vises til Dalgas.

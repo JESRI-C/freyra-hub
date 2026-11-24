@@ -9,6 +9,7 @@ import {
   type CaseCustomerContext,
 } from "@/lib/work-customers";
 import { useCustomerCommand } from "./useCustomerCommand";
+import { CustomerField } from "./CustomerField";
 
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50";
@@ -247,8 +248,7 @@ function CaseContextForm({
             )}
             {!customers.isError && customers.data && (
               <>
-                <label className="block text-sm font-medium">
-                  Kunde
+                <CustomerField label="Kunde">
                   <select
                     className={control}
                     required
@@ -270,7 +270,7 @@ function CaseContextForm({
                       </option>
                     ))}
                   </select>
-                </label>
+                </CustomerField>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -296,8 +296,7 @@ function CaseContextForm({
             {customerId && detail.isPending && <p role="status">Henter kontakter…</p>}
             {detail.isError && <p role="alert">Den valgte kunde er ikke tilgængelig.</p>}
             {selected && (
-              <label className="block text-sm font-medium">
-                Kontaktperson
+              <CustomerField label="Kontaktperson">
                 <select
                   className={control}
                   value={contactId}
@@ -312,7 +311,7 @@ function CaseContextForm({
                       </option>
                     ))}
                 </select>
-              </label>
+              </CustomerField>
             )}
             <p className="text-xs text-muted-foreground">
               Gemning vælger kundens og kontaktens aktuelle version til sagen. Tidligere

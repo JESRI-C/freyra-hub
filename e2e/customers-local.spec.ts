@@ -1,6 +1,62 @@
 import { expect, test } from "@playwright/test";
 import { fixture, login } from "./disposable-local-fixture";
 
+test("a stale customer edit remains a draft and reloads the colleague's saved revision on cancel", async ({
+  page,
+  browser,
+}) => {
+  const data = await fixture();
+  await login(page, data.registryAdmin, data.organization);
+  await page.goto("/app/work-orders?view=customers");
+  await page.getByRole("button", { name: "Opret kunde", exact: true }).click();
+  await page.getByLabel("Kundenavn", { exact: true }).fill("Fiktiv konflikttestkunde");
+  await page.getByRole("button", { name: "Gem kunde", exact: true }).click();
+  await page.getByRole("button", { name: "Redigér kunde", exact: true }).click();
+  await page.getByLabel("Kundenavn", { exact: true }).fill("Min bevarede kundekladde");
+
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4179",
+    viewport: { width: 1280, height: 900 },
+  });
+  try {
+    const colleague = await context.newPage();
+    await login(colleague, data.registryAdmin, data.organization);
+    await colleague.goto("/app/work-orders?view=customers");
+    await colleague.getByRole("button", { name: /Fiktiv konflikttestkunde/ }).click();
+    await colleague.getByRole("button", { name: "Redigér kunde", exact: true }).click();
+    await colleague
+      .getByLabel("Kundenavn", { exact: true })
+      .fill("Fiktiv kundekorrektion fra kollega");
+    await colleague.getByRole("button", { name: "Gem kunde", exact: true }).click();
+    await expect(
+      colleague.getByRole("region", { name: "Kundeoplysninger", exact: true }),
+    ).toContainText("Fiktiv kundekorrektion fra kollega");
+
+    await page.getByRole("button", { name: "Gem kunde", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("En anden har ændret oplysningerne");
+    await expect(page.getByLabel("Kundenavn", { exact: true })).toHaveValue(
+      "Min bevarede kundekladde",
+    );
+    await expect(page.getByRole("button", { name: "Fortryd", exact: true })).toBeEnabled();
+    await colleague.reload();
+    await colleague.getByRole("button", { name: /Fiktiv kundekorrektion fra kollega/ }).click();
+    await expect(
+      colleague.getByRole("region", { name: "Kundeoplysninger", exact: true }),
+    ).toContainText("Fiktiv kundekorrektion fra kollega");
+    await page.getByRole("button", { name: "Fortryd", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Kundeoplysninger", exact: true })).toContainText(
+      "Fiktiv kundekorrektion fra kollega",
+    );
+    await page.getByRole("button", { name: "Redigér kunde", exact: true }).click();
+    await expect(page.getByLabel("Kundenavn", { exact: true })).toHaveValue(
+      "Fiktiv kundekorrektion fra kollega",
+    );
+    await page.getByRole("button", { name: "Fortryd", exact: true }).click();
+  } finally {
+    await context.close();
+  }
+});
+
 test("administrator creates customer/contact and planner creates a case with three persistent jobs", async ({
   page,
   browser,

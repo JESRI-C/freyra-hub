@@ -113,9 +113,9 @@ async function selectCustomer() {
   await flush();
 }
 function field(text: string) {
-  const node = [...host.querySelectorAll("label")]
-    .find((l) => l.firstChild?.textContent?.trim() === text)
-    ?.querySelector<HTMLInputElement | HTMLSelectElement>("input,select");
+  const node = [...host.querySelectorAll("label")].find(
+    (l) => l.firstChild?.textContent?.trim() === text,
+  )?.control as HTMLInputElement | HTMLSelectElement | null;
   expect(node, text).toBeTruthy();
   return node!;
 }
@@ -249,6 +249,26 @@ describe("kundens sammenhængende arbejdsrum", () => {
     await submit();
     expect(m.save.mock.calls.map((c) => c[0].data.expectedVersion)).toEqual([1, 1]);
     expect(button("Fortryd").disabled).toBe(false);
+    const corrected = {
+      ...detail(),
+      customer: {
+        ...detail().customer,
+        version: 2,
+        data: { ...detail().customer.data, name: "Kollegas gemte kunde" },
+      },
+    };
+    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) =>
+      data.operation === "list"
+        ? { organizationId: m.org, canManage: true, rows: [corrected.customer], hasMore: false }
+        : data.operation === "cases"
+          ? { organizationId: m.org, customerId: id(3), rows: [], hasMore: false }
+          : corrected,
+    );
+    await click("Fortryd");
+    await click("Redigér kunde");
+    expect(field("Kundenavn").value).toBe("Kollegas gemte kunde");
+    await submit();
+    expect(m.save.mock.calls.at(-1)?.[0].data.expectedVersion).toBe(2);
   });
   it("viser ikke tidligere kundedata eller en forsinket kvittering efter organisations- og aktørskift", async () => {
     let resolve!: (value: ReturnType<typeof receipt>) => void;

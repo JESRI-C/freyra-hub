@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -14,6 +14,7 @@ import {
   type CustomerFields,
 } from "@/lib/work-customers";
 import { useCustomerCommand } from "./useCustomerCommand";
+import { CustomerField as Field } from "./CustomerField";
 
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50";
@@ -100,7 +101,16 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
     setEditor(null);
     void cache.invalidateQueries({ queryKey: ["work-customers", actorId, organizationId] });
   }
-  const form = { organizationId, actorId, onClose: () => setEditor(null), onSaved: saved };
+  const form = {
+    organizationId,
+    actorId,
+    onClose: () => {
+      setEditor(null);
+      void list.refetch();
+      if (selected) void detail.refetch();
+    },
+    onSaved: saved,
+  };
   return (
     <section aria-label="Kunder og sager" className="space-y-5 [overflow-wrap:anywhere]">
       <div className="flex flex-wrap items-end gap-3">
@@ -476,14 +486,6 @@ function CustomerCases({
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="block min-w-0 text-sm font-medium">
-      {label}
-      {children}
-    </label>
-  );
-}
 function Actions({
   command,
   onClose,
