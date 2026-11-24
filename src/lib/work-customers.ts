@@ -195,6 +195,7 @@ export type CustomerQuery = z.infer<typeof CustomerQuerySchema>;
 export type CustomerFields = z.infer<typeof CustomerFieldsSchema>;
 export type CustomerDetail = z.infer<typeof CustomerDetailSchema>;
 export type CaseCustomerContext = z.infer<typeof CaseCustomerContextSchema>;
+export const CaseCustomerBindingSchema = CaseCustomerContextSchema.shape.binding.unwrap();
 export const emptyCustomer: CustomerFields = {
   name: "",
   registrationNumber: "",

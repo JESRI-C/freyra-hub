@@ -153,6 +153,8 @@ SELECT * FROM public.save_work_order_evidence(pg_temp.k(31),pg_temp.k(11),pg_tem
   'attached','Synthetic second photo binding for the same frozen card',pg_temp.k(67));
 SELECT pg_temp.save(2,83);
 SELECT pg_temp.review(13,'submit','submitted',3,216);
+SELECT pg_temp.customer_command('save_reference',jsonb_build_object(
+  'projectId',pg_temp.k(21),'expectedVersion',1,'customerReference','DURING-REVIEW'));
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((pg_temp.rc()->>'can_review')::boolean,true,'external review-only member can review this task');
 SELECT is((pg_temp.ctx()->>'can_prepare')::boolean,false,'review grant does not enable packet preparation');
@@ -214,7 +216,7 @@ SELECT pg_temp.customer_command('save_contact',jsonb_build_object('customerId',p
   'contactId',(SELECT (value::jsonb->>'id')::uuid FROM pg_temp.saved WHERE name='contact'),'expectedVersion',1,
   'data',jsonb_build_object('name','Later contact name','title','','phone','LATER-PHONE','email','later@example.test','archived',true)));
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
-SELECT pg_temp.customer_command('save_reference',jsonb_build_object('projectId',pg_temp.k(21),'expectedVersion',1,'customerReference','LATER-REFERENCE'));
+SELECT pg_temp.customer_command('save_reference',jsonb_build_object('projectId',pg_temp.k(21),'expectedVersion',2,'customerReference','LATER-REFERENCE'));
 INSERT INTO pg_temp.saved VALUES ('work-order-report', pg_temp.work_order_report()::text);
 CREATE FUNCTION pg_temp.report_customer() RETURNS jsonb LANGUAGE sql AS $$
  SELECT section FROM jsonb_array_elements((SELECT value::jsonb->'content'->'sections' FROM pg_temp.saved WHERE name='work-order-report')) section
@@ -227,6 +229,8 @@ SELECT ok(pg_temp.report_customer()->>'text' LIKE '%Kundens reference: SYNTHETIC
   'report reference comes from its exact approved submission, not the latest case binding');
 SELECT ok(pg_temp.report_customer()->>'text' NOT LIKE '%LATER-%' AND pg_temp.report_customer()->>'text' NOT LIKE '%Later%',
   'later customer, contact and reference values cannot leak into the historical report');
+SELECT ok(pg_temp.report_customer()->>'text' NOT LIKE '%DURING-REVIEW%',
+  'a reference changed during review does not alter the submitted report context');
 SELECT is(pg_temp.work_order_report(),(SELECT value::jsonb FROM pg_temp.saved WHERE name='work-order-report'),
   'retry returns exactly the same stored report');
 SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'submissionVersion'

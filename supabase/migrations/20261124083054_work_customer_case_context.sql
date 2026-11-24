@@ -439,7 +439,9 @@ revoke all on function private.build_work_order_submission_before_customer(uuid,
   from public,anon,authenticated,service_role;
 create function private.build_work_order_submission(p_action_id uuid,p_organization_id uuid,p_project_id uuid,p_lock boolean)
 returns jsonb language plpgsql volatile security definer set search_path='' set timezone='UTC' as $$
-declare built jsonb; packet jsonb; customer_context jsonb; gaps jsonb;
+declare
+  built jsonb; packet jsonb; customer_context jsonb; gaps jsonb;
+  lifecycle public.work_order_lifecycle_versions;
 begin
   -- The existing builder validates the exact actor/task/scope and locks job sources.
   built:=private.build_work_order_submission_before_customer(p_action_id,p_organization_id,p_project_id,p_lock);
@@ -447,7 +449,17 @@ begin
     -- Binding changes lock this same project row. Membership locks precede it in both paths.
     perform 1 from public.projects where id=p_project_id and organization_id=p_organization_id for share;
   end if;
-  customer_context:=private.work_customer_case_json(p_organization_id,p_project_id);
+  select * into lifecycle from public.work_order_lifecycle_versions
+   where action_id=p_action_id and organization_id=p_organization_id and project_id=p_project_id
+   order by version desc limit 1;
+  if lifecycle.status='submitted' then
+    -- Review compares work evidence with current sources, but the submitted customer context is fixed.
+    select snapshot->'caseCustomer' into customer_context from public.work_order_submission_versions
+     where id=lifecycle.submission_version_id and action_id=p_action_id
+       and organization_id=p_organization_id and project_id=p_project_id;
+  else
+    customer_context:=private.work_customer_case_json(p_organization_id,p_project_id);
+  end if;
   if customer_context is null then return built; end if;
   packet:=(built->'snapshot')||jsonb_build_object('caseCustomer',customer_context);
   gaps:=built->'gaps';
@@ -595,7 +607,7 @@ begin
           'Godkendelsen omfatter den registrerede udførelse og dokumentation.'))
     ) || case when packet.snapshot->'caseCustomer' is not null then jsonb_build_array(
       jsonb_build_object('id','case-customer','title','Kunde og sag','reviewed',false,
-        'basis','documented','sourceIds','[]'::jsonb,
+        'basis','not_measured','sourceIds','[]'::jsonb,
         'text',concat_ws(E'\n',
           'Sag: ' || (packet.snapshot->'caseCustomer'->>'number'),
           'Kunde: ' || (packet.snapshot->'caseCustomer'->>'customerName'),
