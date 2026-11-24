@@ -700,6 +700,7 @@ function CaseForm({ detail, ...props }: FormProps & { detail: CustomerDetail }) 
         </Field>
         <Field label="Kontaktperson på sagen">
           <select
+            aria-label="Kontaktperson på sagen"
             className={control}
             value={data.contactId}
             onChange={(e) => setData({ ...data, contactId: e.target.value })}
@@ -749,6 +750,7 @@ function PlannerForm({ detail, ...props }: FormProps & { detail: CustomerDetail 
       <fieldset disabled={command.locked} className="space-y-3">
         <Field label="Kollega">
           <select
+            aria-label="Kollega"
             className={control}
             required
             value={userId}
