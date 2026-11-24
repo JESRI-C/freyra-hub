@@ -153,14 +153,17 @@ export function WorkOrderMaterials({
   const [pending, setPending] = useState(() =>
     canWrite ? readPendingUsage(pendingKey, pendingMaterial) : undefined,
   );
-  const [draft, setDraft] = useState<{
-    material: string;
-    unit: Row["unit"];
-    quantity: string;
-    reason: string;
-    base?: Pick<Row, "entry_id" | "version">;
-    catalogId?: string;
-  }>(() => (pending ? { ...pending, quantity: String(pending.quantityMilli / 1000) } : undefined));
+  const [draft, setDraft] = useState<
+    | {
+        material: string;
+        unit: Row["unit"];
+        quantity: string;
+        reason: string;
+        base?: Pick<Row, "entry_id" | "version">;
+        catalogId?: string;
+      }
+    | undefined
+  >(() => (pending ? { ...pending, quantity: String(pending.quantityMilli / 1000) } : undefined));
   const [cursor, setCursor] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

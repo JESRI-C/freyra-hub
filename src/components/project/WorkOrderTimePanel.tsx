@@ -53,10 +53,11 @@ export function WorkOrderTimePanel({
     canWrite ? readPendingUsage(pendingKey, pendingTime) : undefined,
   );
   const [date, setDate] = useState(() => pending?.date ?? format(new Date(), "yyyy-MM-dd"));
-  const [draft, setDraft] = useState<{ minutes: string; reason: string; base: number }>(() =>
-    pending
-      ? { minutes: String(pending.minutes), reason: pending.reason, base: pending.base }
-      : undefined,
+  const [draft, setDraft] = useState<{ minutes: string; reason: string; base: number } | undefined>(
+    () =>
+      pending
+        ? { minutes: String(pending.minutes), reason: pending.reason, base: pending.base }
+        : undefined,
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
