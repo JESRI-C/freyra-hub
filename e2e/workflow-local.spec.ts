@@ -48,12 +48,22 @@ test("employee completes a documented job from the map and a separate manager re
   const map = page.getByRole("region", { name: "Kort over mine opgaver", exact: true });
   await expect(map).toContainText("2 af 2 indlæste opgaver har kortposition");
   await expect(map).not.toContainText("Syntetisk opgave A");
+  await map
+    .getByRole("button", { name: "Åbn opgave: Syntetisk jobstart", exact: true })
+    .press("Enter");
+  await expect(
+    page.getByRole("heading", { name: "Syntetisk jobstart", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "← Tilbage til opgavekortet", exact: true }).click();
+  await expect(map).toContainText("2 af 2 indlæste opgaver har kortposition");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
   await mkdir("tmp/planning-e2e/screens", { recursive: true });
   await page.screenshot({ path: "tmp/planning-e2e/screens/employee-map.png", fullPage: false });
-  await page.getByTitle(/^Syntetisk dokumentationsjob ·/).click();
+  await map
+    .getByRole("button", { name: "Åbn opgave: Syntetisk dokumentationsjob", exact: true })
+    .click();
   const card = page.getByRole("article").filter({
     has: page.getByRole("heading", { name: "Syntetisk dokumentationsjob", exact: true }),
   });

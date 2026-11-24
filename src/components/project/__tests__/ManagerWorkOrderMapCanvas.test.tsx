@@ -13,11 +13,13 @@ const m = vi.hoisted(() => ({
   redraw: vi.fn(),
   select: vi.fn(),
   viewport: vi.fn(),
+  openPopup: vi.fn(),
   tileError: null as null | (() => void),
   moveEnd: null as null | (() => void),
   markers: [] as Array<{ click?: () => void; popup?: HTMLElement; title: string }>,
 }));
 vi.mock("leaflet", () => ({
+  DomEvent: { disableClickPropagation: vi.fn() },
   map: () => ({
     on: (_: string, fn: () => void) => {
       m.moveEnd = fn;
@@ -60,6 +62,7 @@ vi.mock("leaflet", () => ({
         record.popup = popup;
         return marker;
       },
+      openPopup: m.openPopup,
     };
     return marker;
   },
@@ -138,7 +141,9 @@ describe("read-only manager map canvas", () => {
     const icon = m.marker.mock.calls[0][1].icon.html as HTMLElement;
     expect(icon.querySelector("img")).toBeNull();
     expect(m.markers[0].title).toContain("<img src=x onerror=alert(1)>");
-    m.markers[0].click!();
+    expect(icon.tagName).toBe("BUTTON");
+    expect(icon.getAttribute("aria-label")).toContain("Åbn opgave:");
+    icon.click();
     expect(m.select).toHaveBeenCalledWith("job-one", "project-one");
   });
   it("offers every job sharing one position with safe DOM text instead of hiding jobs behind a marker", async () => {
@@ -154,6 +159,8 @@ describe("read-only manager map canvas", () => {
     ]);
     expect(m.markers).toHaveLength(1);
     expect(m.markers[0].title).toBe("2 arbejdsordrer på samme position");
+    (m.marker.mock.calls[0][1].icon.html as HTMLElement).click();
+    expect(m.openPopup).toHaveBeenCalledTimes(1);
     const popup = m.markers[0].popup!;
     expect(popup.querySelectorAll("button")).toHaveLength(2);
     expect(popup.querySelector("img")).toBeNull();

@@ -53,6 +53,8 @@ Startregistreringen afprøves nu med serverens aktuelle tidspunkt, så en forske
 
 Mine opgaver udbygges med et kort over de indlæste, tildelte jobs og en liste til opgaver uden koordinater. Kort og kildestatus afprøves med samme adgang som opgavelisten. Den samlede browserprøve forbinder kortvalg, originalfoto, krævede jobkort, timer, materialer, udførelse, aflevering og uafhængig gennemgang samt rapport/PDF og originalpakke. Teknisk accept følges pr. kildeversion i udgivelsesforslaget; samlet hosted accept er fortsat åben.
 
+Browserprøven fandt et klik på en punktmarkering, som ikke åbnede jobbet. Markørerne ændres til almindelige knapper med en trykflade på 44 pixels og navngiven tastaturbetjening. Den nye kontrol skal åbne et job med Enter, vende tilbage til kortet og åbne dokumentationsjobbet ved klik. Prøven fortsætter derefter gennem hele jobforløbet; en direkte jobadresse erstatter ikke kortvalget. [PR #54](https://github.com/JESRI-C/freyra-hub/pull/54) forbliver kladde, indtil den samlede prøve består.
+
 Kunderegister, kontaktpersoner og sagsreferencer er identificeret som åbne leverancer i det samlede sagsforløb. De tælles ikke som færdige alene på grund af projektoversigten.
 
 ## Kanban og færdigkriterium
