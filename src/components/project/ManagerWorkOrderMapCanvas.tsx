@@ -127,7 +127,7 @@ export default function ManagerWorkOrderMapCanvas({
             const button = document.createElement("button");
             button.type = "button";
             button.className = "block min-h-11 w-full border-b py-2 text-left";
-            button.textContent = `${job.title} · ${job.projectName}`;
+            button.textContent = `${job.title} · ${job.contextLabel ?? job.projectName}`;
             button.onclick = () => select.current(job.actionId, job.projectId);
             choices.append(button);
           }

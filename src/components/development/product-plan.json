@@ -7,10 +7,10 @@
       "actors": "Leder",
       "data": "Kunde, sag, kontakt, sted og sagsadgang",
       "acceptance": "Opret en sag med to lokationer og kontrollér, at det tildelte hold kan se den.",
-      "stage": "Detaljer i Jobs/GeoTag-registret. Samlet accept afventer.",
-      "goFreyraCode": "src/components/project/WorkOrderObservationDraftDialog.tsx",
+      "stage": "Sag og jobs bruger det eksisterende projekt. Kunderegister, kontaktpersoner, sagsnummer og kundereference er fortsat åbne leverancer; samlet accept er ikke gennemført.",
+      "goFreyraCode": "src/components/project/ProjectWorkOrdersWorkspace.tsx",
       "resId": "F-001",
-      "deliveryStatus": "acceptance_pending",
+      "deliveryStatus": "implementation",
       "source": "https://skyhost.dk/"
     },
     {
@@ -523,7 +523,7 @@
       "actors": "Udfører",
       "data": "Et synligt job, konkret destination og jobadgang",
       "acceptance": "Åbn vejvisning fra en autoriseret testopgave. Kontrollér, at den bruger det konkrete jobsted, og at manglende position håndteres tydeligt.",
-      "stage": "GoFreyra viser vejvisning i Mine opgaver, på Dalgas-jobkortet og ved konkrete punkter på arbejdsordrekortet. Fysisk navigation og eksterne feltroller med snæver sagsadgang afventer.",
+      "stage": "Vejvisning findes på jobkortet. Et samlet kort over medarbejderens indlæste opgaver er under afprøvning med samme søgning og adgang som listen. Fysisk navigation og samlet hosted accept afventer.",
       "source": "https://skyhost.dk/",
       "resId": "F-038",
       "goFreyraCode": "src/components/project/ManagerWorkOrderMap.tsx",
@@ -531,7 +531,8 @@
       "goFreyraEvidence": "Mine opgaver: komponentprøve viser kun de eksakte punkter blandt jobbets autoriserede lokaliteter. Dalgas: Chrome i mobilvisning bekræftede gemt destination. Arbejdsordrer: kortprøve udelod beregnede midtpunkter.",
       "goFreyraFieldRoute": "/opgaver",
       "goFreyraFieldCode": "src/components/project/FieldWorkOrderDirections.tsx",
-      "deliveryStatus": "acceptance_pending"
+      "deliveryStatus": "acceptance_pending",
+      "goFreyraFieldMapCode": "src/components/project/MyWorkOrderMap.tsx"
     },
     {
       "id": "WINTER-NEIGHBOUR-ALERT",
@@ -587,9 +588,7 @@
       "data": "Tracker, brændstofforbrug, emissionsfaktor, turdistance og periode; beregningsregler afventer",
       "acceptance": "Afstem tur og periodesum mod kendt distance og bekræftet faktor. Prøv manglende faktor, ændret faktor, målehuller samt privat og erhverv med relevante roller.",
       "stage": "Officiel kilde bekræfter funktionen. GoFreyra har kørebog og GPS-distance; CO₂ er ikke implementeret. Beregning og historik afventer Q-006.",
-      "goFreyraReuseCode": [
-        "src/components/monitoring/GpsTripLog.tsx"
-      ],
+      "goFreyraReuseCode": ["src/components/monitoring/GpsTripLog.tsx"],
       "source": "https://skyhost.dk/webportal_changelog/",
       "deliveryStatus": "mapping"
     }

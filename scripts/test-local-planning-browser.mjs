@@ -56,7 +56,8 @@ const manager = await user("Syntetisk planlægger");
 const field = await user("Syntetisk medarbejder");
 const organizationId = randomUUID();
 const projectIds = [randomUUID(), randomUUID(), randomUUID()];
-const actionIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+const actionIds = Array.from({ length: 6 }, () => randomUUID());
+const siteIds = [randomUUID(), randomUUID()];
 const organization = "Syntetisk planprøve";
 await checked(
   await admin
@@ -80,6 +81,10 @@ await checked(
       id,
       organization_id: organizationId,
       name: index < 2 ? `Syntetisk sag ${index === 0 ? "A" : "B"}` : "Skjult syntetisk sag",
+      slug: `synthetic-planning-${id}`,
+      project_type: "nature_restoration",
+      status: "planning",
+      description: "Syntetisk softwareprøve; ingen faktisk naturindsats.",
     })),
   ),
   "create cases",
@@ -96,6 +101,20 @@ await checked(
   "create project capabilities",
 );
 await checked(
+  await admin.from("sites").insert(
+    siteIds.map((id, index) => ({
+      id,
+      project_id: projectIds[0],
+      name: `Syntetisk arbejdssted ${index + 1}`,
+      status: "active",
+      centroid_lng: 9.4 + index / 100,
+      centroid_lat: 56.1 + index / 100,
+      geometry_geojson: { type: "Point", coordinates: [9.4 + index / 100, 56.1 + index / 100] },
+    })),
+  ),
+  "create synthetic job locations",
+);
+await checked(
   await admin.from("actions").insert([
     { id: actionIds[0], project_id: projectIds[0], title: "Syntetisk opgave A" },
     { id: actionIds[1], project_id: projectIds[1], title: "Syntetisk opgave B" },
@@ -107,6 +126,7 @@ await checked(
     },
     { id: actionIds[3], project_id: projectIds[2], title: "Skjult syntetisk opgave" },
     { id: actionIds[4], project_id: projectIds[0], title: "Syntetisk jobstart" },
+    { id: actionIds[5], project_id: projectIds[0], title: "Syntetisk dokumentationsjob" },
   ]),
   "create jobs",
 );
@@ -117,8 +137,46 @@ await checked(
   await actor.auth.signInWithPassword({ email: manager.email, password: manager.password }),
   "authenticate planner",
 );
-for (const index of [0, 1, 4]) {
-  const projectId = projectIds[index === 4 ? 0 : index];
+const cards = [];
+for (const definition of [
+  {
+    schema: "freyra.field-job-template/v1",
+    title: "Syntetisk stedkontrol",
+    domain: "nature",
+    fields: [{ key: "condition", label: "Forhold på stedet", type: "text", required: true }],
+  },
+  {
+    schema: "freyra.field-job-template/v1",
+    title: "Syntetisk afslutningskontrol",
+    domain: "nature",
+    fields: [
+      { key: "count", label: "Antal", type: "number", required: true },
+      { key: "checked", label: "Kontrolleret", type: "boolean", required: true },
+    ],
+  },
+]) {
+  const rows = await checked(
+    await actor.rpc("save_field_job_template_version", {
+      p_organization_id: organizationId,
+      p_project_id: projectIds[0],
+      p_template_id: randomUUID(),
+      p_expected_version: 0,
+      p_definition: definition,
+      p_request_id: randomUUID(),
+    }),
+    "create required synthetic job card",
+  );
+  const row = rows[0];
+  cards.push({
+    templateVersionId: row.id,
+    templateId: row.template_id,
+    version: row.version,
+    definition: row.definition,
+  });
+}
+let workflow;
+for (const index of [0, 1, 4, 5]) {
+  const projectId = projectIds[index >= 4 ? 0 : index];
   const plans = await checked(
     await actor.rpc("save_work_order_plan", {
       p_action_id: actionIds[index],
@@ -127,26 +185,32 @@ for (const index of [0, 1, 4]) {
       p_expected_version: 0,
       p_plan: {
         schema: "freyra.work-order-plan/v1",
-        title: index === 4 ? "Syntetisk jobstart" : `Syntetisk opgave ${index === 0 ? "A" : "B"}`,
+        title:
+          index === 5
+            ? "Syntetisk dokumentationsjob"
+            : index === 4
+              ? "Syntetisk jobstart"
+              : `Syntetisk opgave ${index === 0 ? "A" : "B"}`,
         description: "",
         instructions: "Syntetisk arbejdsinstruktion",
-        profile: "general",
+        profile: index === 5 ? "nature" : "general",
         responsibleId: manager.id,
-        siteId: null,
+        siteId: index >= 4 ? siteIds[index - 4] : null,
         watercourseVersionId: null,
         locationNote: "Fiktivt sted",
-        plannedStart: index === 4 ? null : index === 0 ? "2026-11-23" : "2026-11-24",
-        plannedEnd: index === 4 ? null : "2026-11-24",
+        plannedStart: index >= 4 ? null : index === 0 ? "2026-11-23" : "2026-11-24",
+        plannedEnd: index >= 4 ? null : "2026-11-24",
         priority: null,
         plannedMethod: null,
         watercourse: null,
+        ...(index === 5 ? { requiredJobCards: cards } : {}),
       },
       p_correction_reason: "",
       p_request_id: randomUUID(),
     }),
     "save initial plan as the actual planner",
   );
-  if (index === 4) {
+  if (index >= 4) {
     const planId = plans[0].id;
     const assignments = await checked(
       await actor.rpc("configure_work_order_assignment", {
@@ -182,12 +246,43 @@ for (const index of [0, 1, 4]) {
         "prepare the assigned lifecycle through the real planner API",
       );
     }
+    if (index === 5) {
+      await checked(
+        await actor.rpc("save_work_order_access", {
+          p_action_id: actionIds[index],
+          p_organization_id: organizationId,
+          p_project_id: projectId,
+          p_user_id: manager.id,
+          p_expected_version: 0,
+          p_active: true,
+          p_can_execute: false,
+          p_can_review: true,
+          p_reason: "Syntetisk uafhængig gennemgang",
+          p_request_id: randomUUID(),
+        }),
+        "grant independent review of the synthetic job",
+      );
+      workflow = {
+        actionId: actionIds[index],
+        organizationId,
+        projectId,
+        planId,
+        cardIds: cards.map((card) => card.templateVersionId),
+      };
+    }
   }
 }
 await actor.auth.signOut();
 await writeFile(
   resolve(output, "fixture.private.json"),
-  JSON.stringify({ organization, manager, field, startActionId: actionIds[4] }),
+  JSON.stringify({
+    organization,
+    manager,
+    field,
+    startActionId: actionIds[4],
+    workflow,
+    api: { url: local.API_URL, anonKey: local.ANON_KEY },
+  }),
   { mode: 0o600 },
 );
 const log = await open(resolve(output, "server.private.log"), "a");

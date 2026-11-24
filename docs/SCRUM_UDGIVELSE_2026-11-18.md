@@ -51,6 +51,10 @@ PR #52 er flettet som 8f5fcd39. Lovable viser samme kildeversion med status read
 
 Startregistreringen afprøves nu med serverens aktuelle tidspunkt, så en forskel på telefonens ur ikke spærrer knappen Indsæt tidspunkt nu. Medarbejderen kontrollerer tidspunktet før gemning; manuel indtastning og registreringens kilde bevares. Tre nye komponentprøver består, inklusive præcis tid, tabt svar og mislykket tidsopslag. En browserprøve med et ur, der går to minutter foran, indgår i den fulde kontrol.
 
+Mine opgaver udbygges med et kort over de indlæste, tildelte jobs og en liste til opgaver uden koordinater. Kort og kildestatus afprøves med samme adgang som opgavelisten. Den samlede browserprøve forbinder kortvalg, originalfoto, krævede jobkort, timer, materialer, udførelse, aflevering og uafhængig gennemgang samt rapport/PDF og originalpakke. Teknisk accept følges pr. kildeversion i udgivelsesforslaget; samlet hosted accept er fortsat åben.
+
+Kunderegister, kontaktpersoner og sagsreferencer er identificeret som åbne leverancer i det samlede sagsforløb. De tælles ikke som færdige alene på grund af projektoversigten.
+
 ## Kanban og færdigkriterium
 
 Udviklingstavlen viser funktionsområder, kodehenvisninger og acceptkrav. En funktion afsluttes først efter den konkrete accept på den angivne udgivelse. En kodehenvisning alene er ikke en færdig funktion. Den realistiske demosag skal indeholde flere jobs og kunne vises til Dalgas.

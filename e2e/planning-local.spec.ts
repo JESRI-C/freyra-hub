@@ -1,29 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
-import { mkdir, readFile } from "node:fs/promises";
-
-type Fixture = {
-  organization: string;
-  manager: { email: string; password: string };
-  field: { email: string; password: string };
-  startActionId: string;
-};
-
-async function fixture(): Promise<Fixture> {
-  if (process.env.FREYRA_PLANNING_E2E !== "disposable-local")
-    throw new Error("Planning acceptance requires the disposable local runner.");
-  return JSON.parse(await readFile("tmp/planning-e2e/fixture.private.json", "utf8"));
-}
-
-async function login(page: Page, user: Fixture["manager"], organization: string) {
-  await page.goto("/login?next=%2Fselect");
-  await page.getByLabel("E-mail", { exact: true }).fill(user.email);
-  await page.getByLabel("Adgangskode", { exact: true }).fill(user.password);
-  await page.getByRole("button", { name: "Log ind", exact: true }).click();
-  await expect(page).toHaveURL(/\/select\/?$/);
-  await page.getByRole("button", { name: new RegExp(`^${organization}`) }).click();
-  await page.getByRole("button", { name: `Åbn ${organization}`, exact: true }).click();
-  await expect(page.getByRole("link", { name: /^Planlæg arbejde/ })).toBeVisible();
-}
+import { expect, test } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
+import { fixture, login } from "./disposable-local-fixture";
 
 test("planner saves a new version through the real server and retains it after reload", async ({
   page,
