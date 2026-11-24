@@ -346,7 +346,10 @@ begin
      insert into public.projects(id,organization_id,name,description,location_name,project_type,status,country)
        values(pid,org,private.work_customer_text(payload,'title',240,true),private.work_customer_text(payload,'description',4000),
        private.work_customer_text(payload,'location',500),'Feltarbejde','planning','Danmark');
-     insert into public.project_members(project_id,user_id,role,invited_by) values(pid,actor,'project_manager',actor);
+     -- The existing project trigger already adds the creator as a project admin.
+     -- This workflow grants the narrower project-manager role on its new case.
+     insert into public.project_members(project_id,user_id,role,invited_by) values(pid,actor,'project_manager',actor)
+       on conflict(project_id,user_id) do update set role=excluded.role;
      expected:=0;
    else
      expected:=private.work_customer_expected(payload);
