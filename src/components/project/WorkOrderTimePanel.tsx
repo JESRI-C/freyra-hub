@@ -1,5 +1,12 @@
 import { useRef, useState } from "react";
 import { workOrderUsageConflict } from "@/lib/work-order-usage-conflict";
+import {
+  clearPendingUsage,
+  pendingUsageKey,
+  readPendingUsage,
+  storePendingUsage,
+  usageAttempt,
+} from "@/lib/work-order-pending-usage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
@@ -18,6 +25,12 @@ const rowSchema = z.object({
   reason: z.string(),
   work_order_time_approvals: z.object({ time_id: z.string().uuid() }).nullable().optional(),
 });
+const pendingTime = usageAttempt.extend({
+  date: CalendarDate,
+  minutes: rowSchema.shape.minutes,
+  reason: z.string().max(1000),
+  base: z.number().int().nonnegative(),
+});
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full rounded-xl border bg-background px-3 text-base";
 
@@ -35,11 +48,18 @@ export function WorkOrderTimePanel({
   onEditing: (editing: boolean) => void;
 }) {
   const cache = useQueryClient();
-  const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
-  const [draft, setDraft] = useState<{ minutes: string; reason: string; base: number }>();
+  const pendingKey = pendingUsageKey("time", { ...scope, actorId, actionId });
+  const [pending, setPending] = useState(() =>
+    canWrite ? readPendingUsage(pendingKey, pendingTime) : undefined,
+  );
+  const [date, setDate] = useState(() => pending?.date ?? format(new Date(), "yyyy-MM-dd"));
+  const [draft, setDraft] = useState<{ minutes: string; reason: string; base: number }>(() =>
+    pending
+      ? { minutes: String(pending.minutes), reason: pending.reason, base: pending.base }
+      : undefined,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const attempt = useRef<{ id: string; signature: string } | null>(null);
   const inFlight = useRef(false);
   useWorkOrderEditorLock(!!draft || busy, onEditing);
   const key = ["work-order-time", actorId, scope, actionId, date];
@@ -66,7 +86,7 @@ export function WorkOrderTimePanel({
   const latest = time.data?.[0];
 
   async function save() {
-    if (!canWrite || !draft || inFlight.current || !time.isSuccess) return;
+    if (!canWrite || !draft || inFlight.current || (!pending && !time.isSuccess)) return;
     const minutes = Number(draft.minutes);
     const reason = draft.reason.trim();
     if (!/^\d{1,4}$/.test(draft.minutes) || minutes > 1440 || (!draft.base && minutes === 0)) {
@@ -79,26 +99,26 @@ export function WorkOrderTimePanel({
       setError("Angiv en årsag til rettelsen.");
       return;
     }
-    const signature = JSON.stringify({ minutes, reason });
-    if (attempt.current?.signature !== signature)
-      attempt.current = { id: crypto.randomUUID(), signature };
-    const id = attempt.current.id;
-    const version = draft.base + 1;
+    const attempt = pending ?? { id: crypto.randomUUID(), date, minutes, reason, base: draft.base };
+    const id = attempt.id;
+    const version = attempt.base + 1;
     inFlight.current = true;
     setBusy(true);
     setError("");
     try {
+      storePendingUsage(pendingKey, pendingTime, attempt);
+      setPending(attempt);
       const result = await db()
         .from(table)
         .insert({
           id,
           version,
-          minutes,
-          reason,
+          minutes: attempt.minutes,
+          reason: attempt.reason,
           action_id: actionId,
           project_id: scope.projectId,
           organization_id: scope.organizationId,
-          work_date: date,
+          work_date: attempt.date,
         })
         .select(fields)
         .single();
@@ -108,12 +128,18 @@ export function WorkOrderTimePanel({
         !row.success ||
         row.data.id !== id ||
         row.data.version !== version ||
-        row.data.minutes !== minutes ||
-        row.data.reason !== reason
+        row.data.minutes !== attempt.minutes ||
+        row.data.reason !== attempt.reason
       ) {
-        if (workOrderUsageConflict(result.error) === "cancelled")
+        const conflict =
+          !recovered.error && !recovered.data && workOrderUsageConflict(result.error);
+        if (conflict) {
+          clearPendingUsage(pendingKey, id);
+          setPending(undefined);
+        }
+        if (conflict === "cancelled")
           throw new Error("Opgaven er aflyst. Du kan stadig se tidligere timer.");
-        if (workOrderUsageConflict(result.error) === "changed")
+        if (conflict === "changed")
           throw new Error(
             "Tiden er ændret. Fortryd, og hent den nyeste registrering før en rettelse.",
           );
@@ -127,6 +153,8 @@ export function WorkOrderTimePanel({
         queryKey: ["work-order-time-summary", actorId, scope, actionId],
       });
       void cache.invalidateQueries({ queryKey: ["project-work-time", actorId, scope] });
+      clearPendingUsage(pendingKey, id);
+      setPending(undefined);
       setDraft(undefined);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Tiden kunne ikke gemmes.");
@@ -179,7 +207,6 @@ export function WorkOrderTimePanel({
           type="button"
           className={button}
           onClick={() => {
-            attempt.current = null;
             setDraft({
               minutes: latest?.minutes.toString() ?? "",
               reason: "",
@@ -205,6 +232,7 @@ export function WorkOrderTimePanel({
                 className={control}
                 inputMode="numeric"
                 required
+                readOnly={!!pending}
                 maxLength={4}
                 value={draft.minutes}
                 onChange={(event) => setDraft({ ...draft, minutes: event.target.value })}
@@ -216,6 +244,7 @@ export function WorkOrderTimePanel({
                 <textarea
                   className={control}
                   required
+                  readOnly={!!pending}
                   maxLength={1000}
                   value={draft.reason}
                   onChange={(event) => setDraft({ ...draft, reason: event.target.value })}
@@ -229,7 +258,7 @@ export function WorkOrderTimePanel({
           <button
             type="button"
             className={button}
-            disabled={busy}
+            disabled={busy || !!pending}
             onClick={() => {
               setDraft(undefined);
               setError("");
@@ -239,6 +268,11 @@ export function WorkOrderTimePanel({
             Fortryd
           </button>
         </form>
+      )}
+      {pending && !busy && (
+        <p role="status">
+          Registreringen er gemt på denne enhed. Tryk Gem tid for at bekræfte den.
+        </p>
       )}
       {error && <p role="alert">{error}</p>}
       {time.isSuccess && time.data.length > 1 && (

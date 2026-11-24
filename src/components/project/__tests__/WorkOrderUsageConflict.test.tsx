@@ -5,9 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WorkOrderTimePanel } from "../WorkOrderTimePanel";
 import { WorkOrderMaterials } from "../WorkOrderMaterials";
+import { pendingUsageKey } from "@/lib/work-order-pending-usage";
 const mock = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
+  insert: vi.fn(),
+  recovery: vi.fn(),
   error: { code: "PT409", details: "freyra.version_conflict" } as {
     code: string;
     details?: string;
@@ -24,9 +27,12 @@ const onEditing = vi.fn();
 let host: HTMLDivElement, root: Root, cache: QueryClient;
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 beforeEach(() => {
+  localStorage.clear();
   onEditing.mockClear();
   mock.from.mockReset();
   mock.rpc.mockReset();
+  mock.insert.mockReset();
+  mock.recovery.mockReset().mockResolvedValue({ data: null, error: null });
   mock.rpc.mockResolvedValue({
     data: [
       {
@@ -53,8 +59,12 @@ beforeEach(() => {
     const chain: Record<string, unknown> = {};
     for (const method of ["select", "eq", "order", "limit", "insert", "match", "ilike"])
       chain[method] = () => chain;
+    chain.insert = (payload: unknown) => {
+      mock.insert(payload);
+      return chain;
+    };
     chain.single = async () => ({ data: null, error: mock.error });
-    chain.maybeSingle = async () => ({ data: null, error: null });
+    chain.maybeSingle = mock.recovery;
     chain.then = response.then.bind(response);
     return chain;
   });
@@ -89,6 +99,54 @@ async function fill(label: string, value: string) {
   });
 }
 for (const kind of ["time", "material"] as const) {
+  it(`restores the same unresolved ${kind} write when the panel reopens`, async () => {
+    mock.error = { code: "23505" };
+    mock.recovery.mockResolvedValueOnce({ data: null, error: { code: "offline" } });
+    const renderPanel = () =>
+      act(async () =>
+        root.render(
+          <QueryClientProvider client={cache}>
+            {kind === "time" ? (
+              <WorkOrderTimePanel {...{ scope, actorId, actionId, onEditing }} canWrite />
+            ) : (
+              <WorkOrderMaterials {...{ scope, actorId, actionId, onEditing }} canWrite />
+            )}
+          </QueryClientProvider>,
+        ),
+      );
+    const submit = () =>
+      act(async () => {
+        host
+          .querySelector("form")!
+          .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      });
+
+    await renderPanel();
+    await tick();
+    const edit = [...host.querySelectorAll("button")].find(
+      (node) => node.textContent === (kind === "time" ? "Ret registreret tid" : "Ret mængde"),
+    );
+    await act(async () => edit!.click());
+    await fill(kind === "time" ? "Arbejdstid i minutter" : "Mængde", kind === "time" ? "90" : "2");
+    await fill("Årsag til rettelse", "Fiktiv rettelse");
+    await submit();
+    const attempted = mock.insert.mock.calls[0][0];
+    const key = pendingUsageKey(kind, { ...scope, actorId, actionId });
+    expect(JSON.parse(localStorage.getItem(key)!).id).toBe(attempted.id);
+
+    await act(async () => root.unmount());
+    cache.clear();
+    root = createRoot(host);
+    mock.recovery.mockResolvedValueOnce({ data: { ...attempted, actor_id: actorId }, error: null });
+    await renderPanel();
+    expect(host.querySelector("form")).not.toBeNull();
+    expect(host.textContent).toContain("Registreringen er gemt på denne enhed");
+    await submit();
+    expect(mock.insert.mock.calls[1][0]).toEqual(attempted);
+    expect(localStorage.getItem(key)).toBeNull();
+    expect(host.querySelector("form")).toBeNull();
+  });
+
   it.each([
     [{ code: "PT409", details: "freyra.version_conflict" }, false],
     [{ code: "PT409" }, true],

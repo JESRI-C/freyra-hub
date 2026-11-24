@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
+import { expect, test, type Dialog, type Locator, type Page, type Route } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
@@ -21,6 +21,7 @@ async function retryUsageAfterLostResponse(
   table: string,
   panel: Locator,
   save: Locator,
+  section: RegExp,
 ) {
   const pattern = `**/rest/v1/${table}*`;
   const writes: unknown[] = [];
@@ -54,6 +55,15 @@ async function retryUsageAfterLostResponse(
     await save.click();
     await expect(panel.getByText("Registreringen kunne ikke bekræftes. Prøv igen.")).toBeVisible();
     expect(firstStatus).toBe(201);
+    const acceptReload = (dialog: Dialog) => dialog.accept();
+    page.on("dialog", acceptReload);
+    try {
+      await page.reload();
+    } finally {
+      page.off("dialog", acceptReload);
+    }
+    await page.locator("summary").filter({ hasText: section }).click();
+    await expect(panel.getByText(/^Registreringen er gemt på denne enhed/)).toBeVisible();
     recoveryBlocked = false;
     await save.click();
     await expect(save).toBeHidden();
@@ -292,6 +302,7 @@ test("employee completes a documented job from the map and a separate manager re
     "work_order_time_versions",
     time,
     time.getByRole("button", { name: "Gem tid", exact: true }),
+    /^Registrér arbejdstid$/,
   );
   await expect(time).toContainText("45 min. · Version 1");
   await expect(time).toContainText("Afventer godkendelse");
@@ -308,6 +319,7 @@ test("employee completes a documented job from the map and a separate manager re
     "work_order_material_versions",
     materials,
     materials.getByRole("button", { name: "Gem materiale", exact: true }),
+    /^Registrér materialeforbrug$/,
   );
   await expect(materials).toContainText("Syntetiske markeringspæle");
   await expect(
