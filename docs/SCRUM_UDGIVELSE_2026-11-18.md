@@ -68,3 +68,5 @@ Udgivelsesforslag: [PR #51](https://github.com/JESRI-C/freyra-hub/pull/51).
 ## Offentlighed
 
 Kun kode og Scrum-plan offentliggøres. Interne projekt- og testnoter, prøvekvitteringer, skærmbilleder og servernøgler holdes private. Detaljerede kontrolresultater opbevares i det private arbejdsrum.
+
+Den automatiske app- og databasekontrol uploader fremover ikke downloadbare prøvekvitteringer. Database-, gendannelses- og browserkontrollerne kører fortsat; deres midlertidige filer bliver i det isolerede testmiljø.
