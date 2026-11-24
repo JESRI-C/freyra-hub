@@ -160,7 +160,7 @@ const workflowCustomer = await customerCommand(registryAdmin.id, "save_customer"
   data: {
     name: "Fiktiv feltkunde",
     registrationNumber: "",
-    address: "",
+    address: "Fiktiv faktureringsadresse",
     postalCode: "",
     city: "",
     country: "Danmark",

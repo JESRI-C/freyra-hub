@@ -85,6 +85,11 @@ test("employee completes a documented job from the map and a separate manager re
     );
   }
   expect(errors).toEqual([]);
+  const customerContext = card.getByRole("region", { name: "Kunde og sagsreference", exact: true });
+  await expect(customerContext).toContainText("Fiktiv feltkontakt");
+  await expect(customerContext).toContainText("FIKTIV-FELT-REF");
+  await expect(customerContext).not.toContainText("Fiktiv faktureringsadresse");
+  await expect(customerContext.getByRole("button")).toHaveCount(0);
   await expect(
     card.getByRole("link", { name: /Vejvisning til Syntetisk arbejdssted 2/ }),
   ).toHaveAttribute("href", /destination=56\.11.*9\.41/);

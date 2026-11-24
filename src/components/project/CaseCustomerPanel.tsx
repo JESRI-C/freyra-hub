@@ -21,7 +21,7 @@ type Props = {
   projectId: string;
   actorId: string;
   actionId?: string;
-  onEditingChange: (editing: boolean) => void;
+  onEditingChange?: (editing: boolean) => void;
 };
 
 export function CaseCustomerPanel(props: Props) {
@@ -37,8 +37,8 @@ function CaseContext({ organizationId, projectId, actorId, actionId, onEditingCh
   const cache = useQueryClient();
   const [editing, setEditing] = useState<"reference" | "binding" | null>(null);
   useEffect(() => {
-    onEditingChange(editing !== null);
-    return () => onEditingChange(false);
+    onEditingChange?.(editing !== null);
+    return () => onEditingChange?.(false);
   }, [editing, onEditingChange]);
   const key = ["work-case-customer", actorId, organizationId, projectId, actionId ?? null];
   const context = useQuery({
@@ -61,12 +61,14 @@ function CaseContext({ organizationId, projectId, actorId, actionId, onEditingCh
     context.data.actionId === (actionId ?? null)
       ? context.data
       : undefined;
+  const canEdit = !actionId && current?.canEdit;
   function saved() {
     setEditing(null);
     void cache.invalidateQueries({
       queryKey: ["work-case-customer", actorId, organizationId, projectId],
     });
   }
+  if (actionId && current && !current.binding) return null;
   return (
     <section
       aria-label="Kunde og sagsreference"
@@ -109,7 +111,7 @@ function CaseContext({ organizationId, projectId, actorId, actionId, onEditingCh
                   </p>
                 </div>
               )}
-              {current.canEdit && (
+              {canEdit && (
                 <p className="text-xs text-muted-foreground">
                   Sagsgrundlag version {current.binding.version}. Kunde og kontakt bevares, når
                   registret ændres.
@@ -119,7 +121,7 @@ function CaseContext({ organizationId, projectId, actorId, actionId, onEditingCh
           ) : (
             <p className="text-sm text-muted-foreground">Der er ikke knyttet en kunde til sagen.</p>
           )}
-          {current.canEdit && (
+          {canEdit && (
             <div className="flex flex-wrap gap-2">
               {current.binding && (
                 <button className={button} onClick={() => setEditing("reference")}>

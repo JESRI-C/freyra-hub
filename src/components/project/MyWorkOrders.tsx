@@ -28,6 +28,7 @@ import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimePanel } from "./WorkOrderTimePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
+import { CaseCustomerPanel } from "./CaseCustomerPanel";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 
@@ -723,6 +724,14 @@ function TaskCard({
               "Der er endnu ikke angivet en instruktion. Kontakt projektansvarlig, før arbejdet udføres."}
           </p>
         </section>
+        {active && (
+          <CaseCustomerPanel
+            actorId={actorId}
+            organizationId={task.organization_id}
+            projectId={task.project_id}
+            actionId={task.action_id}
+          />
+        )}
         {active && canExecute && !task.waiting_for_prerequisites && (
           <>
             {fieldAccess.isFetching && (

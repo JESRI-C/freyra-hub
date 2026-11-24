@@ -11,6 +11,7 @@ const m = vi.hoisted(() => ({
   loadLink: vi.fn(),
   claim: vi.fn(),
   fieldAccess: vi.fn(),
+  customerContext: vi.fn(),
   sites: vi.fn(),
   siteProject: vi.fn(),
   client: vi.fn(),
@@ -88,6 +89,7 @@ vi.mock("@/lib/work-order-assignments.functions", () => ({
   claimProjectWorkOrderPool: m.claim,
 }));
 vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.fieldAccess }));
+vi.mock("@/lib/work-customers.functions", () => ({ getWorkCustomers: m.customerContext }));
 vi.mock("@tanstack/react-router", () => ({
   useBlocker: m.blocker,
   Link: ({
@@ -227,6 +229,11 @@ beforeEach(() => {
   m.actor = id(1);
   m.load.mockResolvedValue({ items: [task], nextAfterActionId: null });
   m.claim.mockRejectedValue(new Error("Synthetic lost response"));
+  m.customerContext.mockImplementation(async ({ data }) => ({
+    ...data,
+    canEdit: false,
+    binding: null,
+  }));
   m.fieldAccess.mockResolvedValue({
     userId: task.user_id,
     projectId: task.project_id,
@@ -243,6 +250,49 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("loads the selected job's contact as read-only context", async () => {
+    m.customerContext.mockResolvedValue({
+      organizationId: task.organization_id,
+      projectId: task.project_id,
+      actionId: task.action_id,
+      canEdit: true,
+      binding: {
+        id: id(82),
+        version: 1,
+        number: "S-000003",
+        customerId: id(83),
+        customerRevisionId: id(84),
+        customerNumber: "K-000002",
+        customerName: "Fiktiv feltkunde",
+        contactId: id(85),
+        contactRevisionId: id(86),
+        contact: {
+          name: "Fiktiv feltkontakt",
+          title: "",
+          email: "field-contact@example.test",
+          phone: "FIKTIV-TELEFON",
+          archived: false,
+        },
+        customerReference: "FIKTIV-FELT-REF",
+      },
+    });
+    await render();
+    expect(m.customerContext).not.toHaveBeenCalled();
+    await openTask();
+    expect(m.customerContext).toHaveBeenCalledWith({
+      data: {
+        operation: "job",
+        expectedActorId: task.user_id,
+        organizationId: task.organization_id,
+        projectId: task.project_id,
+        actionId: task.action_id,
+      },
+    });
+    const section = host.querySelector('[aria-label="Kunde og sagsreference"]');
+    expect(section?.textContent).toContain("Fiktiv feltkontakt");
+    expect(section?.textContent).toContain("FIKTIV-FELT-REF");
+    expect(section?.querySelector("button")).toBeNull();
+  });
   it("opens the selected map job and returns to the same map viewport and filter", async () => {
     const assigned = {
       ...task,
