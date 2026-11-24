@@ -37,7 +37,7 @@ do $fixture$ declare i integer;r jsonb;begin
 end $fixture$;
 select ok(not(pg_temp.q('summary',jsonb_build_object('customerId',pg_temp.cid())) ? 'contacts'),'summary does not load the entire contact collection');
 select ok(not(pg_temp.q('summary',jsonb_build_object('customerId',pg_temp.cid())) ? 'availableUsers'),'summary does not load the entire organization');
-select is(pg_temp.q('summary',jsonb_build_object('customerId',pg_temp.cid()))->'customer'->>'name','Large fictional customer','customer opens with more than 500 contacts and members');
+select is(pg_temp.q('summary',jsonb_build_object('customerId',pg_temp.cid()))->'customer'->'data'->>'name','Large fictional customer','customer opens with more than 500 contacts and members');
 select is(jsonb_array_length(pg_temp.contacts()->'rows'),50,'contact page is bounded to 50');
 select is((pg_temp.contacts()->>'hasMore')::boolean,true,'first page explicitly exposes the next page');
 select is(jsonb_array_length(pg_temp.contacts(500)->'rows'),50,'contacts beyond the old 500 cap remain reachable');
