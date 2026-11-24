@@ -185,6 +185,73 @@ await customerCommand(registryAdmin.id, "grant_planner", {
   expectedVersion: 0,
   enabled: true,
 });
+// Collection fixtures remain on the verified disposable stack. Extra members have no passwords
+// and are never used as login accounts or invited by email.
+const collectionFields = {
+  name: "Fiktiv stor registerprøve",
+  registrationNumber: "",
+  address: "Historisk adresse 1",
+  postalCode: "0000",
+  city: "Demoby",
+  country: "Danmark",
+  archived: false,
+};
+const collectionCustomer = await customerCommand(registryAdmin.id, "save_customer", {
+  customerId: null,
+  expectedVersion: 0,
+  data: collectionFields,
+});
+let lastCollectionContact;
+for (let index = 1; index <= 51; index++) {
+  lastCollectionContact = await customerCommand(registryAdmin.id, "save_contact", {
+    customerId: collectionCustomer.id,
+    contactId: null,
+    expectedVersion: 0,
+    data: {
+      name: `DEMO · Kontakt ${String(index).padStart(3, "0")}`,
+      title: "",
+      email: `collection-contact-${index}@example.test`,
+      phone: `DEMO-${index}`,
+      archived: false,
+    },
+  });
+}
+let lastCollectionMember;
+for (let index = 1; index <= 51; index++) {
+  const name = `Z-Syntetisk kollega ${String(index).padStart(3, "0")}`;
+  const created = await checked(
+    await admin.auth.admin.createUser({
+      email: `collection-member-${randomUUID()}@example.test`,
+      email_confirm: true,
+      user_metadata: { full_name: name },
+    }),
+    "create fictional collection member",
+  );
+  await checked(
+    await admin.from("organization_memberships").insert({
+      organization_id: organizationId,
+      user_id: created.user.id,
+      role: "viewer",
+    }),
+    "add fictional collection membership",
+  );
+  lastCollectionMember = { id: created.user.id, name };
+}
+for (let version = 1; version < 25; version++) {
+  await customerCommand(registryAdmin.id, "save_customer", {
+    customerId: collectionCustomer.id,
+    expectedVersion: version,
+    data: { ...collectionFields, address: `Historisk adresse ${version + 1}` },
+  });
+}
+const collections = {
+  customerId: collectionCustomer.id,
+  customerName: collectionFields.name,
+  lastContactId: lastCollectionContact.id,
+  lastContactName: "DEMO · Kontakt 051",
+  lastMemberId: lastCollectionMember.id,
+  lastMemberName: lastCollectionMember.name,
+};
 await actor.auth.signOut();
 await checked(
   await actor.auth.signInWithPassword({ email: manager.email, password: manager.password }),
@@ -340,6 +407,7 @@ await writeFile(
     manager,
     field,
     registryAdmin,
+    collections,
     startActionId: actionIds[4],
     workflow,
     api: { url: local.API_URL, anonKey: local.ANON_KEY },

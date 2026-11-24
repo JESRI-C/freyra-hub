@@ -12,6 +12,8 @@ Saml de byggede GoFreyra-moduler på den eksisterende app. En medarbejder skal k
 
 Sager indeholder flere jobs. Jobkortet samler steder, billeder, timer og materialer, som kan indgå i godkendte rapporter og senere fakturagrundlag. Roller afgrænser, hvem der kan se og ændre hvad.
 
+Frem mod salgsdemoen 25. november prioriteres ét komplet kundeforløb: opret kunde og kontakt, opret en sag med mindst tre jobs, tildel medarbejdere, dokumentér arbejdet fra mobilen og genfind den godkendte dokumentation i rapporten. Denne leverance samler kunde, sag, jobs og rapportgrundlag. Server, billedbehandling og udgivelse skal accepteres på den samme kildeversion, før det samlede forløb kan kaldes klar til kunder. Den øvrige kortlagte funktionalitet bevares i planen.
+
 ## Prioriteret sprint
 
 | Prioritet | Opgave | Status | Accept |
@@ -63,7 +65,7 @@ Kunde- og sagsforløbet er bygget på den eksisterende projekt-/jobstruktur i [P
 
 Basiskandidaten består samlet kontrol med seks browserforløb, herunder kunde/kontakt→planlægger→sag→tre jobs, to samtidige redigeringsvinduer og det mobile dokumentationsforløbs PDF/ZIP. Testdatabasen er opgraderet med bevarede eksisterende data; rolleprøven er gennemført og rullet tilbage. Hosted browseraccept, fysisk telefon og produktionsudgivelse er stadig åbne.
 
-Kontakter, kolleger og ældre kundehistorik udbygges nu med søgning og sidevisning. Et valgt kontaktkort og en åben kladde skal bevares gennem søgning, sideskift og fejl. 51 målrettede komponent-/serverprøver består; prøver med over 500 kontakter og brugere samt den nye migration afventer samlet disponibel kontrol. Den allerede anvendte kundemigration bevares; udvidelsen leveres som en ny migration. Kladden forbliver under accept.
+Kontakter, kolleger og ældre kundehistorik udbygges nu med søgning og sidevisning. Et valgt kontaktkort og en åben kladde skal bevares gennem søgning, sideskift og fejl. 51 målrettede komponent-/serverprøver består. Den første samlede kontrol afviste en syntaksfejl i den nye migration før databaseprøverne; fejlen er rettet og afventer en ny samlet kontrol. En særskilt browserprøve dækker sidste side af kontakter og kolleger samt ældre adresser på mobilbredde. Prøver med over 500 kontakter og brugere er fortsat under accept. Den allerede anvendte kundemigration bevares; udvidelsen leveres som en ny migration. Kladden forbliver under accept.
 
 ## Kanban og færdigkriterium
 
