@@ -193,7 +193,8 @@ test("employee completes a documented job from the map and a separate manager re
     .locator("summary")
     .filter({ hasText: /^Dokumentation$/ })
     .click();
-  const originalPopup = page.waitForEvent("popup");
+  // The original opens with noopener; observe the new tab at context level.
+  const originalPopup = page.context().waitForEvent("page");
   await task.getByRole("button", { name: /^Åbn optaget original:/ }).click();
   const original = await originalPopup;
   await original.waitForURL(

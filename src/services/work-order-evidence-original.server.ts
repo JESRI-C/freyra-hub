@@ -85,8 +85,11 @@ async function signOriginal(
     if (result.error || !result.data) throw new WorkOrderRequestError("unavailable");
     const url = new URL(result.data.signedUrl);
     const origin = new URL(deps?.origin ?? process.env.SUPABASE_URL ?? "").origin;
+    // Supabase CLI serves its local API on this exact loopback origin.
+    // Every remotely configured origin still requires HTTPS.
+    const localDevelopment = origin === "http://127.0.0.1:54321";
     if (
-      url.protocol !== "https:" ||
+      (url.protocol !== "https:" && !(url.protocol === "http:" && localDevelopment)) ||
       url.origin !== origin ||
       decodeURIComponent(url.pathname) !==
         `/storage/v1/object/sign/project-media/${pin.original.storagePath}` ||
