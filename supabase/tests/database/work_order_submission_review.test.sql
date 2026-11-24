@@ -42,7 +42,7 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT pg_temp.change(4,'performed');
 SELECT ok((pg_temp.ctx()->'gaps') ? 'evidence_missing','performed alone does not supply photos and observations');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
-SELECT * FROM public.save_field_job_template_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(47),0,'{"schema":"freyra.field-job-template/v1","title":"Synthetic form","domain":"nature","fields":[{"key":"count","label":"Count","type":"number","required":true},{"key":"checked","label":"Checked","type":"boolean","required":true}]}',pg_temp.k(48));
+SELECT * FROM public.save_field_job_template_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(47),0,'{"schema":"freyra.field-job-template/v1","title":"Synthetic form","domain":"nature","fields":[{"key":"count","label":"Count","type":"number","required":true,"unit":"stk."},{"key":"checked","label":"Checked","type":"boolean","required":true},{"key":"place","label":"Place","type":"text","required":false},{"key":"method","label":"Method","type":"textarea","required":false},{"key":"date","label":"Visit date","type":"date","required":false},{"key":"choice","label":"Choice","type":"select","required":false,"options":["Option A","Option B"]},{"key":"missing","label":"Missing","type":"text","required":false}]}',pg_temp.k(48));
 SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47)),0,'{"count":0,"checked":null}','recorded','',pg_temp.k(49));
 RESET ROLE;
 INSERT INTO storage.buckets(id,name,public) VALUES('project-media','project-media',false) ON CONFLICT(id) DO NOTHING;
@@ -59,7 +59,7 @@ SELECT pg_temp.attach(0,1,62);
 SELECT ok((pg_temp.ctx()->'gaps') ? 'observation_incomplete','required null is a gap even on a recorded field card');
 SELECT throws_ok($$SELECT pg_temp.save()$$,'22023',NULL,'recorded but incomplete form cannot be submitted');
 INSERT INTO pg_temp.saved VALUES('old_hash',pg_temp.hash());
-SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47)),1,'{"count":0,"checked":false}','recorded','Synthetic complete correction',pg_temp.k(63));
+SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47)),1,'{"count":0,"checked":false,"place":"Synthetic observed location","method":"Synthetic method\nSecond line","date":"2026-10-08","choice":"Option A","missing":null}','recorded','Synthetic complete correction',pg_temp.k(63));
 SELECT pg_temp.attach(1,2,64);
 SELECT is(pg_temp.ctx()->'gaps','[]'::jsonb,'zero and false satisfy required fields');
 SELECT throws_ok($$SELECT pg_temp.save(0,81,(SELECT value FROM pg_temp.saved WHERE name='old_hash'))$$,'PT409',NULL,'changed selected evidence invalidates the preflight hash');
@@ -120,6 +120,10 @@ SELECT lives_ok($$SELECT pg_temp.review(10,'review','returned',2,214)$$,'stale s
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT pg_temp.review(11,'reopen','reopened',2,215);
 SELECT pg_temp.change(12,'performed');
+SELECT * FROM public.save_work_order_evidence(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(72),0,
+  (SELECT id FROM public.field_job_versions WHERE action_id=pg_temp.k(31) AND version=2),pg_temp.k(51),
+  (SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1),
+  'attached','Synthetic second photo binding for the same frozen card',pg_temp.k(67));
 SELECT pg_temp.save(2,83);
 SELECT pg_temp.review(13,'submit','submitted',3,216);
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
@@ -162,6 +166,19 @@ JOIN public.project_workspace_entries e ON e.id=b.workspace_entry_id
 CROSS JOIN LATERAL public.save_work_order_execution(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),p.id,p.version,b.version,
   (e.payload->>'decision')::jsonb || jsonb_build_object('dataBasis','real','correctionReason','TEST · Nyere registrering efter godkendt prøve'),
   b.performed_by_id,'',pg_temp.k(241),a.id,a.version) saved;
+-- Later current records must not replace labels, answers or the job name in the reviewed packet.
+INSERT INTO pg_temp.saved SELECT 'packet3',snapshot::text FROM public.work_order_submission_versions
+  WHERE action_id=pg_temp.k(31) AND version=3;
+SELECT * FROM public.save_field_job_template_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(47),1,
+'{"schema":"freyra.field-job-template/v1","title":"Later form title","domain":"nature","fields":[{"key":"count","label":"Later count label","type":"number","required":true,"unit":"stk."},{"key":"checked","label":"Checked","type":"boolean","required":true},{"key":"place","label":"Place","type":"text","required":false},{"key":"method","label":"Method","type":"textarea","required":false},{"key":"date","label":"Visit date","type":"date","required":false},{"key":"choice","label":"Choice","type":"select","required":false,"options":["Option A","Option B"]},{"key":"missing","label":"Missing","type":"text","required":false}]}',pg_temp.k(242));
+SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
+  (SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47) AND version=2),2,
+  '{"count":99,"checked":true,"place":"Later location","choice":"Option B"}',
+  'recorded','Synthetic later answers',pg_temp.k(243));
+SELECT * FROM public.save_work_order_plan(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),1,
+  pg_temp.plan() || '{"title":"Later job title","locationNote":"Later location"}'::jsonb,
+  'Synthetic later plan',pg_temp.k(244));
+
 INSERT INTO pg_temp.saved VALUES ('work-order-report', pg_temp.work_order_report()::text);
 SELECT is(pg_temp.work_order_report(),(SELECT value::jsonb FROM pg_temp.saved WHERE name='work-order-report'),
   'retry returns exactly the same stored report');
@@ -184,6 +201,40 @@ SELECT ok((SELECT value::jsonb->'content'->'sections'->0->>'text'
   'report shows the approved target even when the current target was changed before report creation');
 SELECT is((SELECT value::jsonb->'content'->'sections'->0->>'basis'
   FROM pg_temp.saved WHERE name='work-order-report'),'not_measured','a target is not presented as a measurement');
+CREATE FUNCTION pg_temp.report_card() RETURNS jsonb LANGUAGE sql AS $$
+  SELECT section FROM jsonb_array_elements((SELECT value::jsonb->'content'->'sections'
+    FROM pg_temp.saved WHERE name='work-order-report')) section
+  WHERE section->>'id' LIKE 'job-card:%'
+$$;
+SELECT is((SELECT value::jsonb->'content'->'sections'->0->>'text'
+  FROM pg_temp.saved WHERE name='work-order-report') LIKE '%Job: Synthetic submission plan%',true,
+  'report uses the job name frozen in the reviewed plan');
+SELECT ok((SELECT value::jsonb->'content'->'sections'->0->>'text'
+  FROM pg_temp.saved WHERE name='work-order-report') LIKE '%Sted: Synthetic location%',
+  'report uses the location note frozen in the reviewed plan');
+SELECT is((SELECT count(*)::integer FROM jsonb_array_elements((SELECT value::jsonb->'content'->'sections'
+  FROM pg_temp.saved WHERE name='work-order-report')) section WHERE section->>'id' LIKE 'job-card:%'),1,
+  'multiple photo bindings for one observation produce one job-card section');
+SELECT is(pg_temp.report_card()->>'title','Jobkort: Synthetic form','card title is frozen, not the latest template');
+SELECT ok(pg_temp.report_card()->>'text' LIKE '%Count: 0 stk.%','zero keeps its number and unit');
+SELECT ok(pg_temp.report_card()->>'text' LIKE '%Checked: Nej%','false is an explicit negative answer');
+SELECT ok(pg_temp.report_card()->>'text' LIKE '%Place: Synthetic observed location%','text comes from the frozen answers');
+SELECT ok(pg_temp.report_card()->>'text' LIKE E'%Method: Synthetic method\nSecond line%','multiline answers retain both lines');
+SELECT ok(pg_temp.report_card()->>'text' LIKE '%Visit date: 2026-10-08%','saved calendar dates retain their exact value');
+SELECT ok(pg_temp.report_card()->>'text' LIKE '%Choice: Option A%','selection comes from the approved observation');
+SELECT ok(pg_temp.report_card()->>'text' LIKE '%Missing: Ikke oplyst%','an unanswered optional value is not treated as a negative');
+SELECT is(jsonb_array_length(pg_temp.report_card()->'sourceIds'),2,'the card cites both frozen photo bindings');
+SELECT ok(NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text(pg_temp.report_card()->'sourceIds') source
+  WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements((SELECT value::jsonb->'content'->'sources'
+    FROM pg_temp.saved WHERE name='work-order-report')) item WHERE item->>'id'=source)),
+  'each card source resolves within the same stored report');
+SELECT ok((SELECT (value::jsonb->'content')::text NOT LIKE '%Later%' FROM pg_temp.saved WHERE name='work-order-report'),
+  'later job and template labels cannot leak into an approved historical report');
+SELECT is((SELECT snapshot::text FROM public.work_order_submission_versions WHERE action_id=pg_temp.k(31) AND version=3),
+  (SELECT value FROM pg_temp.saved WHERE name='packet3'),'report generation never changes the approved packet');
+SELECT is((SELECT value::jsonb->>'status' FROM pg_temp.saved WHERE name='work-order-report'),'draft',
+  'execution approval does not automatically approve the generated report');
+
 SELECT throws_ok($$SELECT public.save_approved_work_order_report(pg_temp.k(12),pg_temp.k(21),pg_temp.k(31),
   (pg_temp.rc()->'packet'->>'id')::uuid,(pg_temp.rc()->'state'->>'id')::uuid)$$,
   '42501',NULL,'foreign organization cannot reuse an approval');

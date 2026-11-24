@@ -369,6 +369,8 @@ test("employee completes a documented job from the map and a separate manager re
     expect(text).toContain("Syntetisk dokumentationsjob");
     expect(text).toContain("Syntetisk stedkontrol");
     expect(text).toContain("Syntetisk afslutningskontrol");
+    expect(text).toMatch(/Antal:\s*0/);
+    expect(text).toMatch(/Kontrolleret:\s*Nej/);
     expect(text).toMatch(/Syntetiske prøvedata/i);
     expect(text.replace(/\s/g, "")).toContain(sha256);
     const zipReady = leader.waitForEvent("download");

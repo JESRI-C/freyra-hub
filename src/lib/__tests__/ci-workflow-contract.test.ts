@@ -88,14 +88,23 @@ describe("P0 app-gates workflow", () => {
     const stop = workflow.indexOf(
       "run: node scripts/database-concurrency/stop-disposable-stack.mjs",
     );
-    const receipts = workflow.indexOf("name: Preserve disposable local concurrency evidence");
+    const browserChecks = workflow.indexOf(
+      "node scripts/test-local-planning-browser.mjs --disposable-local",
+    );
     expect(concurrencyChecks).toBeGreaterThan(databaseChecks);
     expect(functionLint).toBeGreaterThan(concurrencyChecks);
     expect(stop).toBeGreaterThan(functionLint);
-    expect(receipts).toBeGreaterThan(stop);
+    expect(browserChecks).toBeGreaterThan(functionLint);
+    expect(stop).toBeGreaterThan(browserChecks);
   });
 
-  it("classifies lint only against the same local database and preserves evidence", () => {
+  it("keeps generated acceptance files out of public workflow artifacts", () => {
+    expect(workflow).not.toMatch(/uses:\s*actions\/upload-artifact(?:@|\s|$)/);
+    const ignoredPaths = readFileSync(resolve(process.cwd(), ".gitignore"), "utf8");
+    expect(ignoredPaths).toMatch(/^tmp\/\r?$/m);
+  });
+
+  it("classifies lint only against the same local database", () => {
     expect(workflow).toContain("set -euo pipefail");
     expect(workflow).toContain(
       "--host=127.0.0.1 --port=54322 --dbname=postgres --username=postgres",
@@ -108,7 +117,6 @@ describe("P0 app-gates workflow", () => {
     expect(workflow).toContain("LEFT JOIN pg_catalog.pg_extension");
     expect(workflow).toContain("WHERE namespace.nspname IN ('public', 'private', 'storage')");
     expect(workflow).toContain("node scripts/check-database-lint.mjs");
-    expect(workflow).toContain("uses: actions/upload-artifact@v4");
     expect(workflow).not.toMatch(/continue-on-error|\|\|\s*true/);
   });
 });
