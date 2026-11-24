@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: ["planning-local.spec.ts", "workflow-local.spec.ts"],
+  testMatch: ["customers-local.spec.ts", "planning-local.spec.ts", "workflow-local.spec.ts"],
   fullyParallel: false,
   workers: 1,
   retries: 0,

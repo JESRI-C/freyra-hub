@@ -30,7 +30,7 @@ export function useCustomerCommand(
   onSaved: (receipt: Receipt) => void,
 ) {
   const save = useServerFn(saveWorkCustomerCommand);
-  const attempt = useRef<CustomerCommand>();
+  const attempt = useRef<CustomerCommand | undefined>(undefined);
   const inFlight = useRef(false);
   const alive = useRef(true);
   const [busy, setBusy] = useState(false);

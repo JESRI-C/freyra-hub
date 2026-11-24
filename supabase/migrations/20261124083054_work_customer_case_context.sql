@@ -218,6 +218,25 @@ begin
     return jsonb_build_object('organizationId',org,'canManage',manage,'rows',
       (select coalesce(jsonb_agg(value order by ord),'[]'::jsonb) from jsonb_array_elements(page) with ordinality a(value,ord) where ord<=50),
       'hasMore',jsonb_array_length(page)>50);
+  elsif operation='cases' then
+    perform private.work_customer_keys(payload,array['customerId','offset']);
+    cid:=private.work_customer_uuid(payload,'customerId');
+    if not private.can_plan_work_customer(org,cid) then raise exception 'Customer access denied' using errcode='42501'; end if;
+    if jsonb_typeof(payload->'offset') is distinct from 'number'
+      or coalesce(payload->>'offset','') !~ '^[0-9]{1,6}$'
+      or (payload->>'offset')::numeric>100000 then raise exception 'Invalid customer page' using errcode='22023'; end if;
+    offset_value:=(payload->>'offset')::integer;
+    select coalesce(jsonb_agg(item order by number,project_id),'[]'::jsonb) into page from (
+      select c.number,c.project_id,jsonb_build_object('projectId',c.project_id,'number',c.number,'title',p.name,
+        'customerReference',v.customer_reference,'version',c.version) item
+      from private.work_customer_cases c join private.work_case_customer_versions v on v.project_id=c.project_id and v.version=c.version
+      join public.projects p on p.id=c.project_id and p.organization_id=c.organization_id
+      where c.organization_id=org and v.customer_id=cid and private.can_read_project(c.project_id)
+      order by c.number,c.project_id offset offset_value limit 51
+    ) items;
+    return jsonb_build_object('organizationId',org,'customerId',cid,'rows',
+      (select coalesce(jsonb_agg(value order by ord),'[]'::jsonb) from jsonb_array_elements(page) with ordinality a(value,ord) where ord<=50),
+      'hasMore',jsonb_array_length(page)>50);
   elsif operation='customer' then
     perform private.work_customer_keys(payload,array['customerId']);
     cid:=private.work_customer_uuid(payload,'customerId');

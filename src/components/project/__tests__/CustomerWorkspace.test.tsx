@@ -145,14 +145,20 @@ beforeEach(() => {
   m.org = id(2);
   m.blocker.mockReset();
   m.refresh.mockReset().mockResolvedValue({ projectSelected: false });
-  m.load
-    .mockReset()
-    .mockImplementation(async ({ data }: { data: CustomerQuery }) =>
-      data.operation === "list"
+  m.load.mockReset();
+  m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) =>
+    data.operation === "list"
+      ? {
+          organizationId: data.organizationId,
+          canManage: true,
+          rows: [detail().customer],
+          hasMore: false,
+        }
+      : data.operation === "cases"
         ? {
             organizationId: data.organizationId,
-            canManage: true,
-            rows: [detail().customer],
+            customerId: data.customerId,
+            rows: [],
             hasMore: false,
           }
         : {
@@ -162,7 +168,7 @@ beforeEach(() => {
               id: data.operation === "customer" ? data.customerId : id(3),
             },
           },
-    );
+  );
   m.save
     .mockReset()
     .mockImplementation(async ({ data }: { data: CustomerCommand }) => receipt(data));

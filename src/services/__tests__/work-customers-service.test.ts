@@ -30,6 +30,37 @@ const client = (data: unknown, error: { code: string } | null = null) => ({
 });
 
 describe("customer requests through the authenticated client", () => {
+  it("refuses a case list returned for a different customer", async () => {
+    await expect(
+      queryWorkCustomers(
+        client({ organizationId: org, customerId: other, rows: [], hasMore: false }),
+        actor,
+        {
+          organizationId: org,
+          expectedActorId: actor,
+          operation: "cases",
+          customerId: customer,
+          offset: 50,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "unavailable" });
+  });
+  it("passes the exact customer and page to the scoped case list", async () => {
+    const db = client({ organizationId: org, customerId: customer, rows: [], hasMore: false });
+    await queryWorkCustomers(db, actor, {
+      organizationId: org,
+      expectedActorId: actor,
+      operation: "cases",
+      customerId: customer,
+      offset: 50,
+    });
+    expect(db.rpc).toHaveBeenCalledWith("query_work_customers", {
+      p_organization_id: org,
+      p_expected_actor_id: actor,
+      p_operation: "cases",
+      p_payload: { customerId: customer, offset: 50 },
+    });
+  });
   it("refuses a customer context returned for a different job", async () => {
     const db = client({
       organizationId: org,

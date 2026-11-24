@@ -54,6 +54,7 @@ async function user(name) {
 }
 const manager = await user("Syntetisk planlægger");
 const field = await user("Syntetisk medarbejder");
+const registryAdmin = await user("Syntetisk kundeadministrator");
 const organizationId = randomUUID();
 const projectIds = [randomUUID(), randomUUID(), randomUUID()];
 const actionIds = Array.from({ length: 6 }, () => randomUUID());
@@ -66,13 +67,14 @@ await checked(
   "create organization",
 );
 await checked(
-  await admin.from("organization_memberships").insert(
-    [manager, field].map(({ id }) => ({
+  await admin.from("organization_memberships").insert([
+    ...[manager, field].map(({ id }) => ({
       organization_id: organizationId,
       user_id: id,
       role: "viewer",
     })),
-  ),
+    { organization_id: organizationId, user_id: registryAdmin.id, role: "owner" },
+  ]),
   "create organization membership",
 );
 await checked(
@@ -134,9 +136,67 @@ const actor = createClient(local.API_URL, local.ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 await checked(
+  await actor.auth.signInWithPassword({
+    email: registryAdmin.email,
+    password: registryAdmin.password,
+  }),
+  "authenticate registry administrator",
+);
+async function customerCommand(actorId, operation, payload) {
+  return checked(
+    await actor.rpc("command_work_customers", {
+      p_organization_id: organizationId,
+      p_expected_actor_id: actorId,
+      p_request_id: randomUUID(),
+      p_operation: operation,
+      p_payload: payload,
+    }),
+    "save synthetic customer context",
+  );
+}
+const workflowCustomer = await customerCommand(registryAdmin.id, "save_customer", {
+  customerId: null,
+  expectedVersion: 0,
+  data: {
+    name: "Fiktiv feltkunde",
+    registrationNumber: "",
+    address: "",
+    postalCode: "",
+    city: "",
+    country: "Danmark",
+    archived: false,
+  },
+});
+const workflowContact = await customerCommand(registryAdmin.id, "save_contact", {
+  customerId: workflowCustomer.id,
+  contactId: null,
+  expectedVersion: 0,
+  data: {
+    name: "Fiktiv feltkontakt",
+    title: "Kontakt",
+    phone: "FIKTIV-TELEFON",
+    email: "field-contact@example.test",
+    archived: false,
+  },
+});
+await customerCommand(registryAdmin.id, "grant_planner", {
+  customerId: workflowCustomer.id,
+  userId: manager.id,
+  expectedVersion: 0,
+  enabled: true,
+});
+await actor.auth.signOut();
+await checked(
   await actor.auth.signInWithPassword({ email: manager.email, password: manager.password }),
   "authenticate planner",
 );
+await customerCommand(manager.id, "bind_case", {
+  projectId: projectIds[0],
+  customerId: workflowCustomer.id,
+  contactId: workflowContact.id,
+  expectedVersion: 0,
+  customerReference: "FIKTIV-FELT-REF",
+});
 const cards = [];
 for (const definition of [
   {
@@ -279,6 +339,7 @@ await writeFile(
     organization,
     manager,
     field,
+    registryAdmin,
     startActionId: actionIds[4],
     workflow,
     api: { url: local.API_URL, anonKey: local.ANON_KEY },

@@ -99,6 +99,14 @@ export const CustomerQuerySchema = z.discriminatedUnion("operation", [
     })
     .strict(),
   z.object({ ...scope, operation: z.literal("customer"), customerId: id }).strict(),
+  z
+    .object({
+      ...scope,
+      operation: z.literal("cases"),
+      customerId: id,
+      offset: z.number().int().min(0).max(100000),
+    })
+    .strict(),
   z.object({ ...scope, operation: z.literal("case"), projectId: id }).strict(),
   z.object({ ...scope, operation: z.literal("job"), projectId: id, actionId: id }).strict(),
 ]);
@@ -128,6 +136,22 @@ export const CustomerDetailSchema = z.object({
     .array(z.object({ userId: id, enabled: z.boolean(), version: version.min(1) }))
     .max(500),
   availableUsers: z.array(z.object({ userId: id, name: text(500).min(1) })).max(500),
+});
+export const CustomerCaseListSchema = z.object({
+  organizationId: id,
+  customerId: id,
+  rows: z
+    .array(
+      z.object({
+        projectId: id,
+        number: text(40).min(1),
+        title: text(500).min(1),
+        customerReference: text(240),
+        version: version.min(1),
+      }),
+    )
+    .max(50),
+  hasMore: z.boolean(),
 });
 export const CaseCustomerContextSchema = z.object({
   organizationId: id,

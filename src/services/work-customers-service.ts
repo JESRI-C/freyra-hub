@@ -1,5 +1,6 @@
 import {
   CaseCustomerContextSchema,
+  CustomerCaseListSchema,
   CustomerCommandReceiptSchema,
   CustomerCommandSchema,
   CustomerDetailSchema,
@@ -32,11 +33,18 @@ export async function queryWorkCustomers(
   const schema =
     operation === "list"
       ? CustomerListSchema
-      : operation === "customer"
-        ? CustomerDetailSchema
-        : CaseCustomerContextSchema;
+      : operation === "cases"
+        ? CustomerCaseListSchema
+        : operation === "customer"
+          ? CustomerDetailSchema
+          : CaseCustomerContextSchema;
   const result = schema.safeParse(data);
   if (!result.success || result.data.organizationId !== organizationId)
+    throw new WorkOrderRequestError("unavailable");
+  if (
+    operation === "cases" &&
+    (!("customerId" in result.data) || result.data.customerId !== input.customerId)
+  )
     throw new WorkOrderRequestError("unavailable");
   if (
     operation === "customer" &&

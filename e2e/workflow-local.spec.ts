@@ -367,6 +367,9 @@ test("employee completes a documented job from the map and a separate manager re
       await loading.destroy();
     }
     expect(text).toContain("Syntetisk dokumentationsjob");
+    expect(text).toContain("Fiktiv feltkunde");
+    expect(text).toContain("Fiktiv feltkontakt");
+    expect(text).toContain("FIKTIV-FELT-REF");
     expect(text).toContain("Syntetisk stedkontrol");
     expect(text).toContain("Syntetisk afslutningskontrol");
     expect(text).toMatch(/Antal:\s*0/);

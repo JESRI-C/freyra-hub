@@ -56,6 +56,12 @@ insert into customer_results values('case_b',pg_temp.cmd('create_case',pg_temp.c
 select is(pg_temp.saved('case_a')->>'number','S-000001','first case gets a stable case number');
 select is(pg_temp.saved('case_b')->>'number','S-000002','different create requests allocate different case numbers');
 select is(pg_temp.cmd('create_case',pg_temp.create_payload(),43),pg_temp.saved('case_a'),'case create retry does not create another project');
+select is(jsonb_array_length(pg_temp.q('cases',jsonb_build_object('customerId',pg_temp.customer_id(),'offset',0))->'rows'),2,'planner can reopen both of their customer cases');
+select set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+insert into customer_results values('hidden_case',pg_temp.cmd('create_case',pg_temp.create_payload('Unshared fictional customer case')));
+select set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+select is(jsonb_array_length(pg_temp.q('cases',jsonb_build_object('customerId',pg_temp.customer_id(),'offset',0))->'rows'),2,'registry access does not expose an unshared case for the same customer');
+select is(jsonb_array_length(pg_temp.q('cases',jsonb_build_object('customerId',pg_temp.customer_id(),'offset',50))->'rows'),0,'case paging does not disclose inaccessible rows');
 select ok(private.can_write_project((pg_temp.saved('case_a')->>'id')::uuid),'new case grants its planner project-manager access');
 insert into public.actions(id,project_id,title,action_type) select pg_temp.k(30+n),(pg_temp.saved('case_a')->>'id')::uuid,'Fictional job '||n,null from generate_series(1,3)n;
 select is((select count(*)::integer from public.actions where project_id=(pg_temp.saved('case_a')->>'id')::uuid),3,'the case uses the existing project/job relationship');
@@ -76,6 +82,7 @@ select throws_ok($$select pg_temp.q('job',jsonb_build_object('projectId',(pg_tem
 select ok(not (pg_temp.q('job',jsonb_build_object('projectId',(pg_temp.saved('case_a')->>'id')::uuid,'actionId',pg_temp.k(31)))->>'canEdit')::boolean,'job context cannot grant case editing');
 select set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
 select is(jsonb_array_length(pg_temp.q('list','{"search":"","includeArchived":false,"offset":0}')->'rows'),0,'employee does not gain registry access through organization membership');
+select throws_ok($$select pg_temp.q('cases',jsonb_build_object('customerId',pg_temp.customer_id(),'offset',0))$$,'42501',null,'case membership does not expose a customer-wide case list');
 select is(pg_temp.q('case',jsonb_build_object('projectId',(pg_temp.saved('case_a')->>'id')::uuid))->'binding'->>'customerName','Fictional forest customer','employee gets the context of their assigned case');
 select is(pg_temp.q('case',jsonb_build_object('projectId',(pg_temp.saved('case_a')->>'id')::uuid))->'binding'->'contact'->>'phone','FAKE-PHONE','selected site contact is available on the case');
 select ok(not (pg_temp.q('case',jsonb_build_object('projectId',(pg_temp.saved('case_a')->>'id')::uuid))->'binding' ? 'address'),'employee context excludes billing address');
@@ -109,7 +116,7 @@ select is(jsonb_array_length(pg_temp.q('list','{"search":"","includeArchived":fa
 select is(jsonb_array_length(pg_temp.q('list','{"search":"","includeArchived":true,"offset":0}')->'rows'),2,'administrator can include archived customers');
 
 reset role;
-select is((select count(*)::integer from public.projects where organization_id=pg_temp.k(11)),2,'failed and repeated creates left exactly two cases');
+select is((select count(*)::integer from public.projects where organization_id=pg_temp.k(11)),3,'failed and repeated creates left only the three authorized cases');
 select is((select role from public.organization_memberships where organization_id=pg_temp.k(11) and user_id=pg_temp.k(2)),'viewer','case creation did not widen organization authority');
 select is((select count(*)::integer from private.work_case_customer_versions where project_id=(pg_temp.saved('case_a')->>'id')::uuid),2,'both case-context versions remain in history');
 select throws_ok($$update private.work_customer_versions set data='{}'$$,'55000',null,'even privileged updates cannot silently rewrite customer history');

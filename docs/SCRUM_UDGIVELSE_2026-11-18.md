@@ -65,6 +65,8 @@ Kunde- og sagsforløbet bygges nu på den eksisterende projekt-/jobstruktur. Kun
 
 Kunderegisterets første database- og serverkontrol består. Kandidaten har nu formularer til kunder, kontakter og planlægningsadgang samt oprettelse af en sag, der åbner det eksisterende jobarbejdsrum. Sagsvisningen viser den valgte kontakt og reference. Kunde-/kontaktversionen indgår i afleveringsgrundlagets kontrolsum, og rapporten dannes fra den godkendte aflevering. Den udvidede brugerflade-, historik- og samtidighedskontrol er under afvikling i [PR #56](https://github.com/JESRI-C/freyra-hub/pull/56); denne leverance er fortsat kladde. Ingen kundemigration er endnu anvendt i de eksterne miljøer.
 
+Den udvidede kunde-/sagskandidat har bestået 4188 appprøver, 2342 databaseprøver, fem reelle samtidighedsscenarier og fire eksisterende browserforløb. React-typen for det gemte genforsøg og testformatteringen er rettet efter kontrollen. Kandidaten udvides med kundens adgangsafgrænsede sagsoversigt og en ny browserprøve med kunde, kontakt, planlægger, sag og tre jobs. Det eksisterende mobile dokumentationsforløb skal også bevise kundens navn, kontakt og reference i den hentede PDF. Den nye samlede kontrol og hosted accept er fortsat åbne.
+
 ## Kanban og færdigkriterium
 
 Udviklingstavlen viser funktionsområder, kodehenvisninger og acceptkrav. En funktion afsluttes først efter den konkrete accept på den angivne udgivelse. En kodehenvisning alene er ikke en færdig funktion. Den realistiske demosag skal indeholde flere jobs og kunne vises til Dalgas.

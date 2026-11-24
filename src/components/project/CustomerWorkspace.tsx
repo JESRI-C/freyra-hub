@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { getWorkCustomers } from "@/lib/work-customers.functions";
 import {
   CustomerDetailSchema,
+  CustomerCaseListSchema,
   CustomerListSchema,
   emptyCustomer,
   emptyCustomerContact,
@@ -276,6 +277,12 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
                   </button>
                 )}
               </section>
+              <CustomerCases
+                key={current.customer.id}
+                organizationId={organizationId}
+                actorId={actorId}
+                customerId={current.customer.id}
+              />
               <section className={panel} aria-label="Kontaktpersoner">
                 <header className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-lg font-semibold">Kontaktpersoner</h2>
@@ -371,6 +378,100 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
           )}
         </div>
       </div>
+    </section>
+  );
+}
+
+function CustomerCases({
+  organizationId,
+  actorId,
+  customerId,
+}: {
+  organizationId: string;
+  actorId: string;
+  customerId: string;
+}) {
+  const load = useServerFn(getWorkCustomers);
+  const [offset, setOffset] = useState(0);
+  const cases = useQuery({
+    queryKey: ["work-customers", actorId, organizationId, "cases", customerId, offset],
+    queryFn: async () =>
+      CustomerCaseListSchema.parse(
+        await load({
+          data: {
+            organizationId,
+            expectedActorId: actorId,
+            operation: "cases",
+            customerId,
+            offset,
+          },
+        }),
+      ),
+    retry: false,
+  });
+  return (
+    <section className={panel} aria-label="Kundens sager">
+      <h2 className="text-lg font-semibold">Sager</h2>
+      {cases.isPending && <p role="status">Henter sager…</p>}
+      {cases.isError ? (
+        <div role="alert" className="text-sm">
+          <p>Sagerne kunne ikke hentes.</p>
+          <button className={button} onClick={() => void cases.refetch()}>
+            Hent sager igen
+          </button>
+        </div>
+      ) : (
+        cases.data && (
+          <>
+            {!cases.data.rows.length && (
+              <p className="text-sm text-muted-foreground">
+                Ingen sager i denne visning. Du ser kun sager, du har adgang til.
+              </p>
+            )}
+            <ul className="divide-y">
+              {cases.data.rows.map((item) => (
+                <li
+                  key={item.projectId}
+                  className="flex flex-wrap items-center justify-between gap-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {item.number} · {item.title}
+                    </p>
+                    {item.customerReference && (
+                      <p className="text-sm text-muted-foreground">{item.customerReference}</p>
+                    )}
+                  </div>
+                  <Link
+                    className={button}
+                    to="/app/projects/$slug"
+                    params={{ slug: item.projectId }}
+                    search={{ tab: "handlinger" }}
+                  >
+                    Åbn jobs
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className={button}
+                disabled={!offset}
+                onClick={() => setOffset(Math.max(0, offset - 50))}
+              >
+                Forrige sager
+              </button>
+              <button
+                className={button}
+                disabled={!cases.data.hasMore || offset >= 100000}
+                onClick={() => setOffset(offset + 50)}
+              >
+                Næste sager
+              </button>
+            </div>
+          </>
+        )
+      )}
     </section>
   );
 }
