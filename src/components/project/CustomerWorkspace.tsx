@@ -5,16 +5,25 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { getWorkCustomers } from "@/lib/work-customers.functions";
 import {
-  CustomerDetailSchema,
+  CustomerSummarySchema,
   CustomerCaseListSchema,
   CustomerListSchema,
   emptyCustomer,
   emptyCustomerContact,
-  type CustomerDetail,
+  type CustomerSummary,
   type CustomerFields,
+  type CustomerContact,
+  type CustomerMember,
 } from "@/lib/work-customers";
 import { useCustomerCommand } from "./useCustomerCommand";
 import { CustomerField as Field } from "./CustomerField";
+import {
+  CustomerContacts,
+  CustomerHistory,
+  CustomerPlanners,
+  CustomerContactPicker,
+  CustomerMemberPicker,
+} from "./CustomerCollections";
 
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50";
@@ -22,12 +31,12 @@ const primary = `${button} bg-primary text-primary-foreground hover:bg-primary/9
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const panel = "min-w-0 space-y-4 rounded-2xl border bg-card p-4 sm:p-5";
-type Contact = CustomerDetail["contacts"][number];
+type Contact = CustomerContact;
 type Editor =
-  | { kind: "customer"; customer: CustomerDetail["customer"] | null }
-  | { kind: "contact"; contact: Contact | null; detail: CustomerDetail }
-  | { kind: "case"; detail: CustomerDetail }
-  | { kind: "planner"; detail: CustomerDetail };
+  | { kind: "customer"; customer: CustomerSummary["customer"] | null }
+  | { kind: "contact"; contact: Contact | null; detail: CustomerSummary }
+  | { kind: "case"; detail: CustomerSummary }
+  | { kind: "planner"; detail: CustomerSummary };
 type FormProps = {
   organizationId: string;
   actorId: string;
@@ -72,14 +81,14 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
     refetchOnReconnect: !locked,
   });
   const detail = useQuery({
-    queryKey: ["work-customers", actorId, organizationId, "customer", selected],
+    queryKey: ["work-customers", actorId, organizationId, "summary", selected],
     queryFn: async () =>
-      CustomerDetailSchema.parse(
+      CustomerSummarySchema.parse(
         await load({
           data: {
             organizationId,
             expectedActorId: actorId,
-            operation: "customer",
+            operation: "summary",
             customerId: selected!,
           },
         }),
@@ -240,8 +249,8 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
               </button>
             </div>
           )}
-          {!editor && current && (
-            <>
+          {current && (
+            <div hidden={!!editor} className="space-y-5">
               <section className={panel} aria-label="Kundeoplysninger">
                 <header className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -293,93 +302,35 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
                 actorId={actorId}
                 customerId={current.customer.id}
               />
-              <section className={panel} aria-label="Kontaktpersoner">
-                <header className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold">Kontaktpersoner</h2>
-                  {current.canManage && !current.customer.data.archived && (
-                    <button
-                      className={button}
-                      onClick={() => setEditor({ kind: "contact", contact: null, detail: current })}
-                    >
-                      Tilføj kontaktperson
-                    </button>
-                  )}
-                </header>
-                {!current.contacts.length && (
-                  <p className="text-sm text-muted-foreground">Ingen kontaktpersoner endnu.</p>
-                )}
-                <ul className="divide-y">
-                  {current.contacts.map((contact) => (
-                    <li
-                      key={contact.id}
-                      className="flex flex-wrap items-center justify-between gap-3 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium">
-                          {contact.data.name}
-                          {contact.data.archived ? " · Arkiveret" : ""}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{contact.data.title}</p>
-                        <p className="text-sm">
-                          {[contact.data.phone, contact.data.email].filter(Boolean).join(" · ")}
-                        </p>
-                      </div>
-                      {current.canManage && (
-                        <button
-                          className={button}
-                          onClick={() => setEditor({ kind: "contact", contact, detail: current })}
-                        >
-                          Redigér kontakt
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <CustomerContacts
+                key={current.customer.id}
+                organizationId={organizationId}
+                actorId={actorId}
+                customerId={current.customer.id}
+                canManage={current.canManage}
+                archived={current.customer.data.archived}
+                disabled={locked}
+                onAdd={() => setEditor({ kind: "contact", contact: null, detail: current })}
+                onEdit={(contact) => setEditor({ kind: "contact", contact, detail: current })}
+              />
               {current.canManage && (
-                <section className={panel} aria-label="Planlægningsadgang">
-                  <h2 className="text-lg font-semibold">Planlægningsadgang</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Giv en kollega adgang til at se kunden og oprette sager. Adgang til de enkelte
-                    sager styres særskilt.
-                  </p>
-                  <ul className="space-y-1 text-sm">
-                    {current.planners
-                      .filter((p) => p.enabled)
-                      .map((p) => (
-                        <li key={p.userId}>
-                          {current.availableUsers.find((u) => u.userId === p.userId)?.name ??
-                            "Tidligere medlem"}
-                        </li>
-                      ))}
-                  </ul>
-                  <button
-                    className={button}
-                    onClick={() => setEditor({ kind: "planner", detail: current })}
-                  >
-                    Administrér planlæggere
-                  </button>
-                </section>
+                <CustomerPlanners
+                  key={current.customer.id}
+                  organizationId={organizationId}
+                  actorId={actorId}
+                  customerId={current.customer.id}
+                  disabled={locked}
+                  onManage={() => setEditor({ kind: "planner", detail: current })}
+                />
               )}
-              <section className={panel} aria-label="Kundehistorik">
-                <h2 className="text-lg font-semibold">Seneste kundehistorik</h2>
-                <p className="text-sm text-muted-foreground">
-                  Sager bevarer den valgte kunde- og kontaktversion, når registret rettes.
-                </p>
-                <ol className="space-y-2 text-sm">
-                  {current.history.map((item) => (
-                    <li key={item.version}>
-                      Version {item.version} · {item.data.name}
-                      {item.data.archived ? " · Arkiveret" : ""}
-                      <br />
-                      <time className="text-muted-foreground" dateTime={item.changedAt}>
-                        {new Date(item.changedAt).toLocaleString("da-DK")}
-                      </time>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            </>
+              <CustomerHistory
+                key={current.customer.id}
+                organizationId={organizationId}
+                actorId={actorId}
+                customerId={current.customer.id}
+                disabled={locked}
+              />
+            </div>
           )}
           {!editor && !selected && (
             <p className="p-4 text-sm text-muted-foreground">
@@ -490,10 +441,12 @@ function Actions({
   command,
   onClose,
   label,
+  canSubmit = true,
 }: {
   command: ReturnType<typeof useCustomerCommand>;
   onClose: () => void;
   label: string;
+  canSubmit?: boolean;
 }) {
   return (
     <>
@@ -503,7 +456,11 @@ function Actions({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <button type="submit" className={primary} disabled={command.busy}>
+        <button
+          type="submit"
+          className={primary}
+          disabled={command.busy || (!command.uncertain && !canSubmit)}
+        >
           {command.busy ? "Gemmer…" : command.uncertain ? "Prøv samme gemning igen" : label}
         </button>
         <button type="button" className={button} disabled={command.locked} onClick={onClose}>
@@ -519,7 +476,7 @@ function Actions({
 function CustomerForm({
   customer,
   ...props
-}: FormProps & { customer: CustomerDetail["customer"] | null }) {
+}: FormProps & { customer: CustomerSummary["customer"] | null }) {
   const [data, setData] = useState<CustomerFields>(() => ({
     ...(customer?.data ?? emptyCustomer),
   }));
@@ -581,7 +538,7 @@ function ContactForm({
   detail,
   contact,
   ...props
-}: FormProps & { detail: CustomerDetail; contact: Contact | null }) {
+}: FormProps & { detail: CustomerSummary; contact: Contact | null }) {
   const [data, setData] = useState(() => ({ ...(contact?.data ?? emptyCustomerContact) }));
   const command = useCustomerCommand(props.organizationId, props.actorId, (r) =>
     props.onSaved(r.id),
@@ -639,7 +596,8 @@ function ContactForm({
     </form>
   );
 }
-function CaseForm({ detail, ...props }: FormProps & { detail: CustomerDetail }) {
+function CaseForm({ detail, ...props }: FormProps & { detail: CustomerSummary }) {
+  const [contactValid, setContactValid] = useState(true);
   const [data, setData] = useState({
     title: "",
     description: "",
@@ -656,6 +614,7 @@ function CaseForm({ detail, ...props }: FormProps & { detail: CustomerDetail }) 
       aria-label="Opret sag"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!command.uncertain && data.contactId && !contactValid) return;
         void command.submit({
           ...data,
           operation: "create_case",
@@ -665,7 +624,7 @@ function CaseForm({ detail, ...props }: FormProps & { detail: CustomerDetail }) 
       }}
     >
       <h2 className="text-lg font-semibold">Opret sag · {detail.customer.data.name}</h2>
-      <fieldset disabled={command.locked} className="space-y-3">
+      <fieldset disabled={command.locked} className="min-w-0 space-y-3">
         <Field label="Sagens navn">
           <input
             className={control}
@@ -700,81 +659,75 @@ function CaseForm({ detail, ...props }: FormProps & { detail: CustomerDetail }) 
             onChange={(e) => setData({ ...data, customerReference: e.target.value })}
           />
         </Field>
-        <Field label="Kontaktperson på sagen">
-          <select
-            aria-label="Kontaktperson på sagen"
-            className={control}
-            value={data.contactId}
-            onChange={(e) => setData({ ...data, contactId: e.target.value })}
-          >
-            <option value="">Ingen kontakt valgt</option>
-            {detail.contacts
-              .filter((c) => !c.data.archived)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.data.name}
-                  {c.data.title ? ` · ${c.data.title}` : ""}
-                </option>
-              ))}
-          </select>
-        </Field>
+        <CustomerContactPicker
+          organizationId={props.organizationId}
+          actorId={props.actorId}
+          customerId={detail.customer.id}
+          label="Kontaktperson på sagen"
+          value={data.contactId}
+          onChange={(contactId) => setData({ ...data, contactId })}
+          onValidityChange={setContactValid}
+          disabled={command.locked}
+        />
       </fieldset>
       <p className="text-sm text-muted-foreground">
         Du kan tilføje flere jobs, fordele arbejdet og vælge steder, når sagen er oprettet.
       </p>
-      <Actions command={command} onClose={props.onClose} label="Opret sag" />
+      <Actions
+        command={command}
+        onClose={props.onClose}
+        label="Opret sag"
+        canSubmit={!data.contactId || contactValid}
+      />
     </form>
   );
 }
-function PlannerForm({ detail, ...props }: FormProps & { detail: CustomerDetail }) {
-  const [userId, setUserId] = useState("");
+function PlannerForm({ detail, ...props }: FormProps & { detail: CustomerSummary }) {
+  const [member, setMember] = useState<CustomerMember | null>(null);
   const [enabled, setEnabled] = useState(true);
   const command = useCustomerCommand(props.organizationId, props.actorId, (r) =>
     props.onSaved(r.id),
   );
-  const prior = detail.planners.find((p) => p.userId === userId);
   return (
     <form
       className={panel}
       aria-label="Administrér planlæggere"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!member || (!command.uncertain && !member.activeMember)) return;
         void command.submit({
           operation: "grant_planner",
           customerId: detail.customer.id,
-          userId,
+          userId: member.userId,
           enabled,
-          expectedVersion: prior?.version ?? 0,
+          expectedVersion: member.version,
         });
       }}
     >
       <h2 className="text-lg font-semibold">Planlægningsadgang til {detail.customer.data.name}</h2>
-      <fieldset disabled={command.locked} className="space-y-3">
-        <Field label="Kollega">
-          <select
-            aria-label="Kollega"
-            className={control}
-            required
-            value={userId}
-            onChange={(e) => {
-              setUserId(e.target.value);
-              setEnabled(detail.planners.find((p) => p.userId === e.target.value)?.enabled ?? true);
-            }}
-          >
-            <option value="">Vælg en kollega</option>
-            {detail.availableUsers.map((u) => (
-              <option key={u.userId} value={u.userId}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+      <fieldset disabled={command.locked} className="min-w-0 space-y-3">
+        <CustomerMemberPicker
+          organizationId={props.organizationId}
+          actorId={props.actorId}
+          customerId={detail.customer.id}
+          value={member}
+          disabled={command.locked}
+          onChange={(next) => {
+            setMember(next);
+            setEnabled(next && next.version > 0 ? next.enabled : true);
+          }}
+        />
         <label className="flex min-h-11 items-center gap-2 text-sm">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           Må se kunden og oprette sager
         </label>
       </fieldset>
-      <Actions command={command} onClose={props.onClose} label="Gem adgang" />
+      <Actions
+        command={command}
+        onClose={props.onClose}
+        label="Gem adgang"
+        canSubmit={!!member?.activeMember}
+      />
     </form>
   );
 }

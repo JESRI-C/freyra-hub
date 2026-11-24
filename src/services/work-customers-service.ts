@@ -6,6 +6,11 @@ import {
   CustomerDetailSchema,
   CustomerListSchema,
   CustomerQuerySchema,
+  CustomerSummarySchema,
+  CustomerContactsPageSchema,
+  CustomerContactResultSchema,
+  CustomerMembersPageSchema,
+  CustomerHistoryPageSchema,
 } from "@/lib/work-customers";
 import { parseWorkOrderInput, WorkOrderRequestError } from "@/lib/work-order-access";
 import {
@@ -37,20 +42,65 @@ export async function queryWorkCustomers(
         ? CustomerCaseListSchema
         : operation === "customer"
           ? CustomerDetailSchema
-          : CaseCustomerContextSchema;
+          : operation === "summary"
+            ? CustomerSummarySchema
+            : operation === "contacts"
+              ? CustomerContactsPageSchema
+              : operation === "contact"
+                ? CustomerContactResultSchema
+                : operation === "members"
+                  ? CustomerMembersPageSchema
+                  : operation === "history"
+                    ? CustomerHistoryPageSchema
+                    : CaseCustomerContextSchema;
   const result = schema.safeParse(data);
   if (!result.success || result.data.organizationId !== organizationId)
     throw new WorkOrderRequestError("unavailable");
   if (
-    operation === "cases" &&
+    "customerId" in input &&
+    operation !== "customer" &&
+    operation !== "summary" &&
     (!("customerId" in result.data) || result.data.customerId !== input.customerId)
   )
     throw new WorkOrderRequestError("unavailable");
   if (
-    operation === "customer" &&
+    (operation === "customer" || operation === "summary") &&
     (!("customer" in result.data) || result.data.customer.id !== input.customerId)
   )
     throw new WorkOrderRequestError("unavailable");
+  if (
+    operation === "contact" &&
+    (!("contact" in result.data) || result.data.contact.id !== input.contactId)
+  )
+    throw new WorkOrderRequestError("unavailable");
+  if (operation === "contacts") {
+    const page = CustomerContactsPageSchema.parse(result.data);
+    if (
+      (page.hasMore && page.rows.length !== 50) ||
+      new Set(page.rows.map((row) => row.id)).size !== page.rows.length ||
+      (!input.includeArchived && page.rows.some((row) => row.data.archived))
+    )
+      throw new WorkOrderRequestError("unavailable");
+  }
+  if (operation === "members") {
+    const page = CustomerMembersPageSchema.parse(result.data);
+    if (
+      (page.hasMore && page.rows.length !== 50) ||
+      new Set(page.rows.map((row) => row.userId)).size !== page.rows.length ||
+      (input.onlyEnabled && page.rows.some((row) => !row.enabled)) ||
+      (!input.includeFormer && page.rows.some((row) => !row.activeMember))
+    )
+      throw new WorkOrderRequestError("unavailable");
+  }
+  if (operation === "history") {
+    const page = CustomerHistoryPageSchema.parse(result.data);
+    if (page.hasMore && page.rows.length !== 20) throw new WorkOrderRequestError("unavailable");
+    let previous = input.beforeVersion ?? 2147483647;
+    for (const row of page.rows) {
+      if (row.version >= previous) throw new WorkOrderRequestError("unavailable");
+      previous = row.version;
+    }
+  }
   if (
     (operation === "case" || operation === "job") &&
     (!("projectId" in result.data) || result.data.projectId !== input.projectId)

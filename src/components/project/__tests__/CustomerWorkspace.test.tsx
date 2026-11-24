@@ -74,10 +74,78 @@ function receipt(data: CustomerCommand) {
     actorId: data.expectedActorId,
     requestId: data.requestId,
     operation: data.operation,
-    id: id(5),
-    version: 1,
+    id:
+      data.operation === "save_customer"
+        ? (data.customerId ?? id(5))
+        : data.operation === "save_contact"
+          ? (data.contactId ?? id(5))
+          : data.operation === "bind_case" || data.operation === "save_reference"
+            ? data.projectId
+            : id(5),
+    version: "expectedVersion" in data ? data.expectedVersion + 1 : 1,
     number: data.operation === "create_case" ? "S-000001" : "K-000002",
   };
+}
+function loaded(data: CustomerQuery, value = detail()) {
+  const base = { organizationId: data.organizationId, customerId: value.customer.id };
+  if (data.operation === "list")
+    return {
+      organizationId: data.organizationId,
+      canManage: value.canManage,
+      rows: [value.customer],
+      hasMore: false,
+    };
+  if (data.operation === "summary")
+    return {
+      organizationId: data.organizationId,
+      canManage: value.canManage,
+      customer: { ...value.customer, id: data.customerId },
+    };
+  if (data.operation === "cases") return { ...base, rows: [], hasMore: false };
+  if (data.operation === "contacts") {
+    const all = value.contacts.filter(
+      (c) =>
+        (data.includeArchived || !c.data.archived) &&
+        `${c.data.name} ${c.data.phone}`.toLowerCase().includes(data.search.toLowerCase()),
+    );
+    return {
+      ...base,
+      rows: all.slice(data.offset, data.offset + 50),
+      hasMore: all.length > data.offset + 50,
+    };
+  }
+  if (data.operation === "contact") {
+    const contact = value.contacts.find((c) => c.id === data.contactId);
+    if (!contact) throw new WorkOrderRequestError("access");
+    return { ...base, contact };
+  }
+  if (data.operation === "members") {
+    const all = value.availableUsers
+      .map((user) => ({
+        ...user,
+        version: value.planners.find((p) => p.userId === user.userId)?.version ?? 0,
+        enabled: value.planners.find((p) => p.userId === user.userId)?.enabled ?? false,
+        activeMember: true,
+        administrator: false,
+      }))
+      .filter(
+        (user) =>
+          (!data.onlyEnabled || user.enabled) &&
+          user.name.toLowerCase().includes(data.search.toLowerCase()),
+      );
+    return {
+      ...base,
+      rows: all.slice(data.offset, data.offset + 50),
+      hasMore: all.length > data.offset + 50,
+    };
+  }
+  if (data.operation === "history") {
+    const all = [...value.history]
+      .sort((a, b) => b.version - a.version)
+      .filter((row) => data.beforeVersion === null || row.version < data.beforeVersion);
+    return { ...base, rows: all.slice(0, 20), hasMore: all.length > 20 };
+  }
+  throw new Error(`Unexpected legacy or case query: ${data.operation}`);
 }
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function flush() {
@@ -130,6 +198,7 @@ async function change(text: string, value: string) {
       new Event(node instanceof HTMLSelectElement ? "change" : "input", { bubbles: true }),
     );
   });
+  await flush();
 }
 async function submit() {
   await act(async () => {
@@ -146,29 +215,7 @@ beforeEach(() => {
   m.blocker.mockReset();
   m.refresh.mockReset().mockResolvedValue({ projectSelected: false });
   m.load.mockReset();
-  m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) =>
-    data.operation === "list"
-      ? {
-          organizationId: data.organizationId,
-          canManage: true,
-          rows: [detail().customer],
-          hasMore: false,
-        }
-      : data.operation === "cases"
-        ? {
-            organizationId: data.organizationId,
-            customerId: data.customerId,
-            rows: [],
-            hasMore: false,
-          }
-        : {
-            ...detail(),
-            customer: {
-              ...detail().customer,
-              id: data.operation === "customer" ? data.customerId : id(3),
-            },
-          },
-  );
+  m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) => loaded(data));
   m.save
     .mockReset()
     .mockImplementation(async ({ data }: { data: CustomerCommand }) => receipt(data));
@@ -184,6 +231,117 @@ afterEach(async () => {
 });
 
 describe("kundens sammenhængende arbejdsrum", () => {
+  it("åbner over 500 kontakter og bevarer den sidste side gennem redigering", async () => {
+    const large = detail();
+    large.contacts = Array.from({ length: 501 }, (_, i) => ({
+      id: id(1000 + i),
+      version: 1,
+      data: { ...detail().contacts[0].data, name: `Contact ${String(i + 1).padStart(4, "0")}` },
+    }));
+    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) => loaded(data, large));
+    m.save.mockImplementation(async ({ data }: { data: CustomerCommand }) => {
+      if (data.operation === "save_contact")
+        large.contacts = large.contacts.map((c) =>
+          c.id === data.contactId ? { id: c.id, version: 2, data: data.data } : c,
+        );
+      return receipt(data);
+    });
+    await render();
+    await selectCustomer();
+    for (let i = 0; i < 10; i++) await click("Næste kontaktpersoner");
+    const section = () => host.querySelector('[aria-label="Kontaktpersoner"]')!;
+    expect(section().textContent).toContain("Contact 0501");
+    await click("Redigér kontakt");
+    await change("Telefon", "NY-TELEFON");
+    await submit();
+    expect(m.save.mock.calls[0][0].data).toMatchObject({ contactId: id(1500), expectedVersion: 1 });
+    expect(section().textContent).toContain("Contact 0501");
+    expect(section().textContent).toContain("NY-TELEFON");
+    expect(section().textContent).not.toContain("Contact 0001");
+    expect(m.load.mock.calls.every((c) => c[0].data.operation !== "customer")).toBe(true);
+  });
+  it("bevarer en kontakt uden for den aktuelle søgeresultatside på den nye sag", async () => {
+    const large = detail();
+    large.contacts = Array.from({ length: 501 }, (_, i) => ({
+      id: id(1000 + i),
+      version: 1,
+      data: { ...detail().contacts[0].data, name: `Contact ${String(i + 1).padStart(4, "0")}` },
+    }));
+    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) => loaded(data, large));
+    await render();
+    await selectCustomer();
+    await click("Opret sag under kunden");
+    await change("Sagens navn", "Fiktiv sag med sen kontakt");
+    await change("Søg kontaktperson", "Contact 0501");
+    await change("Kontaktperson på sagen", id(1500));
+    await change("Søg kontaktperson", "Contact 0001");
+    expect(field("Kontaktperson på sagen").value).toBe(id(1500));
+    await submit();
+    expect(m.save.mock.calls[0][0].data).toMatchObject({
+      operation: "create_case",
+      contactId: id(1500),
+    });
+  });
+  it("fastholder den valgte kollega og grantversion efter søgning i et stort register", async () => {
+    const large = detail();
+    large.availableUsers = Array.from({ length: 501 }, (_, i) => ({
+      userId: id(2000 + i),
+      name: `Member ${String(i + 1).padStart(4, "0")}`,
+    }));
+    large.planners = [{ userId: id(2500), enabled: true, version: 9 }];
+    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) => loaded(data, large));
+    await render();
+    await selectCustomer();
+    await click("Administrér planlæggere");
+    await change("Søg kollega", "Member 0501");
+    await change("Kollega", id(2500));
+    large.planners = [{ userId: id(2500), enabled: false, version: 10 }];
+    await change("Søg kollega", "Member 0001");
+    expect(field("Kollega").value).toBe(id(2500));
+    await submit();
+    expect(m.save.mock.calls[0][0].data).toMatchObject({
+      operation: "grant_planner",
+      userId: id(2500),
+      expectedVersion: 9,
+      enabled: true,
+    });
+  });
+  it("viser ældre kundeversioner og deres fulde adresse uden at ændre den aktuelle kunde", async () => {
+    const value = detail();
+    value.customer.version = 25;
+    value.history = Array.from({ length: 25 }, (_, i) => ({
+      version: 25 - i,
+      changedAt: "2026-11-24T08:00:00Z",
+      data: { ...value.customer.data, address: `Adresse version ${25 - i}` },
+    }));
+    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) => loaded(data, value));
+    await render();
+    await selectCustomer();
+    await click("Ældre versioner");
+    const section = host.querySelector('[aria-label="Kundehistorik"]')!;
+    expect(section.textContent).toContain("Version 1 ·");
+    expect(section.textContent).toContain("Adresse version 1");
+    expect(host.querySelector('[aria-label="Kundeoplysninger"]')?.textContent).toContain(
+      "Version 25",
+    );
+    await click("Nyere versioner");
+    expect(section.textContent).toContain("Version 25 ·");
+  });
+  it("blokerer sagsgemning hvis den valgte kontakt ikke længere kan kontrolleres", async () => {
+    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) => {
+      if (data.operation === "contact") throw new WorkOrderRequestError("unavailable");
+      return loaded(data);
+    });
+    await render();
+    await selectCustomer();
+    await click("Opret sag under kunden");
+    await change("Sagens navn", "Fiktiv sag");
+    await change("Kontaktperson på sagen", id(4));
+    expect(button("Opret sag").disabled).toBe(true);
+    await submit();
+    expect(m.save).not.toHaveBeenCalled();
+    expect(host.textContent).toContain("Den valgte kontakt kunne ikke kontrolleres");
+  });
   it("opretter en sag med valgt kontakt og åbner det eksisterende jobarbejdsrum", async () => {
     await render();
     await selectCustomer();
@@ -257,13 +415,7 @@ describe("kundens sammenhængende arbejdsrum", () => {
         data: { ...detail().customer.data, name: "Kollegas gemte kunde" },
       },
     };
-    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) =>
-      data.operation === "list"
-        ? { organizationId: m.org, canManage: true, rows: [corrected.customer], hasMore: false }
-        : data.operation === "cases"
-          ? { organizationId: m.org, customerId: id(3), rows: [], hasMore: false }
-          : corrected,
-    );
+    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) => loaded(data, corrected));
     await click("Fortryd");
     await click("Redigér kunde");
     expect(field("Kundenavn").value).toBe("Kollegas gemte kunde");
@@ -297,15 +449,12 @@ describe("kundens sammenhængende arbejdsrum", () => {
     expect(host.querySelector("a")).toBeNull();
   });
   it("giver ikke en planlægger kundeadministration og tilbyder ikke nye sager på arkiverede kunder", async () => {
-    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) =>
-      data.operation === "list"
-        ? { organizationId: m.org, canManage: false, rows: [detail().customer], hasMore: false }
-        : {
-            ...detail(),
-            canManage: false,
-            customer: { ...detail().customer, data: { ...detail().customer.data, archived: true } },
-          },
-    );
+    const archived = {
+      ...detail(),
+      canManage: false,
+      customer: { ...detail().customer, data: { ...detail().customer.data, archived: true } },
+    };
+    m.load.mockImplementation(async ({ data }: { data: CustomerQuery }) => loaded(data, archived));
     await render();
     expect(host.textContent).not.toContain("Opret kunde");
     await selectCustomer();

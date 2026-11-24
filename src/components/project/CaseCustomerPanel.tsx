@@ -4,12 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { getWorkCustomers } from "@/lib/work-customers.functions";
 import {
   CaseCustomerContextSchema,
-  CustomerDetailSchema,
+  CustomerSummarySchema,
   CustomerListSchema,
   type CaseCustomerContext,
 } from "@/lib/work-customers";
 import { useCustomerCommand } from "./useCustomerCommand";
 import { CustomerField } from "./CustomerField";
+import { CustomerContactPicker } from "./CustomerCollections";
 
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50";
@@ -138,7 +139,10 @@ function CaseContext({ organizationId, projectId, actorId, actionId, onEditingCh
           kind={editing}
           context={current}
           actorId={actorId}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            void context.refetch();
+          }}
           onSaved={saved}
         />
       )}
@@ -162,6 +166,7 @@ function CaseContextForm({
   const [reference, setReference] = useState(context.binding?.customerReference ?? "");
   const [customerId, setCustomerId] = useState(context.binding?.customerId ?? "");
   const [contactId, setContactId] = useState(context.binding?.contactId ?? "");
+  const [contactValid, setContactValid] = useState(!context.binding?.contactId);
   const [filter, setFilter] = useState({ search: "", offset: 0 });
   const command = useCustomerCommand(context.organizationId, actorId, onSaved);
   const customers = useQuery({
@@ -182,14 +187,14 @@ function CaseContextForm({
     retry: false,
   });
   const detail = useQuery({
-    queryKey: ["work-customers", actorId, context.organizationId, "customer", customerId],
+    queryKey: ["work-customers", actorId, context.organizationId, "summary", customerId],
     queryFn: async () =>
-      CustomerDetailSchema.parse(
+      CustomerSummarySchema.parse(
         await load({
           data: {
             organizationId: context.organizationId,
             expectedActorId: actorId,
-            operation: "customer",
+            operation: "summary",
             customerId,
           },
         }),
@@ -199,17 +204,14 @@ function CaseContextForm({
   });
   const selected =
     !detail.isError && detail.data?.customer.id === customerId ? detail.data : undefined;
-  const canBind =
-    !!selected &&
-    !selected.customer.data.archived &&
-    (!contactId || selected.contacts.some((c) => c.id === contactId && !c.data.archived));
+  const canBind = !!selected && !selected.customer.data.archived && (!contactId || contactValid);
   return (
     <form
       aria-label={kind === "reference" ? "Ret kundens reference" : "Tilknyt kunde"}
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (kind === "binding" && !canBind) return;
+        if (!command.uncertain && kind === "binding" && !canBind) return;
         void command.submit(
           kind === "reference"
             ? {
@@ -229,7 +231,7 @@ function CaseContextForm({
         );
       }}
     >
-      <fieldset disabled={command.locked} className="space-y-3">
+      <fieldset disabled={command.locked} className="min-w-0 space-y-3">
         {kind === "binding" && (
           <>
             <label className="block text-sm font-medium">
@@ -296,22 +298,16 @@ function CaseContextForm({
             {customerId && detail.isPending && <p role="status">Henter kontakter…</p>}
             {detail.isError && <p role="alert">Den valgte kunde er ikke tilgængelig.</p>}
             {selected && (
-              <CustomerField label="Kontaktperson">
-                <select
-                  className={control}
-                  value={contactId}
-                  onChange={(e) => setContactId(e.target.value)}
-                >
-                  <option value="">Ingen kontakt valgt</option>
-                  {selected.contacts
-                    .filter((c) => !c.data.archived)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.data.name}
-                      </option>
-                    ))}
-                </select>
-              </CustomerField>
+              <CustomerContactPicker
+                organizationId={context.organizationId}
+                actorId={actorId}
+                customerId={customerId}
+                label="Kontaktperson"
+                value={contactId}
+                onChange={setContactId}
+                onValidityChange={setContactValid}
+                disabled={command.locked}
+              />
             )}
             <p className="text-xs text-muted-foreground">
               Gemning vælger kundens og kontaktens aktuelle version til sagen. Tidligere

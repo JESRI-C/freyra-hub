@@ -99,6 +99,37 @@ export const CustomerQuerySchema = z.discriminatedUnion("operation", [
     })
     .strict(),
   z.object({ ...scope, operation: z.literal("customer"), customerId: id }).strict(),
+  z.object({ ...scope, operation: z.literal("summary"), customerId: id }).strict(),
+  z
+    .object({
+      ...scope,
+      operation: z.literal("contacts"),
+      customerId: id,
+      search: text(120),
+      includeArchived: z.boolean(),
+      offset: z.number().int().min(0).max(100000),
+    })
+    .strict(),
+  z.object({ ...scope, operation: z.literal("contact"), customerId: id, contactId: id }).strict(),
+  z
+    .object({
+      ...scope,
+      operation: z.literal("members"),
+      customerId: id,
+      search: text(120),
+      onlyEnabled: z.boolean(),
+      includeFormer: z.boolean(),
+      offset: z.number().int().min(0).max(100000),
+    })
+    .strict(),
+  z
+    .object({
+      ...scope,
+      operation: z.literal("history"),
+      customerId: id,
+      beforeVersion: version.min(1).nullable(),
+    })
+    .strict(),
   z
     .object({
       ...scope,
@@ -120,6 +151,49 @@ export const CustomerListSchema = z.object({
   organizationId: id,
   canManage: z.boolean(),
   rows: z.array(customer).max(50),
+  hasMore: z.boolean(),
+});
+export const CustomerSummarySchema = z.object({
+  organizationId: id,
+  canManage: z.boolean(),
+  customer,
+});
+export const CustomerContactSchema = z.object({
+  id,
+  version: version.min(1),
+  data: CustomerContactFieldsSchema,
+});
+export const CustomerContactsPageSchema = z.object({
+  organizationId: id,
+  customerId: id,
+  rows: z.array(CustomerContactSchema).max(50),
+  hasMore: z.boolean(),
+});
+export const CustomerContactResultSchema = z.object({
+  organizationId: id,
+  customerId: id,
+  contact: CustomerContactSchema,
+});
+export const CustomerMemberSchema = z.object({
+  userId: id,
+  name: text(500).min(1),
+  enabled: z.boolean(),
+  version,
+  activeMember: z.boolean(),
+  administrator: z.boolean(),
+});
+export const CustomerMembersPageSchema = z.object({
+  organizationId: id,
+  customerId: id,
+  rows: z.array(CustomerMemberSchema).max(50),
+  hasMore: z.boolean(),
+});
+export const CustomerHistoryPageSchema = z.object({
+  organizationId: id,
+  customerId: id,
+  rows: z
+    .array(z.object({ version: version.min(1), changedAt: z.string(), data: CustomerFieldsSchema }))
+    .max(20),
   hasMore: z.boolean(),
 });
 export const CustomerDetailSchema = z.object({
@@ -194,6 +268,9 @@ export type CustomerCommand = z.infer<typeof CustomerCommandSchema>;
 export type CustomerQuery = z.infer<typeof CustomerQuerySchema>;
 export type CustomerFields = z.infer<typeof CustomerFieldsSchema>;
 export type CustomerDetail = z.infer<typeof CustomerDetailSchema>;
+export type CustomerSummary = z.infer<typeof CustomerSummarySchema>;
+export type CustomerContact = z.infer<typeof CustomerContactSchema>;
+export type CustomerMember = z.infer<typeof CustomerMemberSchema>;
 export type CaseCustomerContext = z.infer<typeof CaseCustomerContextSchema>;
 export const CaseCustomerBindingSchema = CaseCustomerContextSchema.shape.binding.unwrap();
 export const emptyCustomer: CustomerFields = {

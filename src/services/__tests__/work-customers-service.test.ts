@@ -30,6 +30,182 @@ const client = (data: unknown, error: { code: string } | null = null) => ({
 });
 
 describe("customer requests through the authenticated client", () => {
+  const contact = {
+    id: request,
+    version: 1,
+    data: {
+      name: "Fictional contact",
+      title: "",
+      email: "contact@example.test",
+      phone: "FAKE",
+      archived: false,
+    },
+  };
+  const member = {
+    userId: other,
+    name: "Fictional member",
+    enabled: true,
+    version: 1,
+    activeMember: true,
+    administrator: false,
+  };
+  function pageQuery(operation: string) {
+    const base = { organizationId: org, expectedActorId: actor, operation, customerId: customer };
+    return operation === "contacts"
+      ? { ...base, search: "", includeArchived: false, offset: 50 }
+      : operation === "members"
+        ? { ...base, search: "", onlyEnabled: true, includeFormer: false, offset: 50 }
+        : operation === "contact"
+          ? { ...base, contactId: request }
+          : operation === "history"
+            ? { ...base, beforeVersion: 3 }
+            : base;
+  }
+  function pageResponse(operation: string) {
+    const base = { organizationId: org, customerId: customer };
+    return operation === "summary"
+      ? {
+          organizationId: org,
+          canManage: true,
+          customer: { id: customer, number: "K-000001", version: 1, data: input.data },
+        }
+      : operation === "contact"
+        ? { ...base, contact }
+        : {
+            ...base,
+            rows:
+              operation === "contacts"
+                ? [contact]
+                : operation === "members"
+                  ? [member]
+                  : [{ version: 2, changedAt: "2026-11-24T00:00:00Z", data: input.data }],
+            hasMore: false,
+          };
+  }
+  it.each(["summary", "contacts", "contact", "members", "history"])(
+    "checks organization scope for %s",
+    async (operation) => {
+      await expect(
+        queryWorkCustomers(
+          client({ ...pageResponse(operation), organizationId: other }),
+          actor,
+          pageQuery(operation),
+        ),
+      ).rejects.toMatchObject({ code: "unavailable" });
+    },
+  );
+  it.each(["contacts", "contact", "members", "history"])(
+    "checks customer scope for %s",
+    async (operation) => {
+      await expect(
+        queryWorkCustomers(
+          client({ ...pageResponse(operation), customerId: other }),
+          actor,
+          pageQuery(operation),
+        ),
+      ).rejects.toMatchObject({ code: "unavailable" });
+    },
+  );
+  it.each(["summary", "contacts", "contact", "members", "history"])(
+    "uses the exact scoped payload for %s",
+    async (operation) => {
+      const db = client(pageResponse(operation));
+      const raw = pageQuery(operation);
+      await queryWorkCustomers(db, actor, raw);
+      const { organizationId, expectedActorId, operation: op, ...payload } = raw;
+      expect(db.rpc).toHaveBeenCalledWith("query_work_customers", {
+        p_organization_id: organizationId,
+        p_expected_actor_id: expectedActorId,
+        p_operation: op,
+        p_payload: payload,
+      });
+    },
+  );
+  it("checks the identity of a specifically selected contact", async () => {
+    await expect(
+      queryWorkCustomers(
+        client({ organizationId: org, customerId: customer, contact: { ...contact, id: other } }),
+        actor,
+        pageQuery("contact"),
+      ),
+    ).rejects.toMatchObject({ code: "unavailable" });
+  });
+  it("rejects a summary returned for another customer", async () => {
+    await expect(
+      queryWorkCustomers(
+        client({
+          organizationId: org,
+          canManage: true,
+          customer: { id: other, number: "K-000001", version: 1, data: input.data },
+        }),
+        actor,
+        pageQuery("summary"),
+      ),
+    ).rejects.toMatchObject({ code: "unavailable" });
+  });
+  it.each(["contacts", "members"])("rejects an unbounded %s response", async (operation) => {
+    const rows = Array.from({ length: 51 }, () => (operation === "contacts" ? contact : member));
+    await expect(
+      queryWorkCustomers(
+        client({ organizationId: org, customerId: customer, rows, hasMore: true }),
+        actor,
+        pageQuery(operation),
+      ),
+    ).rejects.toMatchObject({ code: "unavailable" });
+  });
+  it("rejects duplicate contacts and archived rows in an active list", async () => {
+    for (const rows of [
+      [contact, contact],
+      [{ ...contact, data: { ...contact.data, archived: true } }],
+    ])
+      await expect(
+        queryWorkCustomers(
+          client({ organizationId: org, customerId: customer, rows, hasMore: false }),
+          actor,
+          pageQuery("contacts"),
+        ),
+      ).rejects.toMatchObject({ code: "unavailable" });
+  });
+  it("rejects former or disabled members when excluded by the query", async () => {
+    for (const rows of [[{ ...member, activeMember: false }], [{ ...member, enabled: false }]])
+      await expect(
+        queryWorkCustomers(
+          client({ organizationId: org, customerId: customer, rows, hasMore: false }),
+          actor,
+          pageQuery("members"),
+        ),
+      ).rejects.toMatchObject({ code: "unavailable" });
+  });
+  it.each([{ versions: [3] }, { versions: [2, 2] }, { versions: [1, 2] }])(
+    "rejects invalid history cursor/order $versions",
+    async ({ versions }) => {
+      await expect(
+        queryWorkCustomers(
+          client({
+            organizationId: org,
+            customerId: customer,
+            rows: versions.map((version) => ({
+              version,
+              changedAt: "2026-11-24T00:00:00Z",
+              data: input.data,
+            })),
+            hasMore: false,
+          }),
+          actor,
+          pageQuery("history"),
+        ),
+      ).rejects.toMatchObject({ code: "unavailable" });
+    },
+  );
+  it("rejects an untrue next-page marker", async () => {
+    await expect(
+      queryWorkCustomers(
+        client({ organizationId: org, customerId: customer, rows: [], hasMore: true }),
+        actor,
+        pageQuery("history"),
+      ),
+    ).rejects.toMatchObject({ code: "unavailable" });
+  });
   it("refuses a case list returned for a different customer", async () => {
     await expect(
       queryWorkCustomers(
