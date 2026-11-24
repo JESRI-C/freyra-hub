@@ -16,6 +16,8 @@ export default defineConfig({
     viewport: { width: 1440, height: 1000 },
     locale: "da-DK",
     timezoneId: "Europe/Copenhagen",
+    actionTimeout: 30_000,
+    navigationTimeout: 60_000,
     trace: "off",
     video: "off",
     screenshot: "off",

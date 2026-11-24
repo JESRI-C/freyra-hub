@@ -95,6 +95,7 @@ test("employee completes a documented job from the map and a separate manager re
   await expect(status.getByLabel("Kilde til starttidspunkt", { exact: true })).not.toHaveValue("");
   await status.getByRole("button", { name: "Gem statusversion", exact: true }).click();
   await expect(status).toContainText("Status: Påbegyndt · version 4");
+  console.info("workflow checkpoint: map, keyboard, pointer and server start passed");
 
   await card.getByRole("link", { name: "Fotos og jobkort på opgaven", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/felt\\?.*task=${actionId}`));
@@ -105,6 +106,8 @@ test("employee completes a documented job from the map and a separate manager re
   await photos
     .getByLabel("Tag originalfoto til feltkøen", { exact: true })
     .setInputFiles({ name: "syntetisk-arbejdsfoto.png", mimeType: "image/png", buffer: photo });
+  await expect(photos.getByRole("status")).toContainText("1 af 1 originaler er gemt på telefonen.");
+  console.info("workflow checkpoint: original photo saved locally");
   const selector = jobs.getByLabel("Jobkort i opgavepakken", { exact: true });
   await selector.selectOption(cardIds[0]);
   await jobs
