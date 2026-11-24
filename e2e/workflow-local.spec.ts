@@ -355,7 +355,8 @@ test("employee completes a documented job from the map and a separate manager re
     const file = await pdf.path();
     if (!file) throw new Error("Synthetic report PDF was not downloaded.");
     const bytes = new Uint8Array(await readFile(file));
-    const document = await getDocument({ data: bytes, useSystemFonts: false }).promise;
+    const loading = getDocument({ data: bytes, useSystemFonts: false });
+    const document = await loading.promise;
     let text = "";
     try {
       for (let index = 1; index <= document.numPages; index++) {
@@ -363,7 +364,7 @@ test("employee completes a documented job from the map and a separate manager re
         text += content.items.map((item) => ("str" in item ? item.str : "")).join(" ");
       }
     } finally {
-      await document.destroy();
+      await loading.destroy();
     }
     expect(text).toContain("Syntetisk dokumentationsjob");
     expect(text).toContain("Syntetisk stedkontrol");
