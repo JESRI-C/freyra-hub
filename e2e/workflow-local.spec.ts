@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
@@ -14,6 +14,54 @@ async function myJob(page: Page, actionId: string) {
   });
   await expect(card).toBeVisible();
   return card;
+}
+
+async function retryUsageAfterLostResponse(
+  page: Page,
+  table: string,
+  panel: Locator,
+  save: Locator,
+) {
+  const pattern = `**/rest/v1/${table}*`;
+  const writes: unknown[] = [];
+  let firstId: string | undefined;
+  let firstStatus: number | undefined;
+  let recoveryBlocked = true;
+  const intercept = async (route: Route) => {
+    const request = route.request();
+    if (request.method() === "POST") {
+      const payload = request.postDataJSON();
+      writes.push(payload);
+      if (writes.length === 1) {
+        firstId = payload.id;
+        const response = await route.fetch();
+        firstStatus = response.status();
+        await route.abort("failed");
+        return;
+      }
+    } else if (
+      recoveryBlocked &&
+      firstId &&
+      new URL(request.url()).searchParams.get("id") === `eq.${firstId}`
+    ) {
+      await route.abort("failed");
+      return;
+    }
+    await route.continue();
+  };
+  await page.route(pattern, intercept);
+  try {
+    await save.click();
+    await expect(panel.getByText("Registreringen kunne ikke bekræftes. Prøv igen.")).toBeVisible();
+    expect(firstStatus).toBe(201);
+    recoveryBlocked = false;
+    await save.click();
+    await expect(save).toBeHidden();
+    expect(writes).toHaveLength(2);
+    expect(writes[1]).toEqual(writes[0]);
+  } finally {
+    await page.unroute(pattern, intercept);
+  }
 }
 
 test("employee completes a documented job from the map and a separate manager reviews its report", async ({
@@ -239,7 +287,12 @@ test("employee completes a documented job from the map and a separate manager re
   await time.getByLabel("Dato for arbejdet", { exact: true }).fill(workDate);
   await time.getByRole("button", { name: "Registrér tid", exact: true }).click();
   await time.getByLabel("Arbejdstid i minutter", { exact: true }).fill("45");
-  await time.getByRole("button", { name: "Gem tid", exact: true }).click();
+  await retryUsageAfterLostResponse(
+    page,
+    "work_order_time_versions",
+    time,
+    time.getByRole("button", { name: "Gem tid", exact: true }),
+  );
   await expect(time).toContainText("45 min. · Version 1");
   await expect(time).toContainText("Afventer godkendelse");
   await task
@@ -250,11 +303,25 @@ test("employee completes a documented job from the map and a separate manager re
   await materials.getByRole("button", { name: "Registrér materiale", exact: true }).click();
   await materials.getByLabel("Materiale", { exact: true }).fill("Syntetiske markeringspæle");
   await materials.getByLabel("Mængde", { exact: true }).fill("2");
-  await materials.getByRole("button", { name: "Gem materiale", exact: true }).click();
+  await retryUsageAfterLostResponse(
+    page,
+    "work_order_material_versions",
+    materials,
+    materials.getByRole("button", { name: "Gem materiale", exact: true }),
+  );
   await expect(materials).toContainText("Syntetiske markeringspæle");
   await expect(
     materials.getByRole("button", { name: "Registrér materiale", exact: true }),
   ).toBeVisible();
+  for (const table of ["work_order_time_versions", "work_order_material_versions"]) {
+    const saved = await worker
+      .from(table)
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("action_id", actionId);
+    expect(saved.error).toBeNull();
+    expect(saved.data).toHaveLength(1);
+  }
 
   await task.getByRole("link", { name: "Registrér udført arbejde", exact: true }).click();
   const execution = page.getByRole("region", { name: "Faktisk udførelse", exact: true });
