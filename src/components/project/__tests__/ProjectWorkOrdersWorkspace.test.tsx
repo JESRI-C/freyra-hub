@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyWorkOrderPlan, type WorkOrderFollowUpSource } from "@/lib/work-order-plan";
+vi.mock("../CaseCustomerPanel", () => ({ CaseCustomerPanel: () => null }));
 const m = vi.hoisted(() => ({
   access: vi.fn(),
   actions: vi.fn(),

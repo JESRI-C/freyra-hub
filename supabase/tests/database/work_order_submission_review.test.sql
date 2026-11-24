@@ -4,10 +4,11 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT no_plan();
 CREATE FUNCTION pg_temp.k(n integer) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT ('ed070000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid $$;
 INSERT INTO auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
- SELECT '00000000-0000-0000-0000-000000000000',pg_temp.k(n),'authenticated','authenticated','synthetic-review-'||n||'@example.test','',now(),'{"provider":"email"}','{"role":"admin"}',now(),now() FROM generate_series(1,5)n;
+ SELECT '00000000-0000-0000-0000-000000000000',pg_temp.k(n),'authenticated','authenticated','synthetic-review-'||n||'@example.test','',now(),'{"provider":"email"}','{"role":"admin"}',now(),now() FROM generate_series(1,6)n;
 INSERT INTO public.organizations(id,name,type,country) VALUES(pg_temp.k(11),'Synthetic submission org','test','Denmark'),(pg_temp.k(12),'Synthetic foreign org','test','Denmark');
 INSERT INTO public.organization_memberships(organization_id,user_id,role) SELECT pg_temp.k(11),pg_temp.k(n),'viewer' FROM generate_series(1,4)n;
 INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES(pg_temp.k(12),pg_temp.k(5),'owner');
+INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES(pg_temp.k(11),pg_temp.k(6),'owner');
 INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_temp.k(11),'Synthetic submission project'),(pg_temp.k(22),pg_temp.k(12),'Synthetic foreign project');
 INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'viewer'),(pg_temp.k(21),pg_temp.k(4),'external');
 INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(31),pg_temp.k(21),'Synthetic task'),(pg_temp.k(32),pg_temp.k(21),'Synthetic other task');
@@ -27,6 +28,23 @@ SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT * FROM public.initialize_work_order(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),0,pg_temp.k(41));
 SELECT * FROM public.initialize_work_order(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),0,pg_temp.k(42));
+-- Customer administration uses a separate owner; the project leader stays an organization viewer.
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+CREATE FUNCTION pg_temp.customer_fields(n text DEFAULT 'Synthetic frozen customer',archived boolean DEFAULT false)
+RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('name',n,'registrationNumber','PRIVATE-REGISTRATION',
+  'address','PRIVATE-BILLING-ADDRESS','postalCode','0000','city','Synthetic city','country','Danmark','archived',archived) $$;
+CREATE FUNCTION pg_temp.customer_command(op text,payload jsonb) RETURNS jsonb LANGUAGE sql AS $$
+ SELECT public.command_work_customers(pg_temp.k(11),auth.uid(),gen_random_uuid(),op,payload) $$;
+INSERT INTO pg_temp.saved VALUES('customer',pg_temp.customer_command('save_customer',
+  jsonb_build_object('customerId',NULL,'expectedVersion',0,'data',pg_temp.customer_fields()))::text);
+CREATE FUNCTION pg_temp.customer_id() RETURNS uuid LANGUAGE sql AS $$ SELECT (value::jsonb->>'id')::uuid FROM pg_temp.saved WHERE name='customer' $$;
+INSERT INTO pg_temp.saved VALUES('contact',pg_temp.customer_command('save_contact',
+  jsonb_build_object('customerId',pg_temp.customer_id(),'contactId',NULL,'expectedVersion',0,
+    'data',jsonb_build_object('name','Synthetic frozen contact','title','Site contact','phone','SYNTHETIC-PHONE','email','frozen@example.test','archived',false)))::text);
+SELECT pg_temp.customer_command('grant_planner',jsonb_build_object('customerId',pg_temp.customer_id(),'userId',pg_temp.k(1),'expectedVersion',0,'enabled',true));
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT pg_temp.customer_command('bind_case',jsonb_build_object('projectId',pg_temp.k(21),'customerId',pg_temp.customer_id(),
+  'contactId',(SELECT (value::jsonb->>'id')::uuid FROM pg_temp.saved WHERE name='contact'),'expectedVersion',0,'customerReference','SYNTHETIC-FROZEN-REF'));
 SELECT ok((pg_temp.ctx()->'gaps') ? 'plan_incomplete','preflight reports missing plan');
 SELECT throws_ok($$SELECT pg_temp.save()$$,'22023',NULL,'incomplete task cannot create a packet');
 SELECT * FROM public.save_work_order_plan(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(43));
@@ -81,6 +99,15 @@ CREATE FUNCTION pg_temp.review(v integer,op text,target text,packet integer DEFA
 $$;
 SET LOCAL ROLE authenticated;
 INSERT INTO pg_temp.saved SELECT 'packet1',snapshot::text FROM public.work_order_submission_versions WHERE version=1;
+SELECT is((SELECT value::jsonb->'caseCustomer'->>'customerName' FROM pg_temp.saved WHERE name='packet1'),
+  'Synthetic frozen customer','the actual saved submission contains the pinned customer');
+SELECT is((SELECT value::jsonb->'caseCustomer'->'contact'->>'phone' FROM pg_temp.saved WHERE name='packet1'),
+  'SYNTHETIC-PHONE','the actual saved submission contains the selected contact version');
+SELECT is((SELECT basis_hash FROM public.work_order_submission_versions WHERE action_id=pg_temp.k(31) AND version=1),
+  (SELECT encode(sha256(convert_to(value::jsonb::text,'UTF8')),'hex') FROM pg_temp.saved WHERE name='packet1'),
+  'the submission checksum covers the customer context as well as job evidence');
+SELECT ok((SELECT value NOT LIKE '%PRIVATE-BILLING-ADDRESS%' AND value NOT LIKE '%PRIVATE-REGISTRATION%'
+  FROM pg_temp.saved WHERE name='packet1'),'field and external reviewers do not receive billing-only registry fields');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(1),0,true,true,true,'Synthetic author review grant',pg_temp.k(180));
 SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),0,true,true,true,'Synthetic performer review grant',pg_temp.k(181));
@@ -179,7 +206,27 @@ SELECT * FROM public.save_work_order_plan(pg_temp.k(31),pg_temp.k(11),pg_temp.k(
   pg_temp.plan() || '{"title":"Later job title","locationNote":"Later location"}'::jsonb,
   'Synthetic later plan',pg_temp.k(244));
 
+-- Registry correction, archival and a new case reference happen after approval, before report creation.
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT pg_temp.customer_command('save_customer',jsonb_build_object('customerId',pg_temp.customer_id(),
+  'expectedVersion',1,'data',pg_temp.customer_fields('Later customer name',true)));
+SELECT pg_temp.customer_command('save_contact',jsonb_build_object('customerId',pg_temp.customer_id(),
+  'contactId',(SELECT (value::jsonb->>'id')::uuid FROM pg_temp.saved WHERE name='contact'),'expectedVersion',1,
+  'data',jsonb_build_object('name','Later contact name','title','','phone','LATER-PHONE','email','later@example.test','archived',true)));
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT pg_temp.customer_command('save_reference',jsonb_build_object('projectId',pg_temp.k(21),'expectedVersion',1,'customerReference','LATER-REFERENCE'));
 INSERT INTO pg_temp.saved VALUES ('work-order-report', pg_temp.work_order_report()::text);
+CREATE FUNCTION pg_temp.report_customer() RETURNS jsonb LANGUAGE sql AS $$
+ SELECT section FROM jsonb_array_elements((SELECT value::jsonb->'content'->'sections' FROM pg_temp.saved WHERE name='work-order-report')) section
+ WHERE section->>'id'='case-customer' $$;
+SELECT ok(pg_temp.report_customer()->>'text' LIKE '%Kunde: Synthetic frozen customer%',
+  'newly generated report uses the approved customer despite a later registry correction');
+SELECT ok(pg_temp.report_customer()->>'text' LIKE '%Kontakt: Synthetic frozen contact%',
+  'archiving and correcting a contact does not rewrite approved report context');
+SELECT ok(pg_temp.report_customer()->>'text' LIKE '%Kundens reference: SYNTHETIC-FROZEN-REF%',
+  'report reference comes from its exact approved submission, not the latest case binding');
+SELECT ok(pg_temp.report_customer()->>'text' NOT LIKE '%LATER-%' AND pg_temp.report_customer()->>'text' NOT LIKE '%Later%',
+  'later customer, contact and reference values cannot leak into the historical report');
 SELECT is(pg_temp.work_order_report(),(SELECT value::jsonb FROM pg_temp.saved WHERE name='work-order-report'),
   'retry returns exactly the same stored report');
 SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'submissionVersion'
