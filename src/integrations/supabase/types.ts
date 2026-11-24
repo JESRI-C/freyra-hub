@@ -7232,6 +7232,25 @@ export type Database = {
       };
     };
     Functions: {
+      command_work_customers: {
+        Args: {
+          p_organization_id: string;
+          p_expected_actor_id: string;
+          p_request_id: string;
+          p_operation: string;
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
+      query_work_customers: {
+        Args: {
+          p_organization_id: string;
+          p_expected_actor_id: string;
+          p_operation: string;
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
       advance_field_photo_background: {
         Args: {
           p_lease_id: string;

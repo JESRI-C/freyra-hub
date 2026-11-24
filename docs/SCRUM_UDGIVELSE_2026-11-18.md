@@ -61,6 +61,8 @@ Den samlede prøve køres mod den byggede app i en lokal Worker med den disponib
 
 Kunderegister, kontaktpersoner og sagsreferencer er identificeret som åbne leverancer i det samlede sagsforløb. De tælles ikke som færdige alene på grund af projektoversigten.
 
+Kunde- og sagsforløbet bygges nu på den eksisterende projekt-/jobstruktur. Kundeadministration og særskilt planlægningsadgang skal afgrænse registret; medarbejderen får kun den nødvendige kontakt og reference gennem sin sag eller et konkret tildelt job. Rettelser, arkivering, nummerering og genforsøg skal bevare historikken. Database og serverkontrakter er under udvikling; brugerflade, rapportbinding og samlet accept er fortsat åbne.
+
 ## Kanban og færdigkriterium
 
 Udviklingstavlen viser funktionsområder, kodehenvisninger og acceptkrav. En funktion afsluttes først efter den konkrete accept på den angivne udgivelse. En kodehenvisning alene er ikke en færdig funktion. Den realistiske demosag skal indeholde flere jobs og kunne vises til Dalgas.
