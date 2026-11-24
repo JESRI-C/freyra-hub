@@ -297,13 +297,13 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
                 )}
               </section>
               <CustomerCases
-                key={current.customer.id}
+                key={`cases:${current.customer.id}`}
                 organizationId={organizationId}
                 actorId={actorId}
                 customerId={current.customer.id}
               />
               <CustomerContacts
-                key={current.customer.id}
+                key={`contacts:${current.customer.id}`}
                 organizationId={organizationId}
                 actorId={actorId}
                 customerId={current.customer.id}
@@ -315,7 +315,7 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
               />
               {current.canManage && (
                 <CustomerPlanners
-                  key={current.customer.id}
+                  key={`planners:${current.customer.id}`}
                   organizationId={organizationId}
                   actorId={actorId}
                   customerId={current.customer.id}
@@ -324,7 +324,7 @@ function Customers({ organizationId, actorId }: { organizationId: string; actorI
                 />
               )}
               <CustomerHistory
-                key={current.customer.id}
+                key={`history:${current.customer.id}`}
                 organizationId={organizationId}
                 actorId={actorId}
                 customerId={current.customer.id}

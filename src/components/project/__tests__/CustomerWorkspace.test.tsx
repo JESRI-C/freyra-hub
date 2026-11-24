@@ -169,6 +169,7 @@ function button(text: string) {
   return result!;
 }
 async function click(text: string) {
+  await vi.waitFor(() => expect(button(text).disabled).toBe(false));
   await act(async () => button(text).click());
   await flush();
 }
@@ -250,7 +251,7 @@ describe("kundens sammenhængende arbejdsrum", () => {
     await selectCustomer();
     for (let i = 0; i < 10; i++) await click("Næste kontaktpersoner");
     const section = () => host.querySelector('[aria-label="Kontaktpersoner"]')!;
-    expect(section().textContent).toContain("Contact 0501");
+    await vi.waitFor(() => expect(section().textContent).toContain("Contact 0501"));
     await click("Redigér kontakt");
     await change("Telefon", "NY-TELEFON");
     await submit();
